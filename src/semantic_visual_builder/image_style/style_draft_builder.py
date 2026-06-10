@@ -43,37 +43,44 @@ class StyleDraftBuilder:
                 "Extracted from an image reference with optional VLM style hints."
             )
 
+        is_dark = deterministic_analysis.background_tone == "dark"
+        text_hint = deterministic_analysis.text_colour_hint or (
+            "#ffffff" if is_dark else "#000000"
+        )
+        sequence_colours = [colour.hex_value for colour in palette_result.colours[:6]]
         palette = ColourPalette(
             primary=palette_result.primary_colour,
             secondary=palette_result.accent_colour,
             accent=palette_result.accent_colour,
-            neutral=palette_result.neutral_colour,
+            neutral=palette_result.neutral_colour or (
+                "#aaaaaa" if is_dark else "#666666"
+            ),
             warning=None,
             success=None,
             danger=None,
-            sequence=[colour.hex_value for colour in palette_result.colours[:6]],
+            sequence=sequence_colours,
         )
-        background = palette_result.background_colour or "#ffffff"
+        background = palette_result.background_colour or ("#111111" if is_dark else "#ffffff")
+        plot_background = background
         chart = ChartStyle(
             background=background,
-            plot_background=background,
+            plot_background=plot_background,
             grid=deterministic_analysis.grid_hint,
             legend_position="right",
             label_density=deterministic_analysis.label_density_hint,
             title_alignment="left",
         )
+        node_stroke = palette_result.primary_colour or ("#00b0f0" if is_dark else "#1f4e79")
         diagram = DiagramStyle(
             direction="LR" if image_metadata.aspect_ratio >= 1.15 else "TD",
             node_fill=palette_result.primary_colour or background,
-            node_stroke=palette_result.primary_colour or "#1f4e79",
+            node_stroke=node_stroke,
             decision_fill=palette_result.accent_colour or background,
-            edge_colour=palette_result.primary_colour or "#1f4e79",
+            edge_colour=node_stroke,
         )
         renderer_hints = RendererStyleHints(
-            plotly_template="plotly_white"
-            if deterministic_analysis.background_tone != "dark"
-            else "plotly_dark",
-            mermaid_theme="base",
+            plotly_template="plotly_dark" if is_dark else "plotly_white",
+            mermaid_theme="dark" if is_dark else "base",
         )
         metadata = StyleMetadata(
             style_id=style_id,

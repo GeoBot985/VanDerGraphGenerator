@@ -56,3 +56,18 @@ class RecipeManager:
     ) -> RecipeApplicationResult:
         mappings = self.field_mapper.propose_mappings(recipe, dataset_profile)
         return self.recipe_applier.apply_recipe(recipe, dataset_profile, mappings)
+
+    def set_recipe_default_style(
+        self,
+        recipe: VisualRecipe,
+        style_id: str,
+        style_name: str | None = None,
+    ) -> Path:
+        recipe.metadata.default_style_profile_id = style_id
+        recipe.metadata.default_style_profile_name = style_name
+        return self.save_recipe(recipe)
+
+    def clear_recipe_default_style(self, recipe: VisualRecipe) -> Path:
+        recipe.metadata.default_style_profile_id = None
+        recipe.metadata.default_style_profile_name = None
+        return self.save_recipe(recipe)

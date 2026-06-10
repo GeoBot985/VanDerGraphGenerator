@@ -10,6 +10,11 @@ from semantic_visual_builder.llm.ollama_client import OllamaClient
 
 from .image_style_analyzer import DeterministicImageStyleAnalysis
 from .image_style_prompts import IMAGE_STYLE_ANALYSIS_SYSTEM_PROMPT
+from .vision_model_detector import VisionModelDetector
+
+_ALLOWED_TONES = {"corporate", "presentation", "minimal", "technical", "playful", "dark", "neutral", "report"}
+_ALLOWED_GRID = {"none", "light", "medium"}
+_ALLOWED_DENSITY = {"low", "medium", "high"}
 
 
 @dataclass
@@ -28,16 +33,29 @@ class VlmStyleAnalyzer:
         self,
         ollama_client: OllamaClient,
         response_parser: LlmResponseParser | None = None,
+        vision_detector: VisionModelDetector | None = None,
     ):
         self.ollama_client = ollama_client
         self.response_parser = response_parser or LlmResponseParser()
+        self.vision_detector = vision_detector or VisionModelDetector()
 
     def analyze_image_style(
         self,
         model: str,
         image_path: Path,
         deterministic_analysis: DeterministicImageStyleAnalysis,
+        skip_vision_check: bool = False,
     ) -> VlmStyleAnalysis:
+        if not skip_vision_check and not self.vision_detector.is_likely_vision_model(model):
+            return VlmStyleAnalysis(
+                raw_response="",
+                parsed_json=None,
+                warnings=[
+                    f"Model '{model}' does not appear to support image input. "
+                    "Deterministic palette extraction was used."
+                ],
+            )
+
         generate_vision = getattr(self.ollama_client, "generate_vision", None)
         if not callable(generate_vision):
             return VlmStyleAnalysis(
@@ -88,6 +106,18 @@ class VlmStyleAnalyzer:
                 errors=[str(exc)],
             )
 
+        raw_tone = parsed.get("inferred_tone")
+        inferred_tone: str | None = None
+        warnings: list[str] = []
+        if isinstance(raw_tone, str):
+            cleaned = raw_tone.strip().lower()
+            if cleaned in _ALLOWED_TONES:
+                inferred_tone = cleaned
+            else:
+                warnings.append(
+                    f"VLM inferred_tone '{raw_tone}' is not a recognised value; ignored."
+                )
+
         return VlmStyleAnalysis(
             raw_response=raw_response,
             parsed_json=parsed,
@@ -96,10 +126,9 @@ class VlmStyleAnalyzer:
                 for item in parsed.get("style_words", [])
                 if isinstance(item, str)
             ],
-            inferred_tone=parsed.get("inferred_tone")
-            if isinstance(parsed.get("inferred_tone"), str)
-            else None,
+            inferred_tone=inferred_tone,
             suggested_name=parsed.get("suggested_name")
             if isinstance(parsed.get("suggested_name"), str)
             else None,
+            warnings=warnings,
         )

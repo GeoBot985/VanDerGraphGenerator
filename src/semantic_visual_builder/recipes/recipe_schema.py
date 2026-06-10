@@ -15,6 +15,8 @@ class RecipeMetadata:
     schema_version: str = "2.0"
     style_profile_id: str | None = None
     style_profile_name: str | None = None
+    default_style_profile_id: str | None = None
+    default_style_profile_name: str | None = None
     app_version_created: str | None = None
     created_at: str | None = None
     updated_at: str | None = None
@@ -79,6 +81,8 @@ class VisualRecipe:
         legacy_description = legacy.pop("description", None)
         legacy_style_profile_id = legacy.pop("style_profile_id", None)
         legacy_style_profile_name = legacy.pop("style_profile_name", None)
+        legacy_default_style_profile_id = legacy.pop("default_style_profile_id", None)
+        legacy_default_style_profile_name = legacy.pop("default_style_profile_name", None)
         legacy_created_at = legacy.pop("created_at", None)
         legacy_updated_at = legacy.pop("updated_at", None)
         legacy_author = legacy.pop("author", None)
@@ -97,6 +101,8 @@ class VisualRecipe:
                 schema_version=legacy_schema_version or "2.0",
                 style_profile_id=legacy_style_profile_id,
                 style_profile_name=legacy_style_profile_name,
+                default_style_profile_id=legacy_default_style_profile_id,
+                default_style_profile_name=legacy_default_style_profile_name,
                 app_version_created=legacy_app_version_created,
                 created_at=legacy_created_at or _current_utc_iso(),
                 updated_at=legacy_updated_at,
@@ -222,6 +228,12 @@ class VisualRecipe:
             style_profile_id=metadata_data.get("style_profile_id", data.get("style_profile_id")),
             style_profile_name=metadata_data.get(
                 "style_profile_name", data.get("style_profile_name")
+            ),
+            default_style_profile_id=metadata_data.get(
+                "default_style_profile_id", data.get("default_style_profile_id")
+            ),
+            default_style_profile_name=metadata_data.get(
+                "default_style_profile_name", data.get("default_style_profile_name")
             ),
             app_version_created=metadata_data.get(
                 "app_version_created", data.get("app_version_created")

@@ -25,6 +25,14 @@ class RecipePanel:
             lines.append(
                 f"Application status: {'success' if application.success else 'failed'}"
             )
+        recipe = app_state.active_recipe
+        if recipe is not None:
+            default_id = recipe.metadata.default_style_profile_id
+            if default_id:
+                default_name = recipe.metadata.default_style_profile_name or default_id
+                lines.append(f"Default style: {default_name} ({default_id})")
+            else:
+                lines.append("Default style: none")
         return "\n".join(lines)
 
     def compatibility_text(self, app_state: AppState) -> str:
@@ -63,5 +71,18 @@ class RecipePanel:
             return "Available recipes: none"
         lines = ["Available recipes:"]
         for recipe in app_state.available_recipes:
-            lines.append(f"- {recipe.recipe_name}")
+            default_id = recipe.metadata.default_style_profile_id
+            suffix = f" [default style: {default_id}]" if default_id else ""
+            lines.append(f"- {recipe.recipe_name}{suffix}")
         return "\n".join(lines)
+
+    def default_style_offer_text(self, app_state: AppState) -> str:
+        """Return offer text when a recipe has a default style after application."""
+        result = app_state.recipe_application_result
+        if result is None or not result.default_style_profile_id:
+            return ""
+        name = result.default_style_profile_name or result.default_style_profile_id
+        return (
+            f"This recipe has a default style: {name}.\n"
+            "Apply it now? (Set Active Style as Recipe Default)"
+        )

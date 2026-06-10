@@ -28,6 +28,8 @@ from semantic_visual_builder.runtime.runtime_paths import RuntimePaths
 from semantic_visual_builder.state.conversation_state import ConversationState
 from semantic_visual_builder.state.revision_history import RevisionHistory
 from semantic_visual_builder.styles.style_applier import StyleApplicationResult
+from semantic_visual_builder.styles.style_comparison import StyleComparisonResult
+from semantic_visual_builder.styles.style_review_model import EditableStyleDraft
 from semantic_visual_builder.styles.style_schema import StyleProfile
 from semantic_visual_builder.validation.validation_result import ValidationResult
 
@@ -66,6 +68,11 @@ class AppState:
     style_application_result: StyleApplicationResult | None = None
     last_style_extraction_result: StyleExtractionResult | None = None
     selected_style_image_path: Path | None = None
+    style_comparison_results: list[StyleComparisonResult] = field(default_factory=list)
+    editable_style_draft: EditableStyleDraft | None = None
+    last_imported_style_path: Path | None = None
+    last_exported_style_path: Path | None = None
+    vision_capable_models: list[str] = field(default_factory=list)
     runtime_paths: RuntimePaths | None = None
     status_messages: list[str] = field(default_factory=list)
 
@@ -191,3 +198,14 @@ class AppState:
         self, result: RecipeApplicationResult | None
     ) -> None:
         self.recipe_application_result = result
+
+    def set_editable_style_draft(self, draft: EditableStyleDraft | None) -> None:
+        self.editable_style_draft = draft
+
+    def set_style_comparison_results(
+        self, results: list[StyleComparisonResult]
+    ) -> None:
+        self.style_comparison_results = list(results)
+
+    def set_vision_capable_models(self, models: list[str]) -> None:
+        self.vision_capable_models = list(models)

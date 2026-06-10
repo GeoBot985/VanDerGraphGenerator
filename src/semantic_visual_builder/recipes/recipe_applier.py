@@ -24,6 +24,8 @@ class RecipeApplicationResult:
     field_mappings: dict[str, str] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    default_style_profile_id: str | None = None
+    default_style_profile_name: str | None = None
 
 
 class RecipeApplier:
@@ -94,12 +96,22 @@ class RecipeApplier:
         plan.notes.extend(note for note in recipe.notes if note not in plan.notes)
         plan.metadata.assumptions = list(plan.metadata.assumptions)
         plan.metadata.pending_questions = list(plan.metadata.pending_questions)
+
+        default_style_id = recipe.metadata.default_style_profile_id
+        default_style_name = recipe.metadata.default_style_profile_name
+        if default_style_id:
+            warnings.append(
+                f"This recipe has a default style: {default_style_name or default_style_id}. "
+                "Apply it now?"
+            )
         return RecipeApplicationResult(
             success=True,
             visual_plan=plan,
             compatibility_report=compatibility,
             field_mappings=mappings,
             warnings=warnings,
+            default_style_profile_id=default_style_id,
+            default_style_profile_name=default_style_name,
         )
 
     def _substitute_placeholders(self, data: Any, mappings: dict[str, str]) -> Any:

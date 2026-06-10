@@ -44,6 +44,8 @@ class StyleExtractionPanel:
                     f"Label density: {analysis.label_density_hint}",
                 ]
             )
+            if analysis.text_colour_hint:
+                lines.append(f"Text colour hint: {analysis.text_colour_hint}")
         if result.palette_result is not None:
             palette = result.palette_result
             lines.append("Palette:")
@@ -65,4 +67,15 @@ class StyleExtractionPanel:
         if result.errors:
             lines.append("Errors:")
             lines.extend(f"- {error}" for error in result.errors)
+        return "\n".join(lines)
+
+    def vision_model_text(self, app_state: AppState) -> str:
+        models = app_state.vision_capable_models
+        if not models:
+            return (
+                "No likely vision-capable models detected. "
+                "Deterministic palette extraction will be used."
+            )
+        lines = ["Likely vision-capable models (heuristic):"]
+        lines.extend(f"- {model}" for model in models)
         return "\n".join(lines)

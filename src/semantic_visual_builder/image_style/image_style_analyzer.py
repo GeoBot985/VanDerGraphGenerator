@@ -17,6 +17,7 @@ class DeterministicImageStyleAnalysis:
     chart_tone: str
     grid_hint: str
     label_density_hint: str
+    text_colour_hint: str | None = None
     warnings: list[str] = field(default_factory=list)
 
 
@@ -34,13 +35,17 @@ class ImageStyleAnalyzer:
         neutral_rgb = self._hex_to_rgb(palette_result.neutral_colour)
 
         bg_brightness = brightness(background_rgb)
-        background_tone = (
-            "light"
-            if bg_brightness >= 170
-            else "dark"
-            if bg_brightness <= 95
-            else "mid"
-        )
+        if bg_brightness > 200:
+            background_tone = "light"
+            text_colour_hint = "#000000"
+        elif bg_brightness < 80:
+            background_tone = "dark"
+            text_colour_hint = "#ffffff"
+        else:
+            background_tone = "neutral"
+            text_colour_hint = (
+                "#000000" if bg_brightness >= 128 else "#ffffff"
+            )
         contrast_level = self._contrast_level(background_rgb, primary_rgb, accent_rgb)
         chart_tone = self._chart_tone(
             background_rgb,
@@ -61,6 +66,7 @@ class ImageStyleAnalyzer:
             chart_tone=chart_tone,
             grid_hint=grid_hint,
             label_density_hint=label_density_hint,
+            text_colour_hint=text_colour_hint,
             warnings=warnings,
         )
 

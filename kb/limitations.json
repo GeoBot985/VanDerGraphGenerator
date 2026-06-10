@@ -30,6 +30,13 @@
     "Image style extraction does not perform OCR.",
     "Image style extraction does not guarantee brand compliance.",
     "Vision-model interpretation is optional and depends on local Ollama capability.",
-    "Deterministic palette extraction is the fallback."
+    "Deterministic palette extraction is the fallback.",
+    "Vision model detection is heuristic only — a matching name does not guarantee vision support.",
+    "Extracted styles are approximate and require user review before applying to production charts.",
+    "Exact fonts and chart layouts are not extracted from images.",
+    "Style comparison is based on deterministic heuristics, not perceptual similarity.",
+    "Built-in styles cannot be overwritten by import.",
+    "Recipe default styles are stored as IDs; if the style is deleted the ID becomes stale.",
+    "Style profiles are not executable code and cannot trigger renderer-level injections."
   ]
 }

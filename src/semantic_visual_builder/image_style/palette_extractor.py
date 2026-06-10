@@ -127,7 +127,7 @@ class PaletteExtractor:
     def _is_duplicate(
         self, rgb: tuple[int, int, int], colours: Iterable[ExtractedColour]
     ) -> bool:
-        return any(colour_distance(rgb, existing.rgb) < 18 for existing in colours)
+        return any(colour_distance(rgb, existing.rgb) < 22 for existing in colours)
 
     def _role_hint(
         self, rgb: tuple[int, int, int], background_rgb: tuple[int, int, int]
@@ -145,6 +145,17 @@ class PaletteExtractor:
         colours: list[ExtractedColour],
         background_rgb: tuple[int, int, int],
     ) -> str | None:
+        candidates = [
+            colour
+            for colour in colours
+            if colour.role_hint not in ("background",)
+            and not is_near_white(colour.rgb)
+            and not is_near_black(colour.rgb)
+            and colour_distance(colour.rgb, background_rgb) >= 25
+        ]
+        if candidates:
+            candidates.sort(key=lambda c: saturation_approx(c.rgb), reverse=True)
+            return candidates[0].hex_value
         for colour in colours:
             if colour.role_hint == "background":
                 continue
