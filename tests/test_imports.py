@@ -14,4 +14,4 @@ def test_package_imports() -> None:
     import semantic_visual_builder.validation
     import semantic_visual_builder.webview
 
-    assert semantic_visual_builder.__version__ == "0.7.0"
+    assert semantic_visual_builder.__version__ == "0.9.0"

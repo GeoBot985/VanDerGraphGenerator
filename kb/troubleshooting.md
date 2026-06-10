@@ -8,6 +8,9 @@
 - Embedded web preview may fall back to the browser.
 - SVG/PNG export is limited in Sprint 6.
 - Offline renderer assets must be bundled or present under `assets/vendor`.
+- Style profiles are deterministic and limited to validated chart and diagram styling.
+- Only renderer-safe fonts and colour values are accepted in style profiles.
+- Built-in style profiles are separate from recipes and can be saved under the user style directory.
 
 ## Common issues
 
@@ -19,3 +22,5 @@
 - If the environment report shows missing files, rebuild the package or run from source to confirm the asset layout.
 - If recipe compatibility is only partial, review the suggested field mappings before applying.
 - If a recipe import fails, confirm the JSON uses schema version 2.0 and does not contain executable content.
+- If a style file fails validation, confirm the schema version is 1.0 and the colour and font values are renderer-safe.
+- If the style chooser is empty, refresh the available style catalog or confirm the built-in style files exist.

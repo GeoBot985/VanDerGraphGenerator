@@ -70,6 +70,8 @@ def test_first_run_checker_reports_required_files(tmp_path) -> None:
         app_root=tmp_path,
         resource_root=resource_root,
         asset_dir=asset_dir,
+        builtin_styles_dir=resource_root / "styles" / "builtins",
+        user_styles_dir=tmp_path / "user_data" / "styles",
         kb_dir=kb_dir,
         graph_matrix_dir=graph_matrix_dir,
         recipes_dir=recipes_dir,

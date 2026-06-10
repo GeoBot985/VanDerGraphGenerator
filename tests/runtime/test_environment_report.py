@@ -12,6 +12,8 @@ def test_environment_report_includes_runtime_paths(tmp_path) -> None:
         app_root=tmp_path,
         resource_root=tmp_path / "bundle",
         asset_dir=tmp_path / "bundle" / "assets",
+        builtin_styles_dir=tmp_path / "bundle" / "styles" / "builtins",
+        user_styles_dir=tmp_path / "user_data" / "styles",
         kb_dir=tmp_path / "bundle" / "kb",
         graph_matrix_dir=tmp_path / "bundle" / "graph_matrix",
         recipes_dir=tmp_path / "user_data" / "recipes",

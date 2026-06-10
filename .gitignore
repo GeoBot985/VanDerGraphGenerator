@@ -23,3 +23,5 @@ exports/
 recipes/*.recipe.json
 !recipes/samples/*.recipe.json
 temp/
+/consolidator.py
+/project_consolidated.txt

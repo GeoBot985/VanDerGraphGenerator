@@ -89,6 +89,13 @@ def visual_plan_from_llm_draft(draft: LlmVisualPlanDraft) -> VisualPlan:
             title=(draft.style or {}).get("title"),
             subtitle=(draft.style or {}).get("subtitle"),
             colour_scheme=(draft.style or {}).get("colour_scheme"),
+            palette=(draft.style or {}).get("palette", {}) or {},
+            font_family=(draft.style or {}).get("font_family"),
+            grid=(draft.style or {}).get("grid"),
+            legend_position=(draft.style or {}).get("legend_position"),
+            background=(draft.style or {}).get("background"),
+            plot_background=(draft.style or {}).get("plot_background"),
+            diagram_direction=(draft.style or {}).get("diagram_direction"),
             highlights=(draft.style or {}).get("highlights", {}) or {},
             labels=(draft.style or {}).get("labels", {}) or {},
             orientation=(draft.style or {}).get("orientation"),
@@ -187,6 +194,13 @@ def visual_plan_from_dict(data: dict[str, Any]) -> VisualPlan:
             title=style_data.get("title"),
             subtitle=style_data.get("subtitle"),
             colour_scheme=style_data.get("colour_scheme"),
+            palette=style_data.get("palette", {}) or {},
+            font_family=style_data.get("font_family"),
+            grid=style_data.get("grid"),
+            legend_position=style_data.get("legend_position"),
+            background=style_data.get("background"),
+            plot_background=style_data.get("plot_background"),
+            diagram_direction=style_data.get("diagram_direction"),
             highlights=style_data.get("highlights", {}) or {},
             labels=style_data.get("labels", {}) or {},
             orientation=style_data.get("orientation"),
@@ -237,6 +251,20 @@ def merge_visual_plans(base: VisualPlan, update: VisualPlan) -> VisualPlan:
         merged.style.subtitle = update.style.subtitle
     if update.style.colour_scheme is not None:
         merged.style.colour_scheme = update.style.colour_scheme
+    if update.style.palette:
+        merged.style.palette = deepcopy(update.style.palette)
+    if update.style.font_family is not None:
+        merged.style.font_family = update.style.font_family
+    if update.style.grid is not None:
+        merged.style.grid = update.style.grid
+    if update.style.legend_position is not None:
+        merged.style.legend_position = update.style.legend_position
+    if update.style.background is not None:
+        merged.style.background = update.style.background
+    if update.style.plot_background is not None:
+        merged.style.plot_background = update.style.plot_background
+    if update.style.diagram_direction is not None:
+        merged.style.diagram_direction = update.style.diagram_direction
     if update.style.highlights:
         merged.style.highlights = deepcopy(update.style.highlights)
     if update.style.labels:

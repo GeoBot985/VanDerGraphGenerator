@@ -10,6 +10,7 @@ from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.planning.visual_plan import get_role
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 from semantic_visual_builder.renderers.base_renderer import BaseRenderer
+from semantic_visual_builder.renderers.plotly_style_adapter import PlotlyStyleAdapter
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.validation.validation_result import ValidationResult
 
@@ -18,6 +19,9 @@ class PlotlyRenderer(BaseRenderer):
     """Render basic chart plans to Plotly JSON."""
 
     name = "plotly"
+
+    def __init__(self) -> None:
+        self.style_adapter = PlotlyStyleAdapter()
 
     def can_render(self, visual_plan: VisualPlan) -> bool:
         return visual_plan.visual_kind == "chart" and visual_plan.chart_type in {"bar", "horizontal_bar", "line", "scatter", "pie"}
@@ -33,8 +37,14 @@ class PlotlyRenderer(BaseRenderer):
             raise ValueError("PlotlyRenderer requires a loaded dataset.")
         dataframe = dataset_context.loaded_dataset.dataframe.copy()
         trace, layout, warnings = self._build_chart(visual_plan, dataframe)
-        content = json.dumps({"data": [trace], "layout": layout}, ensure_ascii=False)
-        metadata = {"warnings": warnings} if warnings else {}
+        config = {"data": [trace], "layout": layout}
+        config = self.style_adapter.apply_style_to_config(config, visual_plan)
+        content = json.dumps(config, ensure_ascii=False)
+        metadata = {
+            "warnings": warnings,
+            "style_profile_id": visual_plan.metadata.style_profile_id,
+            "style_profile_name": visual_plan.metadata.style_profile_name,
+        }
         return RendererOutput(renderer_name=self.name, output_type="plotly_json", content=content, metadata=metadata)
 
     def validate_output(self, output: RendererOutput) -> ValidationResult:

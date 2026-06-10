@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "style_id": "minimal_grey",
+    "style_name": "Minimal Grey",
+    "description": "Neutral low-colour styling.",
+    "schema_version": "1.0",
+    "tags": ["minimal", "grey"]
+  },
+  "palette": {
+    "primary": "#666666",
+    "secondary": "#999999",
+    "accent": "#444444",
+    "neutral": "#d9d9d9",
+    "sequence": ["#666666", "#999999", "#bbbbbb", "#dddddd"]
+  },
+  "typography": {
+    "font_family": "Arial",
+    "title_size": 16,
+    "label_size": 11,
+    "tick_size": 10
+  },
+  "chart": {
+    "background": "#f7f7f7",
+    "plot_background": "#ffffff",
+    "grid": "light",
+    "legend_position": "right",
+    "label_density": "medium",
+    "title_alignment": "left"
+  },
+  "diagram": {
+    "direction": "TD",
+    "node_fill": "#eeeeee",
+    "node_stroke": "#666666",
+    "decision_fill": "#f5f5f5",
+    "edge_colour": "#666666"
+  },
+  "renderer_hints": {
+    "plotly_template": "plotly_white",
+    "mermaid_theme": "base"
+  },
+  "supported_visual_kinds": ["chart", "diagram"],
+  "supported_renderers": ["plotly", "mermaid", "chartjs"]
+}

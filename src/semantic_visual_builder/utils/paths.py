@@ -52,6 +52,18 @@ def get_assets_dir() -> Path:
     return get_runtime_paths().asset_dir
 
 
+def get_builtin_styles_dir() -> Path:
+    """Return the bundled built-in styles directory."""
+
+    return get_runtime_paths().builtin_styles_dir
+
+
+def get_user_styles_dir() -> Path:
+    """Return the writable user styles directory."""
+
+    return get_runtime_paths().user_styles_dir
+
+
 def get_vendor_assets_dir() -> Path:
     """Return the bundled vendor assets directory."""
 

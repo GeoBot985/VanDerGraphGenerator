@@ -67,6 +67,8 @@ class RecipeBuilder:
             recipe_name=recipe_name,
             description=description,
             schema_version=self.schema_version,
+            style_profile_id=visual_plan.metadata.style_profile_id,
+            style_profile_name=visual_plan.metadata.style_profile_name,
             app_version_created=APP_VERSION,
             created_at=datetime.now(timezone.utc).isoformat(),
         )

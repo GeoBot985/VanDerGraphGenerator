@@ -53,16 +53,25 @@ from semantic_visual_builder.renderers.python_renderer_future import (
 from semantic_visual_builder.renderers.renderer_registry import RendererRegistry
 from semantic_visual_builder.runtime.environment_report import build_environment_report
 from semantic_visual_builder.state.app_state import AppState
+from semantic_visual_builder.styles import (
+    StyleApplier,
+    StyleManager,
+    StyleStore,
+    StyleValidator,
+)
 from semantic_visual_builder.ui.about_dialog import show_about_dialog
 from semantic_visual_builder.ui.error_dialog import show_error_dialog
 from semantic_visual_builder.ui.preview_panel import PreviewPanel
 from semantic_visual_builder.ui.recipe_panel import RecipePanel
 from semantic_visual_builder.ui.status_panel import StatusPanel
+from semantic_visual_builder.ui.style_panel import StylePanel
 from semantic_visual_builder.ui.validation_panel import ValidationPanel
 from semantic_visual_builder.ui.widgets import make_readonly_text, set_text
 from semantic_visual_builder.utils.paths import (
+    get_builtin_styles_dir,
     get_previews_dir,
     get_recipes_dir,
+    get_user_styles_dir,
     get_webview_template_dir,
 )
 from semantic_visual_builder.validation.capability_validator import CapabilityValidator
@@ -126,8 +135,13 @@ class SemanticVisualBuilderApp:
             self.recipe_applier,
         )
         self.recipe_import_export = RecipeImportExport()
+        self.style_store = StyleStore(get_user_styles_dir(), get_builtin_styles_dir())
+        self.style_validator = StyleValidator()
+        self.style_manager = StyleManager(self.style_store, self.style_validator)
+        self.style_applier = StyleApplier()
         self.preview_panel = PreviewPanel()
         self.recipe_panel = RecipePanel()
+        self.style_panel = StylePanel()
         self.status_panel = StatusPanel()
         self.validation_panel = ValidationPanel()
         self.renderer_registry = RendererRegistry(
@@ -157,8 +171,10 @@ class SemanticVisualBuilderApp:
         self._fallback_reason_var = tk.StringVar(value="Fallback reason: none")
         self._clarification_var = tk.StringVar(value="No pending clarification.")
         self._clarification_answer_var = tk.StringVar(value="")
+        self._style_var = tk.StringVar(value="")
         self._build_ui()
         self._refresh_available_recipes()
+        self._refresh_available_styles()
         self.refresh_ollama()
         self._refresh_all_views()
 
@@ -214,6 +230,26 @@ class SemanticVisualBuilderApp:
             side="left", padx=6
         )
 
+        style_row = ttk.Frame(self.root)
+        style_row.pack(fill="x", padx=12, pady=(8, 0))
+        ttk.Label(style_row, text="Style:").pack(side="left")
+        self.style_combo = ttk.Combobox(
+            style_row, textvariable=self._style_var, state="readonly", width=34
+        )
+        self.style_combo.pack(side="left", padx=(6, 6))
+        ttk.Button(style_row, text="Apply Style", command=self.apply_style_action).pack(
+            side="left", padx=6
+        )
+        ttk.Button(
+            style_row, text="Save Current Style", command=self.save_style_action
+        ).pack(side="left", padx=6)
+        ttk.Button(style_row, text="Load Style", command=self.load_style_action).pack(
+            side="left", padx=6
+        )
+        ttk.Button(style_row, text="Clear Style", command=self.clear_style_action).pack(
+            side="left", padx=6
+        )
+
         status_frame = ttk.LabelFrame(self.root, text="Status")
         status_frame.pack(fill="x", padx=12, pady=(8, 0))
         self.status_summary = make_readonly_text(status_frame, height=4)
@@ -262,6 +298,10 @@ class SemanticVisualBuilderApp:
         ttk.Label(right, text="Recipe").pack(anchor="w")
         self.recipe_text = make_readonly_text(right, height=5)
         self.recipe_text.pack(fill="both", expand=False, pady=(4, 8))
+
+        ttk.Label(right, text="Style").pack(anchor="w")
+        self.style_text = make_readonly_text(right, height=5)
+        self.style_text.pack(fill="both", expand=False, pady=(4, 8))
 
         ttk.Label(right, text="Dataset Profile").pack(anchor="w")
         self.profile_text = make_readonly_text(right, height=8)
@@ -774,6 +814,18 @@ class SemanticVisualBuilderApp:
             ),
         )
 
+    def _update_style_view(self) -> None:
+        set_text(
+            self.style_text,
+            "\n".join(
+                [
+                    self.style_panel.active_style_text(self.app_state),
+                    "",
+                    self.style_panel.available_styles_text(self.app_state),
+                ]
+            ),
+        )
+
     def _update_validation_view(self) -> None:
         validation = self.app_state.current_validation_result
         set_text(
@@ -858,10 +910,12 @@ class SemanticVisualBuilderApp:
         if self.root is None:
             return
         self._refresh_available_recipes()
+        self._refresh_available_styles()
         self._update_profile_view()
         self._update_plan_view()
         self._update_preview_view()
         self._update_recipe_view()
+        self._update_style_view()
         self._update_validation_view()
         self._update_clarification_view()
         self._update_workflow_view()
@@ -877,6 +931,19 @@ class SemanticVisualBuilderApp:
         except Exception as exc:
             self.app_state.available_recipes = []
             self.app_state.add_status(f"Recipe catalog could not be loaded: {exc}")
+
+    def _refresh_available_styles(self) -> None:
+        try:
+            styles = self.style_manager.list_styles()
+            self.app_state.set_available_style_profiles(styles)
+            self.style_combo["values"] = [style.style_name for style in styles]
+            if self.app_state.active_style_profile is not None:
+                self._style_var.set(self.app_state.active_style_profile.style_name)
+            else:
+                self._style_var.set("")
+        except Exception as exc:
+            self.app_state.set_available_style_profiles([])
+            self.app_state.add_status(f"Style catalog could not be loaded: {exc}")
 
     def _set_status(self, message: str) -> None:
         self._status_var.set(message)
@@ -1041,9 +1108,148 @@ class SemanticVisualBuilderApp:
         self._refresh_all_views()
         return "Recipe cleared."
 
+    def apply_style_action(self) -> str:
+        style = self._selected_style_profile()
+        if style is None:
+            message = "Select a style profile first."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        self.app_state.set_active_style_profile(style)
+        if self.app_state.current_visual_plan is None:
+            self.app_state.add_status(f"Style selected: {style.style_name}")
+            self._refresh_all_views()
+            return f"Style selected: {style.style_name}"
+        result = self.style_applier.apply_style(
+            self.app_state.current_visual_plan, style
+        )
+        self.app_state.apply_style_to_current_plan(result)
+        if not result.success or result.visual_plan is None:
+            message = (
+                "; ".join(result.errors)
+                if result.errors
+                else "Style application failed."
+            )
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        self.app_state.add_status(f"Style applied: {style.style_name}")
+        self._style_var.set(style.style_name)
+        self._refresh_all_views()
+        return f"Style applied: {style.style_name}"
+
+    def save_style_action(self) -> str:
+        style = self.app_state.active_style_profile or self._style_profile_from_plan()
+        if style is None:
+            message = "Create or select a style first."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        style_name = simpledialog.askstring(
+            "Save Style Profile", "Style name:", initialvalue=style.style_name
+        )
+        if not style_name:
+            return "Style save cancelled."
+        style.metadata.style_name = style_name
+        style.metadata.style_id = self.style_store._safe_name(style_name)
+        path = self.style_manager.save_style(style)
+        self.app_state.add_status(f"Style saved: {path}")
+        self._refresh_available_styles()
+        self._refresh_all_views()
+        return f"Style saved: {path}"
+
+    def load_style_action(self) -> str:
+        filename = filedialog.askopenfilename(
+            filetypes=[("Style files", "*.style.json")]
+        )
+        if not filename:
+            return "Style load cancelled."
+        style = self.style_store.load_style(Path(filename))
+        validation = self.style_manager.validate_style(style)
+        if not validation.is_valid:
+            message = self._format_validation(validation)
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        self.app_state.set_active_style_profile(style)
+        self._style_var.set(style.style_name)
+        self.app_state.add_status(f"Style loaded: {style.style_name}")
+        self._refresh_all_views()
+        return f"Style loaded: {style.style_name}"
+
+    def clear_style_action(self) -> str:
+        self.app_state.set_active_style_profile(None)
+        self.app_state.apply_style_to_current_plan(None)
+        self._style_var.set("")
+        self.app_state.add_status("Style cleared.")
+        self._refresh_all_views()
+        return "Style cleared."
+
     def _looks_like_process_request(self, content: str) -> bool:
         text = content.lower()
         return "flowchart" in text or "process" in text or "diagram" in text
+
+    def _selected_style_profile(self):
+        selected = self._style_var.get().strip()
+        if not selected:
+            return self.app_state.active_style_profile
+        for style in self.app_state.available_style_profiles:
+            if style.style_name == selected or style.style_id == selected:
+                return style
+        return self.style_manager.get_style_by_id(selected)
+
+    def _style_profile_from_plan(self):
+        plan = self.app_state.current_visual_plan
+        if plan is None:
+            return None
+        from semantic_visual_builder.styles.style_schema import (
+            ChartStyle,
+            ColourPalette,
+            DiagramStyle,
+            RendererStyleHints,
+            StyleMetadata,
+            StyleProfile,
+            TypographyStyle,
+        )
+
+        style_id = plan.metadata.style_profile_id or "current_plan_style"
+        style_name = (
+            plan.metadata.style_profile_name or plan.style.title or "Current Style"
+        )
+        return StyleProfile(
+            metadata=StyleMetadata(
+                style_id=style_id,
+                style_name=style_name,
+                description=(
+                    "Derived from current visual plan."
+                ),
+            ),
+            palette=ColourPalette(
+                primary=plan.style.palette.get("primary"),
+                secondary=plan.style.palette.get("secondary"),
+                accent=plan.style.palette.get("accent"),
+                neutral=plan.style.palette.get("neutral"),
+                warning=plan.style.palette.get("warning"),
+                success=plan.style.palette.get("success"),
+                danger=plan.style.palette.get("danger"),
+                sequence=[
+                    value
+                    for key, value in plan.style.palette.items()
+                    if key.startswith("sequence_")
+                ],
+            ),
+            typography=TypographyStyle(font_family=plan.style.font_family),
+            chart=ChartStyle(
+                background=plan.style.background,
+                plot_background=plan.style.plot_background,
+                grid=plan.style.grid,
+                legend_position=plan.style.legend_position,
+                label_density="medium",
+                title_alignment="left",
+            ),
+            diagram=DiagramStyle(direction=plan.style.diagram_direction),
+            renderer_hints=RendererStyleHints(),
+        )
 
     def workflow_step_text(self) -> str:
         return f"Workflow step: {self.app_state.workflow_state.current_step.value}"

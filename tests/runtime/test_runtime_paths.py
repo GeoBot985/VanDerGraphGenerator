@@ -11,6 +11,8 @@ def test_runtime_paths_source_mode() -> None:
     paths = RuntimePathResolver().resolve()
     assert paths.app_root == paths.resource_root
     assert paths.asset_dir == paths.app_root / "assets"
+    assert paths.builtin_styles_dir == paths.app_root / "styles" / "builtins"
+    assert paths.user_styles_dir == paths.app_root / "user_data" / "styles"
     assert paths.export_dir.exists()
     assert paths.log_dir.exists()
 
@@ -33,3 +35,5 @@ def test_runtime_paths_packaged_mode(monkeypatch, tmp_path) -> None:
     assert paths.config_dir == paths.app_root / "user_data" / "config"
     assert paths.export_dir == paths.app_root / "user_data" / "exports"
     assert paths.log_dir == paths.app_root / "user_data" / "logs"
+    assert paths.builtin_styles_dir == bundle_root / "styles" / "builtins"
+    assert paths.user_styles_dir == paths.app_root / "user_data" / "styles"

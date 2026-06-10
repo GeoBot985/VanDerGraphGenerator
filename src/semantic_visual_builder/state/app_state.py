@@ -20,6 +20,8 @@ from semantic_visual_builder.recipes.recipe_compatibility import (
     RecipeCompatibilityReport,
 )
 from semantic_visual_builder.recipes.recipe_schema import VisualRecipe
+from semantic_visual_builder.styles.style_applier import StyleApplicationResult
+from semantic_visual_builder.styles.style_schema import StyleProfile
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.runtime.runtime_paths import RuntimePaths
 from semantic_visual_builder.state.conversation_state import ConversationState
@@ -56,6 +58,9 @@ class AppState:
     recipe_compatibility_report: RecipeCompatibilityReport | None = None
     recipe_application_result: RecipeApplicationResult | None = None
     available_recipes: list[VisualRecipe] = field(default_factory=list)
+    active_style_profile: StyleProfile | None = None
+    available_style_profiles: list[StyleProfile] = field(default_factory=list)
+    style_application_result: StyleApplicationResult | None = None
     runtime_paths: RuntimePaths | None = None
     status_messages: list[str] = field(default_factory=list)
 
@@ -138,6 +143,30 @@ class AppState:
             self.recipe_compatibility_result = None
             self.recipe_compatibility_report = None
             self.recipe_application_result = None
+
+    def set_active_style_profile(self, style: StyleProfile | None) -> None:
+        self.active_style_profile = style
+
+    def set_available_style_profiles(self, styles: list[StyleProfile]) -> None:
+        self.available_style_profiles = list(styles)
+
+    def apply_style_to_current_plan(
+        self, result: StyleApplicationResult | None
+    ) -> None:
+        self.style_application_result = result
+        if result is None or result.visual_plan is None:
+            return
+        self.current_visual_plan = result.visual_plan
+        self.mark_preview_stale()
+        self.revision_history.add_revision(
+            f"Applied style profile: {result.visual_plan.metadata.style_profile_name or 'style'}",
+            result.visual_plan,
+            mapping_method=result.visual_plan.metadata.mapping_method,
+            preview_stale=True,
+        )
+        self.last_renderer_output = None
+        self.last_preview_path = None
+        self.add_status("Style applied. Preview needs regeneration.")
 
     def set_recipe_compatibility_report(
         self, report: RecipeCompatibilityReport | None

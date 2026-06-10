@@ -20,6 +20,9 @@
     "Recipe remapping is deterministic and limited.",
     "Complex semantic remapping may require manual confirmation.",
     "Recipes do not contain executable code.",
-    "Recipes preserve style intent but do not yet support full theme profiles."
+    "Recipes preserve style intent but do not yet support full theme profiles.",
+    "Style profiles are deterministic configuration, not image-based theme extraction.",
+    "Style profiles support a limited renderer-safe font set and validated colour values.",
+    "Style profiles are currently scoped to charts and flowcharts."
   ]
 }

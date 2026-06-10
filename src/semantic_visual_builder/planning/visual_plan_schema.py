@@ -19,6 +19,13 @@ class StyleIntent:
     title: str | None = None
     subtitle: str | None = None
     colour_scheme: str | None = None
+    palette: dict[str, str] = field(default_factory=dict)
+    font_family: str | None = None
+    grid: str | None = None
+    legend_position: str | None = None
+    background: str | None = None
+    plot_background: str | None = None
+    diagram_direction: str | None = None
     highlights: dict[str, Any] = field(default_factory=dict)
     labels: dict[str, str] = field(default_factory=dict)
     orientation: str | None = None
@@ -29,6 +36,8 @@ class PlanMetadata:
     plan_id: str | None = None
     created_from: str | None = None
     mapping_method: str | None = None
+    style_profile_id: str | None = None
+    style_profile_name: str | None = None
     confidence: float | None = None
     assumptions: list[str] = field(default_factory=list)
     pending_questions: list[str] = field(default_factory=list)

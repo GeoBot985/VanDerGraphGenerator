@@ -6,6 +6,7 @@ from semantic_visual_builder.utils.text_sanitize import sanitize_label
 from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.planning.visual_plan_schema import DiagramEdge, DiagramNode, VisualPlan
 from semantic_visual_builder.renderers.base_renderer import BaseRenderer
+from semantic_visual_builder.renderers.mermaid_style_adapter import MermaidStyleAdapter
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.validation.validation_result import ValidationResult
 
@@ -14,6 +15,9 @@ class MermaidRenderer(BaseRenderer):
     """Render basic flowchart plans to Mermaid syntax."""
 
     name = "mermaid"
+
+    def __init__(self) -> None:
+        self.style_adapter = MermaidStyleAdapter()
 
     def can_render(self, visual_plan: VisualPlan) -> bool:
         return visual_plan.visual_kind == "diagram" and visual_plan.diagram_type == "flowchart"
@@ -26,7 +30,16 @@ class MermaidRenderer(BaseRenderer):
         if not self.can_render(visual_plan):
             raise ValueError("MermaidRenderer can only render flowchart diagram plans.")
         code = self._build_mermaid(visual_plan)
-        return RendererOutput(renderer_name=self.name, output_type="mermaid", content=code)
+        code = self.style_adapter.apply_style_to_mermaid(code, visual_plan)
+        return RendererOutput(
+            renderer_name=self.name,
+            output_type="mermaid",
+            content=code,
+            metadata={
+                "style_profile_id": visual_plan.metadata.style_profile_id,
+                "style_profile_name": visual_plan.metadata.style_profile_name,
+            },
+        )
 
     def validate_output(self, output: RendererOutput) -> ValidationResult:
         result = ValidationResult()
@@ -43,7 +56,9 @@ class MermaidRenderer(BaseRenderer):
     def _build_mermaid(self, visual_plan: VisualPlan) -> str:
         nodes = visual_plan.diagram_nodes or self._fallback_nodes()
         edges = visual_plan.diagram_edges or self._fallback_edges(nodes)
-        direction = "LR" if visual_plan.style.orientation == "horizontal" else "TD"
+        direction = visual_plan.style.diagram_direction or (
+            "LR" if visual_plan.style.orientation == "horizontal" else "TD"
+        )
         lines = [f"flowchart {direction}"]
         for node in nodes:
             lines.append(f"    {self._safe_node_id(node.id)}{self._node_brackets(node)}")

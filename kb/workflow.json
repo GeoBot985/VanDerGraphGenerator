@@ -27,8 +27,8 @@
     },
     {
       "step": 6,
-      "name": "Confirm style",
-      "description": "The user may specify colours, titles, highlights, or labels."
+      "name": "Select style profile",
+      "description": "The user may pick a built-in or saved style profile, then adjust colours, titles, highlights, or labels."
     },
     {
       "step": 7,
@@ -39,6 +39,11 @@
       "step": 8,
       "name": "Save recipe",
       "description": "The user can save the current visual plan as a reusable recipe skeleton."
+    },
+    {
+      "step": 8.5,
+      "name": "Save style profile",
+      "description": "The user can save the current style configuration as a reusable style profile."
     },
     {
       "step": 9,
@@ -52,8 +57,8 @@
     },
     {
       "step": 11,
-      "name": "Manage recipes",
-      "description": "The user can duplicate, rename, import, export, and review recipe compatibility before applying."
+      "name": "Manage recipes and styles",
+      "description": "The user can duplicate, rename, import, export, and review recipe compatibility before applying, and manage saved style profiles separately from recipes."
     }
   ]
 }

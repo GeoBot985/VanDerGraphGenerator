@@ -12,6 +12,8 @@ class RuntimePaths:
     app_root: Path
     resource_root: Path
     asset_dir: Path
+    builtin_styles_dir: Path
+    user_styles_dir: Path
     kb_dir: Path
     graph_matrix_dir: Path
     recipes_dir: Path
@@ -35,6 +37,8 @@ class RuntimePathResolver:
             internal_root = Path(getattr(sys, "_MEIPASS", app_root)).resolve()
             resource_root = internal_root
             asset_dir = internal_root / "assets"
+            builtin_styles_dir = internal_root / "styles" / "builtins"
+            user_styles_dir = app_root / "user_data" / "styles"
             kb_dir = internal_root / "kb"
             graph_matrix_dir = internal_root / "graph_matrix"
             recipes_dir = app_root / "user_data" / "recipes"
@@ -46,6 +50,8 @@ class RuntimePathResolver:
             app_root = source_root
             resource_root = source_root
             asset_dir = source_root / "assets"
+            builtin_styles_dir = source_root / "styles" / "builtins"
+            user_styles_dir = source_root / "user_data" / "styles"
             kb_dir = source_root / "kb"
             graph_matrix_dir = source_root / "graph_matrix"
             recipes_dir = source_root / "recipes"
@@ -53,13 +59,15 @@ class RuntimePathResolver:
             export_dir = source_root / "exports"
             log_dir = source_root / "logs"
 
-        for path in (recipes_dir, config_dir, export_dir, log_dir):
+        for path in (builtin_styles_dir, user_styles_dir, recipes_dir, config_dir, export_dir, log_dir):
             path.mkdir(parents=True, exist_ok=True)
 
         return RuntimePaths(
             app_root=app_root,
             resource_root=resource_root,
             asset_dir=asset_dir,
+            builtin_styles_dir=builtin_styles_dir,
+            user_styles_dir=user_styles_dir,
             kb_dir=kb_dir,
             graph_matrix_dir=graph_matrix_dir,
             recipes_dir=recipes_dir,
