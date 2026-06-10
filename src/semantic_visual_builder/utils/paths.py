@@ -32,6 +32,18 @@ def get_exports_dir() -> Path:
     return get_project_root() / "exports"
 
 
+def get_assets_dir() -> Path:
+    """Return the assets directory."""
+
+    return get_project_root() / "assets"
+
+
+def get_vendor_assets_dir() -> Path:
+    """Return the bundled vendor assets directory."""
+
+    return get_assets_dir() / "vendor"
+
+
 def get_previews_dir() -> Path:
     """Return the HTML preview directory."""
 

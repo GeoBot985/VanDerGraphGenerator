@@ -9,6 +9,11 @@
     "No Graphviz dependency in MVP",
     "Recipe remapping is basic in Sprint 5.",
     "Image-based look-and-feel extraction is future capability.",
-    "Advanced brand/template management is future capability."
+    "Advanced brand/template management is future capability.",
+    "Embedded web preview may fall back to browser.",
+    "SVG/PNG export is limited in Sprint 6.",
+    "Recipe field remapping is basic.",
+    "Offline renderer assets must be bundled or present under assets/vendor.",
+    "Image-based style extraction is future."
   ]
 }

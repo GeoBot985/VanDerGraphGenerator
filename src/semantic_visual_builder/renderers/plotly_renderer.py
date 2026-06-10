@@ -32,9 +32,10 @@ class PlotlyRenderer(BaseRenderer):
         if dataset_context is None or dataset_context.loaded_dataset is None:
             raise ValueError("PlotlyRenderer requires a loaded dataset.")
         dataframe = dataset_context.loaded_dataset.dataframe.copy()
-        trace, layout = self._build_chart(visual_plan, dataframe)
+        trace, layout, warnings = self._build_chart(visual_plan, dataframe)
         content = json.dumps({"data": [trace], "layout": layout}, ensure_ascii=False)
-        return RendererOutput(renderer_name=self.name, output_type="plotly_json", content=content)
+        metadata = {"warnings": warnings} if warnings else {}
+        return RendererOutput(renderer_name=self.name, output_type="plotly_json", content=content, metadata=metadata)
 
     def validate_output(self, output: RendererOutput) -> ValidationResult:
         result = ValidationResult()
@@ -54,7 +55,7 @@ class PlotlyRenderer(BaseRenderer):
             result.add_error("Plotly JSON layout must be an object.")
         return result
 
-    def _build_chart(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object]]:
+    def _build_chart(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object], list[str]]:
         chart_type = plan.chart_type or "bar"
         if chart_type == "line":
             return self._build_line(plan, dataframe)
@@ -66,7 +67,7 @@ class PlotlyRenderer(BaseRenderer):
             return self._build_pie(plan, dataframe)
         return self._build_bar(plan, dataframe, horizontal=False)
 
-    def _build_line(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object]]:
+    def _build_line(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object], list[str]]:
         x_role = get_role(plan, "x")
         y_role = get_role(plan, "y")
         if x_role is None or y_role is None:
@@ -91,15 +92,16 @@ class PlotlyRenderer(BaseRenderer):
         }
         layout_title = "Week" if transform == "week" else "Month" if transform == "month" else "Year" if transform == "year" else (x_role.field or "Time")
         layout = self._layout(plan, x_title=layout_title, y_title="Transactions")
-        return trace, layout
+        return trace, layout, []
 
-    def _build_bar(self, plan: VisualPlan, dataframe: pd.DataFrame, horizontal: bool) -> tuple[dict[str, object], dict[str, object]]:
+    def _build_bar(self, plan: VisualPlan, dataframe: pd.DataFrame, horizontal: bool) -> tuple[dict[str, object], dict[str, object], list[str]]:
         category = get_role(plan, "category")
         measure = get_role(plan, "measure")
         if category is None or measure is None:
             raise ValueError("Bar charts require category and measure roles.")
         grouped = self._aggregate_category(dataframe, category.field, measure)
         colors = self._bar_colors(plan, grouped["label"].tolist())
+        warnings = self._highlight_warnings(plan, category.field)
         if horizontal:
             trace = {"type": "bar", "orientation": "h", "x": grouped["value"].tolist(), "y": grouped["label"].tolist(), "name": self._measure_name(measure)}
             if colors:
@@ -110,9 +112,9 @@ class PlotlyRenderer(BaseRenderer):
             if colors:
                 trace["marker"] = {"color": colors}
             layout = self._layout(plan, x_title=category.field or "Category", y_title=self._measure_name(measure))
-        return trace, layout
+        return trace, layout, warnings
 
-    def _build_scatter(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object]]:
+    def _build_scatter(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object], list[str]]:
         x_role = get_role(plan, "x")
         y_role = get_role(plan, "y")
         if x_role is None or y_role is None:
@@ -125,9 +127,9 @@ class PlotlyRenderer(BaseRenderer):
         if color:
             trace["marker"] = {"color": color}
         layout = self._layout(plan, x_title=x_role.field or "X", y_title=y_role.field or "Y")
-        return trace, layout
+        return trace, layout, []
 
-    def _build_pie(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object]]:
+    def _build_pie(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object], list[str]]:
         category = get_role(plan, "category")
         measure = get_role(plan, "measure")
         if category is None or measure is None:
@@ -138,7 +140,7 @@ class PlotlyRenderer(BaseRenderer):
         if colors:
             trace["marker"] = {"colors": colors}
         layout = self._layout(plan, x_title=category.field or "Category", y_title=self._measure_name(measure))
-        return trace, layout
+        return trace, layout, self._highlight_warnings(plan, category.field)
 
     def _aggregate_category(self, dataframe: pd.DataFrame, field: str | None, measure) -> pd.DataFrame:
         if field is None:
@@ -160,6 +162,8 @@ class PlotlyRenderer(BaseRenderer):
         title = plan.style.title or self._default_title(plan)
         if plan.style.subtitle:
             title = f"{title} - {plan.style.subtitle}"
+        x_title = plan.style.labels.get("x", x_title) if plan.style.labels else x_title
+        y_title = plan.style.labels.get("y", y_title) if plan.style.labels else y_title
         return {
             "title": title,
             "xaxis": {"title": x_title},
@@ -183,6 +187,13 @@ class PlotlyRenderer(BaseRenderer):
             else:
                 colors.append(base_color)
         return colors
+
+    def _highlight_warnings(self, plan: VisualPlan, category_field: str | None) -> list[str]:
+        highlight = plan.style.highlights or {}
+        highlight_field = highlight.get("field")
+        if highlight_field and highlight_field != category_field:
+            return [f"Highlight field '{highlight_field}' is not part of the rendered visual yet."]
+        return []
 
     def _colour_for_scheme(self, scheme: str | None) -> str | None:
         if not scheme:

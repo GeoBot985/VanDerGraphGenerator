@@ -16,7 +16,14 @@
     "Conversational refinement",
     "Multi-turn visual refinement",
     "Basic recipe save/load",
-    "Basic flowchart node/edge extraction"
+    "Basic flowchart node/edge extraction",
+    "Offline local renderer asset support when assets are present",
+    "In-app preview panel placeholder/browser fallback",
+    "Improved HTML export",
+    "Basic recipe compatibility checks",
+    "Basic recipe application to compatible datasets",
+    "Improved Plotly styling",
+    "Improved Mermaid flowchart rendering"
   ],
   "future_capabilities": [
     "Excel input",

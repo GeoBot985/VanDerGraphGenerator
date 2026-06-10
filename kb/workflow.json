@@ -39,6 +39,11 @@
       "step": 8,
       "name": "Save recipe",
       "description": "The user can save the current visual plan as a reusable recipe skeleton."
+    },
+    {
+      "step": 9,
+      "name": "Apply recipe",
+      "description": "The user can load and apply a compatible recipe to a new dataset."
     }
   ]
 }

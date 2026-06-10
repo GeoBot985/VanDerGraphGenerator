@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <title>Van Der Graph Generator Diagram Preview</title>
-  <!-- TODO: bundle local JS assets for offline packaging in a later sprint. -->
+  <script type="module" src="{{MERMAID_SCRIPT_REF}}"></script>
 </head>
 <body>
   <pre class="mermaid">
 {{MERMAID_CODE}}
   </pre>
   <script type="module">
-    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";
+    import mermaid from "{{MERMAID_SCRIPT_REF}}";
     mermaid.initialize({ startOnLoad: true });
   </script>
 </body>

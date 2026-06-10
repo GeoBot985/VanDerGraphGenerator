@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from semantic_visual_builder.data.data_profiler import DatasetProfile
+from semantic_visual_builder.utils.text_sanitize import normalize_name
 from semantic_visual_builder.validation.validation_result import ValidationResult
 
 from .recipe_schema import VisualRecipe
@@ -26,14 +27,41 @@ class RecipeValidator:
         recipe: VisualRecipe,
         dataset_profile: DatasetProfile,
     ) -> ValidationResult:
+        return self.compatibility_report(recipe, dataset_profile)
+
+    def compatibility_report(self, recipe: VisualRecipe, dataset_profile: DatasetProfile) -> ValidationResult:
         result = self.validate_recipe(recipe)
         dataset_fields = {column.name: column.semantic_type for column in dataset_profile.columns}
+        normalized_lookup = {normalize_name(name): name for name in dataset_fields}
         for expected in recipe.expected_fields:
-            if expected.required and expected.field_name not in dataset_fields:
-                result.add_error(f"Expected field '{expected.field_name}' for role '{expected.role}' was not found.")
+            if expected.field_name == "row_count":
+                result.add_info(f"Matched {expected.role}: row_count -> virtual row count")
                 continue
-            if expected.semantic_type and dataset_fields.get(expected.field_name) not in {expected.semantic_type, "unknown"}:
+            match_name = self._match_field(expected.field_name, dataset_fields, normalized_lookup)
+            if match_name is None:
+                if expected.required:
+                    result.add_error(f"Expected field '{expected.field_name}' for role '{expected.role}' was not found.")
+                else:
+                    result.add_warning(f"Expected field '{expected.field_name}' for role '{expected.role}' was not found.")
+                continue
+            actual_type = dataset_fields.get(match_name)
+            result.add_info(f"Matched {expected.role}: {expected.field_name} -> {match_name}")
+            if expected.semantic_type and actual_type not in {expected.semantic_type, "unknown"}:
                 result.add_warning(
-                    f"Field '{expected.field_name}' is {dataset_fields.get(expected.field_name)} but recipe expected {expected.semantic_type}."
+                    f"Field '{match_name}' is {actual_type} but recipe expected {expected.semantic_type}."
                 )
         return result
+
+    def _match_field(
+        self,
+        field_name: str,
+        dataset_fields: dict[str, str],
+        normalized_lookup: dict[str, str],
+    ) -> str | None:
+        if field_name in dataset_fields:
+            return field_name
+        lower_lookup = {name.lower(): name for name in dataset_fields}
+        if field_name.lower() in lower_lookup:
+            return lower_lookup[field_name.lower()]
+        normalized = normalize_name(field_name)
+        return normalized_lookup.get(normalized)

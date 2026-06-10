@@ -28,11 +28,12 @@ class RecipeBuilder:
         for role in visual_plan.data_roles:
             if not role.field:
                 continue
+            semantic_type = "numeric" if role.field == "row_count" else profile_lookup.get(role.field)
             expected_fields.append(
                 RecipeFieldExpectation(
                     role=role.role,
                     field_name=role.field,
-                    semantic_type=profile_lookup.get(role.field),
+                    semantic_type=semantic_type,
                     required=True,
                 )
             )

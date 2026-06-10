@@ -14,6 +14,8 @@ from semantic_visual_builder.llm.model_registry import ModelRegistry
 from semantic_visual_builder.llm.llm_mapping_result import LlmMappingResult
 from semantic_visual_builder.llm.ollama_client import OllamaStatus
 from semantic_visual_builder.planning.clarification import PendingClarification
+from semantic_visual_builder.export.export_result import ExportResult
+from semantic_visual_builder.recipes.recipe_schema import VisualRecipe
 from semantic_visual_builder.state.conversation_state import ConversationState
 from semantic_visual_builder.state.revision_history import RevisionHistory
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
@@ -34,6 +36,9 @@ class AppState:
     revision_history: RevisionHistory = field(default_factory=RevisionHistory)
     last_renderer_output: RendererOutput | None = None
     last_preview_path: Path | None = None
+    preview_status: str | None = None
+    last_html_build_warnings: list[str] = field(default_factory=list)
+    last_export_result: ExportResult | None = None
     llm_mapping_enabled: bool = True
     last_llm_mapping_result: LlmMappingResult | None = None
     last_mapping_method: str | None = None
@@ -41,6 +46,8 @@ class AppState:
     pending_clarification: PendingClarification | None = None
     active_recipe_path: Path | None = None
     active_recipe_name: str | None = None
+    active_recipe: VisualRecipe | None = None
+    recipe_compatibility_result: ValidationResult | None = None
     status_messages: list[str] = field(default_factory=list)
 
     def add_status(self, message: str) -> None:
@@ -65,11 +72,13 @@ class AppState:
         self.last_renderer_output = output
         if self.current_visual_plan is not None:
             self.current_visual_plan.metadata.is_preview_stale = False
+        self.preview_status = "Preview generated."
 
     def set_preview_path(self, path: Path) -> None:
         self.last_preview_path = path
         if self.current_visual_plan is not None:
             self.current_visual_plan.metadata.is_preview_stale = False
+        self.preview_status = "Preview generated."
 
     def set_llm_mapping_enabled(self, enabled: bool) -> None:
         self.llm_mapping_enabled = enabled
@@ -80,9 +89,35 @@ class AppState:
     def mark_preview_stale(self) -> None:
         self.last_renderer_output = None
         self.last_preview_path = None
+        self.last_export_result = None
+        self.last_html_build_warnings = []
+        self.preview_status = "Preview stale. Regenerate to reflect latest plan."
         if self.current_visual_plan is not None:
             self.current_visual_plan.metadata.is_preview_stale = True
 
     def clear_renderer_outputs(self) -> None:
         self.last_renderer_output = None
         self.last_preview_path = None
+        self.last_export_result = None
+        self.last_html_build_warnings = []
+        self.preview_status = "No visual plan yet."
+
+    def set_preview_generated(self, path: Path, renderer_output: RendererOutput) -> None:
+        self.last_preview_path = path
+        self.last_renderer_output = renderer_output
+        self.preview_status = "Preview generated."
+
+    def set_preview_failed(self, error: str) -> None:
+        self.last_renderer_output = None
+        self.last_preview_path = None
+        self.last_export_result = None
+        self.last_html_build_warnings = []
+        self.preview_status = "Preview failed."
+        self.add_status(error)
+
+    def set_active_recipe(self, recipe: VisualRecipe | None, path: Path | None = None) -> None:
+        self.active_recipe = recipe
+        self.active_recipe_path = path
+        self.active_recipe_name = recipe.recipe_name if recipe is not None else None
+        if recipe is None:
+            self.recipe_compatibility_result = None

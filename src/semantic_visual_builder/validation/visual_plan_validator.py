@@ -86,6 +86,8 @@ class VisualPlanValidator:
             result.add_error("diagram plans must include diagram_edges.")
 
         known_nodes = {node.id for node in plan.diagram_nodes}
+        if len(known_nodes) != len(plan.diagram_nodes):
+            result.add_error("diagram node ids must be unique.")
         for node in plan.diagram_nodes:
             if not node.id.strip():
                 result.add_error("diagram node ids must not be blank.")

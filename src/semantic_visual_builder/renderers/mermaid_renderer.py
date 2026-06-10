@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from semantic_visual_builder.utils.text_sanitize import sanitize_label
 from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.planning.visual_plan_schema import DiagramEdge, DiagramNode, VisualPlan
 from semantic_visual_builder.renderers.base_renderer import BaseRenderer
@@ -45,18 +46,24 @@ class MermaidRenderer(BaseRenderer):
         direction = "LR" if visual_plan.style.orientation == "horizontal" else "TD"
         lines = [f"flowchart {direction}"]
         for node in nodes:
-            lines.append(f"    {node.id}{self._node_brackets(node)}")
+            lines.append(f"    {self._safe_node_id(node.id)}{self._node_brackets(node)}")
         for edge in edges:
             if edge.label:
-                lines.append(f"    {edge.source} -->|{edge.label}| {edge.target}")
+                lines.append(f"    {self._safe_node_id(edge.source)} -->|{sanitize_label(edge.label)}| {self._safe_node_id(edge.target)}")
             else:
-                lines.append(f"    {edge.source} --> {edge.target}")
+                lines.append(f"    {self._safe_node_id(edge.source)} --> {self._safe_node_id(edge.target)}")
         return "\n".join(lines)
 
     def _node_brackets(self, node: DiagramNode) -> str:
+        label = sanitize_label(node.label)
         if node.node_type == "decision":
-            return f"{{{node.label}}}"
-        return f"[{node.label}]"
+            return f"{{{label}}}"
+        if node.node_type in {"start", "end"}:
+            return f"([{label}])"
+        return f"[{label}]"
+
+    def _safe_node_id(self, node_id: str) -> str:
+        return "".join(ch for ch in node_id if ch.isalnum() or ch == "_")
 
     def _fallback_nodes(self) -> list[DiagramNode]:
         return [

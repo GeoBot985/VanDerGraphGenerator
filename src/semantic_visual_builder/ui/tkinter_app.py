@@ -34,9 +34,13 @@ from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.planning.refinement_engine import RefinementEngine
 from semantic_visual_builder.planning.refinement_orchestrator import RefinementOrchestrator
 from semantic_visual_builder.recipes.recipe_builder import RecipeBuilder
+from semantic_visual_builder.recipes.recipe_applier import RecipeApplier
 from semantic_visual_builder.recipes.recipe_store import RecipeStore
 from semantic_visual_builder.recipes.recipe_validator import RecipeValidator
 from semantic_visual_builder.ui.widgets import make_readonly_text, set_text
+from semantic_visual_builder.ui.preview_panel import PreviewPanel
+from semantic_visual_builder.ui.recipe_panel import RecipePanel
+from semantic_visual_builder.ui.validation_panel import ValidationPanel
 from semantic_visual_builder.validation.capability_validator import CapabilityValidator
 from semantic_visual_builder.validation.visual_plan_validator import VisualPlanValidator
 from semantic_visual_builder.validation.llm_output_validator import LlmOutputValidator
@@ -80,8 +84,12 @@ class SemanticVisualBuilderApp:
             clarification_engine=ClarificationEngine(),
         )
         self.recipe_builder = RecipeBuilder()
+        self.recipe_applier = RecipeApplier()
         self.recipe_store = RecipeStore(get_recipes_dir())
         self.recipe_validator = RecipeValidator()
+        self.preview_panel = PreviewPanel()
+        self.recipe_panel = RecipePanel()
+        self.validation_panel = ValidationPanel()
         self.renderer_registry = RendererRegistry(
             [PlotlyRenderer(), MermaidRenderer(), ChartJsRenderer(), PythonRendererFuture()]
         )
@@ -128,6 +136,8 @@ class SemanticVisualBuilderApp:
         ttk.Button(top, text="Show Renderer Output", command=self.show_renderer_output).pack(side="left", padx=6)
         ttk.Button(top, text="Save Recipe", command=self.save_recipe_action).pack(side="left", padx=6)
         ttk.Button(top, text="Load Recipe", command=self.load_recipe_action).pack(side="left", padx=6)
+        ttk.Button(top, text="Apply Recipe", command=self.apply_recipe_action).pack(side="left", padx=6)
+        ttk.Button(top, text="Clear Recipe", command=self.clear_recipe_action).pack(side="left", padx=6)
 
         middle = ttk.Frame(self.root)
         middle.pack(fill="both", expand=True, padx=12, pady=12)
@@ -160,6 +170,10 @@ class SemanticVisualBuilderApp:
         ttk.Label(right, text="Preview").pack(anchor="w")
         self.preview_text = make_readonly_text(right, height=4)
         self.preview_text.pack(fill="both", expand=False, pady=(4, 8))
+
+        ttk.Label(right, text="Recipe").pack(anchor="w")
+        self.recipe_text = make_readonly_text(right, height=5)
+        self.recipe_text.pack(fill="both", expand=False, pady=(4, 8))
 
         ttk.Label(right, text="Dataset Profile").pack(anchor="w")
         self.profile_text = make_readonly_text(right, height=8)
@@ -211,8 +225,7 @@ class SemanticVisualBuilderApp:
         self.app_state.current_validation_result = None
         self.app_state.clear_renderer_outputs()
         self.app_state.set_pending_clarification(None)
-        self.app_state.active_recipe_path = None
-        self.app_state.active_recipe_name = None
+        self.app_state.set_active_recipe(None)
         self.app_state.workflow_state.advance_to(WorkflowStep.VISUAL_GOAL_REQUIRED)
         self.app_state.add_status(f"Loaded CSV: {loaded.path.name}")
         self._append_preview(f"Loaded dataset: {loaded.path.name}")
@@ -379,20 +392,29 @@ class SemanticVisualBuilderApp:
             if not renderer_validation.is_valid:
                 message = "Preview could not be generated: renderer output validation failed."
                 self.app_state.add_status(message)
-                self.app_state.set_renderer_output(renderer_output)
+                self.app_state.set_preview_failed(message)
                 self._refresh_all_views()
                 return message
 
-            html = self.renderer_host.build_html(renderer_output)
-            preview_path = self.html_exporter.export_html(html)
-            self.app_state.set_renderer_output(renderer_output)
-            self.app_state.set_preview_path(preview_path)
-            self.preview_host.open_preview(preview_path)
-            self.app_state.add_status(f"Preview generated: {preview_path}")
+            build_result = self.renderer_host.build_html(renderer_output)
+            self.app_state.last_html_build_warnings = list(build_result.warnings)
+            for warning in build_result.warnings:
+                self.app_state.add_status(warning)
+            export_result = self.html_exporter.export_html(build_result.html)
+            self.app_state.last_export_result = export_result
+            if not export_result.success or export_result.path is None:
+                message = export_result.error or "HTML export failed."
+                self.app_state.set_preview_failed(message)
+                self._refresh_all_views()
+                return message
+            self.app_state.set_preview_generated(export_result.path, renderer_output)
+            self.preview_host.open_preview(export_result.path)
+            self.app_state.add_status(f"Preview generated: {export_result.path}")
             self._refresh_all_views()
-            return f"Preview generated: {preview_path}"
+            return f"Preview generated: {export_result.path}"
         except Exception as exc:
             message = f"Preview could not be generated: {exc}"
+            self.app_state.set_preview_failed(message)
             self.app_state.add_status(message)
             self._refresh_all_views()
             return message
@@ -452,9 +474,22 @@ class SemanticVisualBuilderApp:
         plan = self.app_state.current_visual_plan
         set_text(self.plan_text, summarize_visual_plan(plan) if plan is not None else "No visual plan yet.")
 
+    def _update_preview_view(self) -> None:
+        lines = [self.preview_panel.preview_status_text(self.app_state)]
+        if self.app_state.last_preview_path is not None:
+            lines.append(f"Last preview path: {self.app_state.last_preview_path}")
+        if self.app_state.last_html_build_warnings:
+            lines.append("")
+            lines.append("HTML build warnings:")
+            lines.extend(f"- {warning}" for warning in self.app_state.last_html_build_warnings)
+        set_text(self.preview_text, "\n".join(lines))
+
+    def _update_recipe_view(self) -> None:
+        set_text(self.recipe_text, "\n".join([self.recipe_panel.active_recipe_text(self.app_state), "", self.recipe_panel.compatibility_text(self.app_state)]))
+
     def _update_validation_view(self) -> None:
         validation = self.app_state.current_validation_result
-        set_text(self.validation_text, self._format_validation(validation) if validation is not None else "No validation result yet.")
+        set_text(self.validation_text, self.validation_panel.validation_text(self.app_state) if validation is not None else "No validation result yet.")
 
     def _update_clarification_view(self) -> None:
         if not hasattr(self, "clarification_text"):
@@ -516,6 +551,8 @@ class SemanticVisualBuilderApp:
             return
         self._update_profile_view()
         self._update_plan_view()
+        self._update_preview_view()
+        self._update_recipe_view()
         self._update_validation_view()
         self._update_clarification_view()
         self._update_workflow_view()
@@ -594,8 +631,7 @@ class SemanticVisualBuilderApp:
             self._refresh_all_views()
             return message
         path = self.recipe_store.save_recipe(recipe)
-        self.app_state.active_recipe_path = path
-        self.app_state.active_recipe_name = recipe.recipe_name
+        self.app_state.set_active_recipe(recipe, path)
         message = f"Recipe saved: {path}"
         self.app_state.add_status(message)
         self._refresh_all_views()
@@ -607,25 +643,52 @@ class SemanticVisualBuilderApp:
             return "Recipe load cancelled."
         path = Path(filename)
         recipe = self.recipe_store.load_recipe(path)
-        validation = self.recipe_validator.validate_recipe(recipe)
         if self.app_state.dataset_context.profile is not None:
-            dataset_validation = self.recipe_validator.validate_against_dataset(recipe, self.app_state.dataset_context.profile)
-            validation.messages.extend(dataset_validation.messages)
-        self.app_state.active_recipe_path = path
-        self.app_state.active_recipe_name = recipe.recipe_name
+            validation = self.recipe_validator.compatibility_report(recipe, self.app_state.dataset_context.profile)
+            self.app_state.recipe_compatibility_result = validation
+        else:
+            validation = self.recipe_validator.validate_recipe(recipe)
+            self.app_state.recipe_compatibility_result = validation
+        self.app_state.set_active_recipe(recipe, path)
         self.app_state.add_status(f"Recipe loaded: {recipe.recipe_name}")
-        if recipe.visual_plan:
-            from semantic_visual_builder.planning.visual_plan import visual_plan_from_dict
-
-            restored_plan = visual_plan_from_dict(recipe.visual_plan)
-            restored_plan.metadata.mapping_method = "recipe"
-            self.app_state.set_visual_plan(restored_plan, description=f"Loaded recipe: {recipe.recipe_name}")
-            self.app_state.current_validation_result = self.plan_validator.validate(restored_plan, self.app_state.dataset_context.profile, self.app_state.graph_matrix)
-            self.app_state.add_status("Recipe plan restored and marked stale.")
         self._refresh_all_views()
         if validation.is_valid:
             return f"Recipe loaded: {recipe.recipe_name}"
         return self._format_validation(validation)
+
+    def apply_recipe_action(self) -> str:
+        recipe = self.app_state.active_recipe
+        profile = self.app_state.dataset_context.profile
+        if recipe is None:
+            message = "Load a recipe first."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        if profile is None:
+            message = "Load a dataset before applying a recipe."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        result = self.recipe_applier.apply_recipe(recipe, profile)
+        self.app_state.recipe_compatibility_result = self.recipe_validator.compatibility_report(recipe, profile)
+        if not result.success or result.visual_plan is None:
+            message = "; ".join(result.errors) if result.errors else "Recipe application failed."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        self.app_state.set_visual_plan(result.visual_plan, description=f"Applied recipe: {recipe.recipe_name}")
+        self.app_state.current_validation_result = self.plan_validator.validate(result.visual_plan, self.app_state.dataset_context.profile, self.app_state.graph_matrix)
+        self.app_state.last_fallback_reason = "; ".join(result.warnings) if result.warnings else None
+        self.app_state.add_status(f"Recipe applied: {recipe.recipe_name}")
+        self._refresh_all_views()
+        return f"Recipe applied: {recipe.recipe_name}"
+
+    def clear_recipe_action(self) -> str:
+        self.app_state.set_active_recipe(None)
+        self.app_state.recipe_compatibility_result = None
+        self.app_state.add_status("Recipe cleared.")
+        self._refresh_all_views()
+        return "Recipe cleared."
 
     def _looks_like_process_request(self, content: str) -> bool:
         text = content.lower()

@@ -77,7 +77,7 @@ def test_save_recipe_action_calls_recipe_store(monkeypatch, tmp_path) -> None:
     assert list(tmp_path.glob("*.recipe.json"))
 
 
-def test_load_recipe_action_restores_plan(monkeypatch, tmp_path) -> None:
+def test_load_recipe_action_records_active_recipe_and_compatibility(monkeypatch, tmp_path) -> None:
     state = AppState()
     state.dataset_context.profile = _profile()
     app = SemanticVisualBuilderApp(state, build_ui=False)
@@ -89,8 +89,25 @@ def test_load_recipe_action_restores_plan(monkeypatch, tmp_path) -> None:
     message = app.load_recipe_action()
 
     assert "Recipe loaded:" in message
-    assert state.current_visual_plan is not None
     assert state.active_recipe_name == "Monthly Summary"
+    assert state.active_recipe is not None
+    assert state.recipe_compatibility_result is not None
+
+
+def test_apply_recipe_action_creates_plan_and_marks_preview_stale(monkeypatch, tmp_path) -> None:
+    state = AppState()
+    state.dataset_context.profile = _profile()
+    app = SemanticVisualBuilderApp(state, build_ui=False)
+    app.recipe_store = RecipeStore(tmp_path)
+    recipe = RecipeBuilder().build_from_current_plan("Monthly Summary", _plan(), state.dataset_context.profile)
+    saved_path = app.recipe_store.save_recipe(recipe)
+    monkeypatch.setattr("semantic_visual_builder.ui.tkinter_app.filedialog.askopenfilename", lambda **kwargs: str(saved_path))
+    app.load_recipe_action()
+
+    message = app.apply_recipe_action()
+
+    assert "Recipe applied:" in message
+    assert state.current_visual_plan is not None
     assert state.current_visual_plan.metadata.is_preview_stale is True
 
 
