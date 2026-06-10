@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "pattern": "user submits request",
+    "intent": "show_process",
+    "diagram_type": "flowchart",
+    "nodes": [
+      {"label": "User submits request", "node_type": "process"},
+      {"label": "Analyst reviews request", "node_type": "process"},
+      {"label": "Request complete?", "node_type": "decision"}
+    ],
+    "edges": [
+      {"source": "A", "target": "B"},
+      {"source": "B", "target": "C"}
+    ]
+  }
+]

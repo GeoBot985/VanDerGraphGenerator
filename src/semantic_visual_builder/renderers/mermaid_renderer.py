@@ -42,7 +42,8 @@ class MermaidRenderer(BaseRenderer):
     def _build_mermaid(self, visual_plan: VisualPlan) -> str:
         nodes = visual_plan.diagram_nodes or self._fallback_nodes()
         edges = visual_plan.diagram_edges or self._fallback_edges(nodes)
-        lines = ["flowchart TD"]
+        direction = "LR" if visual_plan.style.orientation == "horizontal" else "TD"
+        lines = [f"flowchart {direction}"]
         for node in nodes:
             lines.append(f"    {node.id}{self._node_brackets(node)}")
         for edge in edges:

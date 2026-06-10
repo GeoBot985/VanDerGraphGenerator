@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import asdict
+from typing import Any
 
 from semantic_visual_builder.llm.llm_mapping_result import LlmVisualPlanDraft
 
-from .visual_plan_schema import DataRole, RenderTarget, StyleIntent, VisualPlan
+from .visual_plan_schema import DataRole, DiagramEdge, DiagramNode, RenderTarget, StyleIntent, VisualPlan
 
 
 def get_role(plan: VisualPlan, role: str) -> DataRole | None:
@@ -55,6 +57,19 @@ def summarize_visual_plan(plan: VisualPlan) -> str:
         lines.append(f"Renderer target: {plan.render_target.renderer}")
     if plan.style.title:
         lines.append(f"Title: {plan.style.title}")
+    if plan.style.subtitle:
+        lines.append(f"Subtitle: {plan.style.subtitle}")
+    if plan.style.colour_scheme:
+        lines.append(f"Colour scheme: {plan.style.colour_scheme}")
+    if plan.style.orientation:
+        lines.append(f"Orientation: {plan.style.orientation}")
+    if plan.style.highlights:
+        lines.append(f"Highlights: {plan.style.highlights}")
+    if plan.metadata.plan_id:
+        lines.append(f"Plan ID: {plan.metadata.plan_id}")
+    if plan.metadata.mapping_method:
+        lines.append(f"Mapping method: {plan.metadata.mapping_method}")
+    lines.append(f"Preview stale: {'yes' if plan.metadata.is_preview_stale else 'no'}")
     for note in plan.notes:
         lines.append(f"Note: {note}")
     return "\n".join(lines)
@@ -72,8 +87,11 @@ def visual_plan_from_llm_draft(draft: LlmVisualPlanDraft) -> VisualPlan:
         diagram_type=draft.diagram_type,
         style=StyleIntent(
             title=(draft.style or {}).get("title"),
+            subtitle=(draft.style or {}).get("subtitle"),
             colour_scheme=(draft.style or {}).get("colour_scheme"),
             highlights=(draft.style or {}).get("highlights", {}) or {},
+            labels=(draft.style or {}).get("labels", {}) or {},
+            orientation=(draft.style or {}).get("orientation"),
         ),
         render_target=RenderTarget(renderer=draft.renderer),
     )
@@ -90,7 +108,156 @@ def visual_plan_from_llm_draft(draft: LlmVisualPlanDraft) -> VisualPlan:
         )
     plan.filters = [item for item in draft.filters if isinstance(item, dict)]
     plan.grouping = [item for item in draft.grouping if isinstance(item, str)]
+    for node_data in getattr(draft, "diagram_nodes", []) or []:
+        if isinstance(node_data, dict) and node_data.get("id") and node_data.get("label"):
+            plan.diagram_nodes.append(
+                DiagramNode(
+                    id=str(node_data["id"]),
+                    label=str(node_data["label"]),
+                    node_type=str(node_data.get("node_type", "process")),
+                )
+            )
+    for edge_data in getattr(draft, "diagram_edges", []) or []:
+        if isinstance(edge_data, dict) and edge_data.get("source") and edge_data.get("target"):
+            plan.diagram_edges.append(
+                DiagramEdge(
+                    source=str(edge_data["source"]),
+                    target=str(edge_data["target"]),
+                    label=edge_data.get("label"),
+                )
+            )
     plan.notes.extend([f"Assumption: {item}" for item in draft.assumptions])
     if draft.questions:
         plan.notes.extend([f"Question: {item}" for item in draft.questions])
+    plan.metadata.assumptions = list(draft.assumptions)
+    plan.metadata.pending_questions = list(draft.questions)
+    plan.metadata.confidence = draft.confidence
+    plan.metadata.created_from = "llm"
     return plan
+
+
+def visual_plan_to_dict(plan: VisualPlan) -> dict[str, Any]:
+    return asdict(plan)
+
+
+def visual_plan_from_dict(data: dict[str, Any]) -> VisualPlan:
+    plan = VisualPlan(
+        visual_kind=str(data.get("visual_kind", "chart")),
+        intent=str(data.get("intent", "unknown")),
+        chart_type=data.get("chart_type"),
+        diagram_type=data.get("diagram_type"),
+    )
+    for role_data in data.get("data_roles", []) or []:
+        if isinstance(role_data, dict):
+            plan.data_roles.append(
+                DataRole(
+                    role=str(role_data.get("role", "")),
+                    field=role_data.get("field"),
+                    transform=role_data.get("transform"),
+                    aggregation=role_data.get("aggregation"),
+                )
+            )
+    for item in data.get("filters", []) or []:
+        if isinstance(item, dict):
+            plan.filters.append(item)
+    for item in data.get("grouping", []) or []:
+        if isinstance(item, str):
+            plan.grouping.append(item)
+    for node_data in data.get("diagram_nodes", []) or []:
+        if isinstance(node_data, dict) and node_data.get("id") and node_data.get("label"):
+            plan.diagram_nodes.append(
+                DiagramNode(
+                    id=str(node_data["id"]),
+                    label=str(node_data["label"]),
+                    node_type=str(node_data.get("node_type", "process")),
+                )
+            )
+    for edge_data in data.get("diagram_edges", []) or []:
+        if isinstance(edge_data, dict) and edge_data.get("source") and edge_data.get("target"):
+            plan.diagram_edges.append(
+                DiagramEdge(
+                    source=str(edge_data["source"]),
+                    target=str(edge_data["target"]),
+                    label=edge_data.get("label"),
+                )
+            )
+    style_data = data.get("style", {})
+    if isinstance(style_data, dict):
+        plan.style = StyleIntent(
+            title=style_data.get("title"),
+            subtitle=style_data.get("subtitle"),
+            colour_scheme=style_data.get("colour_scheme"),
+            highlights=style_data.get("highlights", {}) or {},
+            labels=style_data.get("labels", {}) or {},
+            orientation=style_data.get("orientation"),
+        )
+    render_target_data = data.get("render_target", {})
+    if isinstance(render_target_data, dict):
+        plan.render_target = RenderTarget(
+            renderer=render_target_data.get("renderer"),
+            output_format=render_target_data.get("output_format"),
+        )
+    metadata_data = data.get("metadata", {})
+    if isinstance(metadata_data, dict):
+        plan.metadata.plan_id = metadata_data.get("plan_id")
+        plan.metadata.created_from = metadata_data.get("created_from")
+        plan.metadata.mapping_method = metadata_data.get("mapping_method")
+        plan.metadata.confidence = metadata_data.get("confidence")
+        plan.metadata.assumptions = list(metadata_data.get("assumptions", [])) if isinstance(metadata_data.get("assumptions"), list) else []
+        plan.metadata.pending_questions = list(metadata_data.get("pending_questions", [])) if isinstance(metadata_data.get("pending_questions"), list) else []
+        plan.metadata.is_preview_stale = bool(metadata_data.get("is_preview_stale", True))
+    return plan
+
+
+def merge_visual_plans(base: VisualPlan, update: VisualPlan) -> VisualPlan:
+    merged = clone_visual_plan(base)
+    merged.visual_kind = update.visual_kind or merged.visual_kind
+    merged.intent = update.intent or merged.intent
+    merged.chart_type = update.chart_type or merged.chart_type
+    merged.diagram_type = update.diagram_type or merged.diagram_type
+    merged.render_target.renderer = update.render_target.renderer or merged.render_target.renderer
+    merged.render_target.output_format = update.render_target.output_format or merged.render_target.output_format
+
+    if update.data_roles:
+        for role in update.data_roles:
+            set_role(merged, role.role, role.field, role.transform, role.aggregation)
+
+    if update.filters:
+        merged.filters = [deepcopy(item) for item in update.filters]
+    if update.grouping:
+        merged.grouping = list(update.grouping)
+    if update.diagram_nodes:
+        merged.diagram_nodes = deepcopy(update.diagram_nodes)
+    if update.diagram_edges:
+        merged.diagram_edges = deepcopy(update.diagram_edges)
+
+    if update.style.title is not None:
+        merged.style.title = update.style.title
+    if update.style.subtitle is not None:
+        merged.style.subtitle = update.style.subtitle
+    if update.style.colour_scheme is not None:
+        merged.style.colour_scheme = update.style.colour_scheme
+    if update.style.highlights:
+        merged.style.highlights = deepcopy(update.style.highlights)
+    if update.style.labels:
+        merged.style.labels = deepcopy(update.style.labels)
+    if update.style.orientation is not None:
+        merged.style.orientation = update.style.orientation
+
+    if update.metadata.plan_id is not None:
+        merged.metadata.plan_id = update.metadata.plan_id
+    if update.metadata.created_from is not None:
+        merged.metadata.created_from = update.metadata.created_from
+    if update.metadata.mapping_method is not None:
+        merged.metadata.mapping_method = update.metadata.mapping_method
+    if update.metadata.confidence is not None:
+        merged.metadata.confidence = update.metadata.confidence
+    if update.metadata.assumptions:
+        merged.metadata.assumptions = list(update.metadata.assumptions)
+    if update.metadata.pending_questions:
+        merged.metadata.pending_questions = list(update.metadata.pending_questions)
+    merged.metadata.is_preview_stale = update.metadata.is_preview_stale if update.metadata.is_preview_stale is not None else merged.metadata.is_preview_stale
+
+    if update.notes:
+        merged.notes.extend(item for item in update.notes if item not in merged.notes)
+    return merged

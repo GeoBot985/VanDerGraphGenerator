@@ -99,11 +99,16 @@ class PlotlyRenderer(BaseRenderer):
         if category is None or measure is None:
             raise ValueError("Bar charts require category and measure roles.")
         grouped = self._aggregate_category(dataframe, category.field, measure)
+        colors = self._bar_colors(plan, grouped["label"].tolist())
         if horizontal:
             trace = {"type": "bar", "orientation": "h", "x": grouped["value"].tolist(), "y": grouped["label"].tolist(), "name": self._measure_name(measure)}
+            if colors:
+                trace["marker"] = {"color": colors}
             layout = self._layout(plan, x_title=self._measure_name(measure), y_title=category.field or "Category")
         else:
             trace = {"type": "bar", "x": grouped["label"].tolist(), "y": grouped["value"].tolist(), "name": self._measure_name(measure)}
+            if colors:
+                trace["marker"] = {"color": colors}
             layout = self._layout(plan, x_title=category.field or "Category", y_title=self._measure_name(measure))
         return trace, layout
 
@@ -116,6 +121,9 @@ class PlotlyRenderer(BaseRenderer):
         y_values = pd.to_numeric(dataframe[y_role.field], errors="coerce")
         valid = ~(x_values.isna() | y_values.isna())
         trace = {"type": "scatter", "mode": "markers", "x": x_values[valid].tolist(), "y": y_values[valid].tolist(), "name": "Points"}
+        color = self._colour_for_scheme(plan.style.colour_scheme)
+        if color:
+            trace["marker"] = {"color": color}
         layout = self._layout(plan, x_title=x_role.field or "X", y_title=y_role.field or "Y")
         return trace, layout
 
@@ -126,6 +134,9 @@ class PlotlyRenderer(BaseRenderer):
             raise ValueError("Pie charts require category and measure roles.")
         grouped = self._aggregate_category(dataframe, category.field, measure)
         trace = {"type": "pie", "labels": grouped["label"].tolist(), "values": grouped["value"].tolist(), "name": self._measure_name(measure)}
+        colors = self._bar_colors(plan, grouped["label"].tolist())
+        if colors:
+            trace["marker"] = {"colors": colors}
         layout = self._layout(plan, x_title=category.field or "Category", y_title=self._measure_name(measure))
         return trace, layout
 
@@ -147,6 +158,8 @@ class PlotlyRenderer(BaseRenderer):
 
     def _layout(self, plan: VisualPlan, x_title: str, y_title: str) -> dict[str, object]:
         title = plan.style.title or self._default_title(plan)
+        if plan.style.subtitle:
+            title = f"{title} - {plan.style.subtitle}"
         return {
             "title": title,
             "xaxis": {"title": x_title},
@@ -154,6 +167,33 @@ class PlotlyRenderer(BaseRenderer):
             "template": "plotly_white",
             "margin": {"l": 60, "r": 30, "t": 60, "b": 60},
         }
+
+    def _bar_colors(self, plan: VisualPlan, labels: list[str]) -> list[str] | None:
+        scheme = self._colour_for_scheme(plan.style.colour_scheme)
+        highlight = plan.style.highlights or {}
+        highlight_value = str(highlight.get("value", "")).lower()
+        if not scheme and not highlight_value:
+            return None
+        base_color = scheme or "#4C78A8"
+        highlight_color = "#E45756"
+        colors: list[str] = []
+        for label in labels:
+            if highlight_value and highlight_value in label.lower():
+                colors.append(highlight_color)
+            else:
+                colors.append(base_color)
+        return colors
+
+    def _colour_for_scheme(self, scheme: str | None) -> str | None:
+        if not scheme:
+            return None
+        palette = {
+            "blue": "#4C78A8",
+            "corporate blue": "#1F4E79",
+            "green": "#54A24B",
+            "red": "#E45756",
+        }
+        return palette.get(scheme.lower(), "#4C78A8")
 
     def _default_title(self, plan: VisualPlan) -> str:
         if plan.intent == "show_trend":

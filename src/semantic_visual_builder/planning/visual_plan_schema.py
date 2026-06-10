@@ -17,9 +17,22 @@ class DataRole:
 @dataclass
 class StyleIntent:
     title: str | None = None
+    subtitle: str | None = None
     colour_scheme: str | None = None
     highlights: dict[str, Any] = field(default_factory=dict)
     labels: dict[str, str] = field(default_factory=dict)
+    orientation: str | None = None
+
+
+@dataclass
+class PlanMetadata:
+    plan_id: str | None = None
+    created_from: str | None = None
+    mapping_method: str | None = None
+    confidence: float | None = None
+    assumptions: list[str] = field(default_factory=list)
+    pending_questions: list[str] = field(default_factory=list)
+    is_preview_stale: bool = True
 
 
 @dataclass
@@ -55,6 +68,7 @@ class VisualPlan:
     diagram_edges: list[DiagramEdge] = field(default_factory=list)
     style: StyleIntent = field(default_factory=StyleIntent)
     render_target: RenderTarget = field(default_factory=RenderTarget)
+    metadata: PlanMetadata = field(default_factory=PlanMetadata)
     notes: list[str] = field(default_factory=list)
 
     @property

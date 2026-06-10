@@ -38,6 +38,12 @@ def get_previews_dir() -> Path:
     return get_exports_dir() / "previews"
 
 
+def get_recipes_dir() -> Path:
+    """Return the recipe directory."""
+
+    return get_project_root() / "recipes"
+
+
 def get_webview_template_dir() -> Path:
     """Return the HTML template directory."""
 

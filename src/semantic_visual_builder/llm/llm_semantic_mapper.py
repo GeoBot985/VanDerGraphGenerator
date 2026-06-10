@@ -10,7 +10,8 @@ from semantic_visual_builder.llm.llm_mapping_result import LlmMappingResult, Llm
 from semantic_visual_builder.llm.llm_response_parser import LlmResponseParser
 from semantic_visual_builder.llm.ollama_client import OllamaClient
 from semantic_visual_builder.llm.prompt_builder import VisualIntentPromptBuilder
-from semantic_visual_builder.llm.prompts import VISUAL_INTENT_MAPPING_SYSTEM_PROMPT, VISUAL_REPAIR_SYSTEM_PROMPT
+from semantic_visual_builder.llm.prompts import VISUAL_INTENT_MAPPING_SYSTEM_PROMPT, VISUAL_REFINEMENT_SYSTEM_PROMPT, VISUAL_REPAIR_SYSTEM_PROMPT
+from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 from semantic_visual_builder.validation.llm_output_validator import LlmOutputValidator
 
 
@@ -39,21 +40,31 @@ class LlmSemanticMapper:
         product_kb: ProductKnowledgeBase | None,
         graph_matrix: GraphMatrix | None,
         current_plan_summary: str | None = None,
+        current_plan: VisualPlan | None = None,
     ) -> LlmMappingResult:
         raw_response = ""
         errors: list[str] = []
-        prompt = self.prompt_builder.build_prompt(
-            user_message=user_message,
-            dataset_profile=dataset_profile,
-            product_kb=product_kb,
-            graph_matrix=graph_matrix,
-            current_plan_summary=current_plan_summary,
-        )
+        if current_plan is not None:
+            prompt = self.prompt_builder.build_refinement_prompt(
+                user_message=user_message,
+                dataset_profile=dataset_profile,
+                product_kb=product_kb,
+                graph_matrix=graph_matrix,
+                current_plan=current_plan,
+            )
+        else:
+            prompt = self.prompt_builder.build_prompt(
+                user_message=user_message,
+                dataset_profile=dataset_profile,
+                product_kb=product_kb,
+                graph_matrix=graph_matrix,
+                current_plan_summary=current_plan_summary,
+            )
         try:
             raw_response = self.ollama_client.generate(
                 model=model,
                 prompt=prompt,
-                system=VISUAL_INTENT_MAPPING_SYSTEM_PROMPT,
+                system=VISUAL_REFINEMENT_SYSTEM_PROMPT if current_plan is not None else VISUAL_INTENT_MAPPING_SYSTEM_PROMPT,
                 temperature=0.0,
             )
         except Exception as exc:
@@ -120,4 +131,6 @@ class LlmSemanticMapper:
             confidence=float(data.get("confidence")) if data.get("confidence") is not None else None,
             assumptions=list(data.get("assumptions", [])) if isinstance(data.get("assumptions"), list) else [],
             questions=list(data.get("questions", [])) if isinstance(data.get("questions"), list) else [],
+            diagram_nodes=list(data.get("diagram_nodes", [])) if isinstance(data.get("diagram_nodes"), list) else [],
+            diagram_edges=list(data.get("diagram_edges", [])) if isinstance(data.get("diagram_edges"), list) else [],
         )

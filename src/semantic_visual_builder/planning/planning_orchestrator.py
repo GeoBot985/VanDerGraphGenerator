@@ -72,6 +72,7 @@ class PlanningOrchestrator:
             )
             if llm_result.draft is not None:
                 plan = visual_plan_from_llm_draft(llm_result.draft)
+                plan.metadata.mapping_method = "llm_with_repair" if llm_result.used_repair else "llm"
                 validation = self._validate(plan, dataset_profile, product_kb)
                 if validation.is_valid:
                     return PlanningResult(
@@ -98,6 +99,7 @@ class PlanningOrchestrator:
         deterministic_plan = self.deterministic_mapper.map_request_to_plan(user_message, dataset_profile, graph_matrix)
         if dataset_profile is not None:
             deterministic_plan = self.field_mapper.propose_roles(user_message, dataset_profile, deterministic_plan)
+        deterministic_plan.metadata.mapping_method = "deterministic_fallback" if attempted_llm else "deterministic"
         validation = self._validate(deterministic_plan, dataset_profile, product_kb)
         return PlanningResult(
             visual_plan=deterministic_plan,

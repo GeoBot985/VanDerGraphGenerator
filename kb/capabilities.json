@@ -13,7 +13,10 @@
     "Deterministic validation",
     "Mermaid diagram rendering",
     "Plotly or Chart.js chart rendering",
-    "Conversational refinement"
+    "Conversational refinement",
+    "Multi-turn visual refinement",
+    "Basic recipe save/load",
+    "Basic flowchart node/edge extraction"
   ],
   "future_capabilities": [
     "Excel input",

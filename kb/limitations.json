@@ -6,6 +6,9 @@
     "No Power BI replacement",
     "No unrestricted chart generation",
     "No internet requirement except local Ollama API",
-    "No Graphviz dependency in MVP"
+    "No Graphviz dependency in MVP",
+    "Recipe remapping is basic in Sprint 5.",
+    "Image-based look-and-feel extraction is future capability.",
+    "Advanced brand/template management is future capability."
   ]
 }

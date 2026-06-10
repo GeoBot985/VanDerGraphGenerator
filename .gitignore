@@ -20,4 +20,5 @@ Thumbs.db
 .idea/
 .vscode/
 exports/
+recipes/*.recipe.json
 temp/

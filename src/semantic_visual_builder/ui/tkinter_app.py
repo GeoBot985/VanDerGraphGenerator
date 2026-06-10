@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from semantic_visual_builder.data.csv_loader import CsvLoader
 from semantic_visual_builder.data.data_profiler import DataProfiler
@@ -13,7 +13,7 @@ from semantic_visual_builder.planning.field_mapper import FieldMapper
 from semantic_visual_builder.planning.intent_mapper import IntentMapper
 from semantic_visual_builder.planning.planning_orchestrator import PlanningOrchestrator
 from semantic_visual_builder.planning.message_classifier import MessageClassifier, MessageIntent
-from semantic_visual_builder.planning.visual_plan import summarize_visual_plan
+from semantic_visual_builder.planning.visual_plan import summarize_visual_plan, visual_plan_to_dict
 from semantic_visual_builder.planning.workflow_state import WorkflowStep
 from semantic_visual_builder.renderers.chartjs_renderer import ChartJsRenderer
 from semantic_visual_builder.renderers.mermaid_renderer import MermaidRenderer
@@ -25,15 +25,23 @@ from semantic_visual_builder.llm.llm_response_parser import LlmResponseParser
 from semantic_visual_builder.llm.llm_semantic_mapper import LlmSemanticMapper
 from semantic_visual_builder.llm.ollama_client import OllamaClient
 from semantic_visual_builder.llm.prompt_builder import VisualIntentPromptBuilder
+from semantic_visual_builder.planning.clarification import PendingClarification
+from semantic_visual_builder.planning.clarification_engine import ClarificationEngine
+from semantic_visual_builder.planning.diagram_plan_builder import DiagramPlanBuilder
 from semantic_visual_builder.webview.html_preview_host import HtmlPreviewHost
 from semantic_visual_builder.webview.renderer_host import RendererHost
 from semantic_visual_builder.state.app_state import AppState
+from semantic_visual_builder.planning.refinement_engine import RefinementEngine
+from semantic_visual_builder.planning.refinement_orchestrator import RefinementOrchestrator
+from semantic_visual_builder.recipes.recipe_builder import RecipeBuilder
+from semantic_visual_builder.recipes.recipe_store import RecipeStore
+from semantic_visual_builder.recipes.recipe_validator import RecipeValidator
 from semantic_visual_builder.ui.widgets import make_readonly_text, set_text
 from semantic_visual_builder.validation.capability_validator import CapabilityValidator
 from semantic_visual_builder.validation.visual_plan_validator import VisualPlanValidator
 from semantic_visual_builder.validation.llm_output_validator import LlmOutputValidator
 from semantic_visual_builder.export.html_exporter import HtmlExporter
-from semantic_visual_builder.utils.paths import get_previews_dir, get_webview_template_dir
+from semantic_visual_builder.utils.paths import get_previews_dir, get_recipes_dir, get_webview_template_dir
 
 
 class SemanticVisualBuilderApp:
@@ -64,6 +72,16 @@ class SemanticVisualBuilderApp:
             visual_plan_validator=self.plan_validator,
             capability_validator=self.capability_validator,
         )
+        self.refinement_orchestrator = RefinementOrchestrator(
+            llm_mapper=self.llm_mapper,
+            deterministic_refinement_engine=RefinementEngine(),
+            visual_plan_validator=self.plan_validator,
+            capability_validator=self.capability_validator,
+            clarification_engine=ClarificationEngine(),
+        )
+        self.recipe_builder = RecipeBuilder()
+        self.recipe_store = RecipeStore(get_recipes_dir())
+        self.recipe_validator = RecipeValidator()
         self.renderer_registry = RendererRegistry(
             [PlotlyRenderer(), MermaidRenderer(), ChartJsRenderer(), PythonRendererFuture()]
         )
@@ -84,6 +102,8 @@ class SemanticVisualBuilderApp:
         self._revision_var = tk.StringVar(value="")
         self._mapping_method_var = tk.StringVar(value="Mapping method: deterministic")
         self._fallback_reason_var = tk.StringVar(value="Fallback reason: none")
+        self._clarification_var = tk.StringVar(value="No pending clarification.")
+        self._clarification_answer_var = tk.StringVar(value="")
         self._build_ui()
         self.refresh_ollama()
         self._refresh_all_views()
@@ -106,6 +126,8 @@ class SemanticVisualBuilderApp:
         ttk.Button(top, text="Generate Preview", command=self.generate_preview).pack(side="left", padx=6)
         ttk.Button(top, text="Open Last Preview", command=self.open_last_preview).pack(side="left", padx=6)
         ttk.Button(top, text="Show Renderer Output", command=self.show_renderer_output).pack(side="left", padx=6)
+        ttk.Button(top, text="Save Recipe", command=self.save_recipe_action).pack(side="left", padx=6)
+        ttk.Button(top, text="Load Recipe", command=self.load_recipe_action).pack(side="left", padx=6)
 
         middle = ttk.Frame(self.root)
         middle.pack(fill="both", expand=True, padx=12, pady=12)
@@ -125,6 +147,15 @@ class SemanticVisualBuilderApp:
         self.chat_entry = ttk.Entry(entry_row, textvariable=self._chat_var)
         self.chat_entry.pack(side="left", fill="x", expand=True)
         ttk.Button(entry_row, text="Send", command=self.send_chat).pack(side="left", padx=6)
+
+        ttk.Label(left, text="Clarification").pack(anchor="w", pady=(10, 0))
+        self.clarification_text = make_readonly_text(left, height=7)
+        self.clarification_text.pack(fill="both", expand=False, pady=(4, 6))
+        clarification_row = ttk.Frame(left)
+        clarification_row.pack(fill="x")
+        self.clarification_entry = ttk.Entry(clarification_row, textvariable=self._clarification_answer_var)
+        self.clarification_entry.pack(side="left", fill="x", expand=True)
+        ttk.Button(clarification_row, text="Answer Clarification", command=self.answer_clarification_action).pack(side="left", padx=6)
 
         ttk.Label(right, text="Preview").pack(anchor="w")
         self.preview_text = make_readonly_text(right, height=4)
@@ -178,8 +209,10 @@ class SemanticVisualBuilderApp:
         self.app_state.dataset_context.profile = profile
         self.app_state.current_visual_plan = None
         self.app_state.current_validation_result = None
-        self.app_state.last_renderer_output = None
-        self.app_state.last_preview_path = None
+        self.app_state.clear_renderer_outputs()
+        self.app_state.set_pending_clarification(None)
+        self.app_state.active_recipe_path = None
+        self.app_state.active_recipe_name = None
         self.app_state.workflow_state.advance_to(WorkflowStep.VISUAL_GOAL_REQUIRED)
         self.app_state.add_status(f"Loaded CSV: {loaded.path.name}")
         self._append_preview(f"Loaded dataset: {loaded.path.name}")
@@ -193,17 +226,20 @@ class SemanticVisualBuilderApp:
         self.conversation_state.add_user_message(content)
         self._append_chat(f"User: {content}")
 
-        intent = self.message_classifier.classify(content, has_current_plan=self.app_state.current_visual_plan is not None)
-        if intent == MessageIntent.CAPABILITY_QUESTION:
-            response = self._answer_capability_question(content)
-        elif intent == MessageIntent.WORKFLOW_HELP:
-            response = self._workflow_help_text()
-        elif intent == MessageIntent.VISUAL_REQUEST:
-            response = self._handle_visual_request(content)
-        elif intent == MessageIntent.REFINEMENT_REQUEST:
-            response = self._handle_refinement_request(content)
+        if self.app_state.pending_clarification is not None:
+            response = self._handle_clarification_answer(content)
         else:
-            response = "Please load data, ask about capabilities, or describe the visual goal."
+            intent = self.message_classifier.classify(content, has_current_plan=self.app_state.current_visual_plan is not None)
+            if intent == MessageIntent.CAPABILITY_QUESTION:
+                response = self._answer_capability_question(content)
+            elif intent == MessageIntent.WORKFLOW_HELP:
+                response = self._workflow_help_text()
+            elif intent == MessageIntent.VISUAL_REQUEST:
+                response = self._handle_visual_request(content)
+            elif intent == MessageIntent.REFINEMENT_REQUEST:
+                response = self._handle_refinement_request(content)
+            else:
+                response = "Please load data, ask about capabilities, or describe the visual goal."
         self._append_assistant_response(response)
         self._refresh_all_views()
 
@@ -231,7 +267,7 @@ class SemanticVisualBuilderApp:
     def _handle_refinement_request(self, content: str) -> str:
         if self.app_state.current_visual_plan is None:
             return "Create a visual plan first, then I can apply refinements."
-        return self._run_planning(content, is_refinement=True)
+        return self._run_refinement(content)
 
     def _run_planning(self, content: str, is_refinement: bool) -> str:
         use_llm = self._use_llm_var.get() and bool(self.app_state.model_registry.selected_model)
@@ -264,6 +300,68 @@ class SemanticVisualBuilderApp:
         if plan is None:
             return "No visual plan could be created."
         return self._visual_plan_response(plan, validation)
+
+    def _run_refinement(self, content: str) -> str:
+        current_plan = self.app_state.current_visual_plan
+        if current_plan is None:
+            return "Create a visual plan first, then I can apply refinements."
+        use_llm = self._use_llm_var.get() and bool(self.app_state.model_registry.selected_model)
+        if not self._use_llm_var.get():
+            self.app_state.add_status("LLM semantic mapping disabled. Deterministic refinement used.")
+        elif self._use_llm_var.get() and not self.app_state.model_registry.selected_model:
+            self.app_state.add_status("No Ollama model selected. Deterministic refinement used.")
+        result = self.refinement_orchestrator.refine_plan(
+            current_plan=current_plan,
+            user_message=content,
+            app_state=self.app_state,
+            use_llm=use_llm,
+        )
+        self.app_state.current_validation_result = result.validation_result
+        self.app_state.last_mapping_method = result.mapping_method
+        self.app_state.last_fallback_reason = "; ".join(result.messages) if result.used_fallback or result.messages else None
+        if result.visual_plan is not None:
+            self.app_state.set_visual_plan(result.visual_plan, description="Refined visual plan")
+        for message in result.messages:
+            self.app_state.add_status(message)
+        if result.clarification_requests:
+            request = result.clarification_requests[0]
+            pending = PendingClarification(
+                request=request,
+                partial_plan_json=None if self.app_state.current_visual_plan is None else visual_plan_to_dict(self.app_state.current_visual_plan),
+                partial_plan_id=self.app_state.current_visual_plan.metadata.plan_id if self.app_state.current_visual_plan else None,
+            )
+            self.app_state.set_pending_clarification(pending)
+            self._update_clarification_view()
+            return self._clarification_prompt_text(request)
+        if result.visual_plan is None:
+            return "No refined visual plan could be accepted."
+        self.app_state.workflow_state.advance_to(WorkflowStep.REFINEMENT_LOOP if result.validation_result.is_valid else WorkflowStep.FIELD_MAPPING_CONFIRMED)
+        return self._visual_plan_response(result.visual_plan, result.validation_result)
+
+    def _handle_clarification_answer(self, content: str) -> str:
+        pending = self.app_state.pending_clarification
+        if pending is None or self.app_state.current_visual_plan is None:
+            return "There is no pending clarification."
+        clarified = ClarificationEngine().apply_answer(self.app_state.current_visual_plan, pending.request, content)
+        self.app_state.set_pending_clarification(None)
+        self.app_state.set_visual_plan(clarified, description="Applied clarification answer")
+        self.app_state.current_validation_result = self.plan_validator.validate(clarified, self.app_state.dataset_context.profile, self.app_state.graph_matrix)
+        self.app_state.add_status("Clarification answer applied.")
+        self._update_clarification_view()
+        return self._visual_plan_response(clarified, self.app_state.current_validation_result)
+
+    def _clarification_prompt_text(self, request) -> str:
+        lines = [
+            "Clarification needed:",
+            request.question,
+            "",
+            "Options:",
+        ]
+        if request.options:
+            lines.extend([f"- {option.label}" for option in request.options])
+        else:
+            lines.append("- Free text answer")
+        return "\n".join(lines)
 
     def generate_preview(self) -> str:
         plan = self.app_state.current_visual_plan
@@ -358,6 +456,24 @@ class SemanticVisualBuilderApp:
         validation = self.app_state.current_validation_result
         set_text(self.validation_text, self._format_validation(validation) if validation is not None else "No validation result yet.")
 
+    def _update_clarification_view(self) -> None:
+        if not hasattr(self, "clarification_text"):
+            return
+        pending = self.app_state.pending_clarification
+        if pending is None:
+            set_text(self.clarification_text, "No pending clarification.")
+            return
+        lines = [
+            "Clarification needed:",
+            pending.request.question,
+            "",
+            f"Reason: {pending.request.reason}",
+        ]
+        if pending.request.options:
+            lines.extend(["", "Options:"])
+            lines.extend(f"- {option.label}" for option in pending.request.options)
+        set_text(self.clarification_text, "\n".join(lines))
+
     def _update_workflow_view(self) -> None:
         self._workflow_var.set(f"Workflow step: {self.app_state.workflow_state.current_step.value}")
         self._revision_var.set(f"Revision count: {self.app_state.revision_history.count()}")
@@ -383,6 +499,9 @@ class SemanticVisualBuilderApp:
             lines.extend(self.app_state.last_llm_mapping_result.raw_response.splitlines()[:10] or ["<empty>"])
             lines.append("Parsed LLM JSON:")
             lines.append(str(self.app_state.last_llm_mapping_result.parsed_json))
+        if self.app_state.pending_clarification is not None:
+            lines.append("Pending clarification:")
+            lines.append(self.app_state.pending_clarification.request.question)
         if self.app_state.current_visual_plan is not None:
             lines.append("Final VisualPlan:")
             lines.extend(summarize_visual_plan(self.app_state.current_visual_plan).splitlines())
@@ -398,6 +517,7 @@ class SemanticVisualBuilderApp:
         self._update_profile_view()
         self._update_plan_view()
         self._update_validation_view()
+        self._update_clarification_view()
         self._update_workflow_view()
         self._refresh_debug()
 
@@ -439,6 +559,73 @@ class SemanticVisualBuilderApp:
         state = "enabled" if self._use_llm_var.get() else "disabled"
         self.app_state.add_status(f"LLM semantic mapping {state}.")
         self._refresh_all_views()
+
+    def answer_clarification_action(self) -> str:
+        answer = self._clarification_answer_var.get().strip()
+        if not answer:
+            message = "Enter an answer for the pending clarification."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        self._clarification_answer_var.set("")
+        return self._handle_clarification_answer(answer)
+
+    def save_recipe_action(self) -> str:
+        plan = self.app_state.current_visual_plan
+        validation = self.app_state.current_validation_result
+        if plan is None or validation is None or not validation.is_valid:
+            message = "Create a valid visual plan before saving a recipe."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        recipe_name = simpledialog.askstring("Save Recipe", "Recipe name:")
+        if not recipe_name:
+            return "Recipe save cancelled."
+        recipe = self.recipe_builder.build_from_current_plan(
+            recipe_name=recipe_name,
+            visual_plan=plan,
+            dataset_profile=self.app_state.dataset_context.profile,
+            description=f"Recipe created from {recipe_name}",
+        )
+        recipe_result = self.recipe_validator.validate_recipe(recipe)
+        if not recipe_result.is_valid:
+            message = self._format_validation(recipe_result)
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        path = self.recipe_store.save_recipe(recipe)
+        self.app_state.active_recipe_path = path
+        self.app_state.active_recipe_name = recipe.recipe_name
+        message = f"Recipe saved: {path}"
+        self.app_state.add_status(message)
+        self._refresh_all_views()
+        return message
+
+    def load_recipe_action(self) -> str:
+        filename = filedialog.askopenfilename(filetypes=[("Recipe files", "*.recipe.json")])
+        if not filename:
+            return "Recipe load cancelled."
+        path = Path(filename)
+        recipe = self.recipe_store.load_recipe(path)
+        validation = self.recipe_validator.validate_recipe(recipe)
+        if self.app_state.dataset_context.profile is not None:
+            dataset_validation = self.recipe_validator.validate_against_dataset(recipe, self.app_state.dataset_context.profile)
+            validation.messages.extend(dataset_validation.messages)
+        self.app_state.active_recipe_path = path
+        self.app_state.active_recipe_name = recipe.recipe_name
+        self.app_state.add_status(f"Recipe loaded: {recipe.recipe_name}")
+        if recipe.visual_plan:
+            from semantic_visual_builder.planning.visual_plan import visual_plan_from_dict
+
+            restored_plan = visual_plan_from_dict(recipe.visual_plan)
+            restored_plan.metadata.mapping_method = "recipe"
+            self.app_state.set_visual_plan(restored_plan, description=f"Loaded recipe: {recipe.recipe_name}")
+            self.app_state.current_validation_result = self.plan_validator.validate(restored_plan, self.app_state.dataset_context.profile, self.app_state.graph_matrix)
+            self.app_state.add_status("Recipe plan restored and marked stale.")
+        self._refresh_all_views()
+        if validation.is_valid:
+            return f"Recipe loaded: {recipe.recipe_name}"
+        return self._format_validation(validation)
 
     def _looks_like_process_request(self, content: str) -> bool:
         text = content.lower()

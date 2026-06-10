@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "rule": "chart plans require category and measure roles for bar-like visuals",
+    "severity": "error"
+  },
+  {
+    "rule": "flowchart plans require structured nodes and edges",
+    "severity": "error"
+  },
+  {
+    "rule": "pie charts should avoid too many categories",
+    "severity": "warning"
+  }
+]

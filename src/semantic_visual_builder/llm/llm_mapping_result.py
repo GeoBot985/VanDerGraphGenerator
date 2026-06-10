@@ -20,6 +20,8 @@ class LlmVisualPlanDraft:
     confidence: float | None = None
     assumptions: list[str] = field(default_factory=list)
     questions: list[str] = field(default_factory=list)
+    diagram_nodes: list[dict[str, Any]] = field(default_factory=list)
+    diagram_edges: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass

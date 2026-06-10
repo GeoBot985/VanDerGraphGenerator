@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "pattern": "amount by region",
+    "intent": "compare_categories",
+    "roles": {
+      "category": "Region",
+      "measure": "Amount"
+    },
+    "aggregation": "sum"
+  },
+  {
+    "pattern": "transactions per week",
+    "intent": "show_trend",
+    "roles": {
+      "x": "TransactionDate",
+      "y": "row_count"
+    },
+    "aggregation": "count"
+  }
+]

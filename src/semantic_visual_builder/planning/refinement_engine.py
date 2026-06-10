@@ -21,6 +21,7 @@ class RefinementEngine:
             updated.notes.append("Refinement: chart type set to line.")
         elif "make it horizontal" in text:
             updated.chart_type = "horizontal_bar"
+            updated.style.orientation = "horizontal"
             updated.notes.append("Refinement: chart type set to horizontal_bar.")
         elif "use pie chart" in text:
             updated.chart_type = "pie"
@@ -36,10 +37,13 @@ class RefinementEngine:
         if "highlight" in text:
             value = self._extract_after(message, text, "highlight")
             if value:
-                updated.style.highlights = {"value": value}
+                highlight = {"value": value}
+                if any(keyword in text for keyword in ("failed", "approved", "rejected", "pending")):
+                    highlight["field"] = "Status"
+                updated.style.highlights = highlight
                 updated.notes.append(f"Refinement: highlighted {value}.")
 
-        for colour in ("green", "blue", "red"):
+        for colour in ("green", "blue", "red", "corporate blue"):
             if colour in text:
                 updated.style.colour_scheme = colour
                 updated.notes.append(f"Refinement: colour scheme set to {colour}.")

@@ -72,10 +72,31 @@ class VisualPlanValidator:
         if y_role and y_role.field == "row_count" and y_role.aggregation != "count":
             result.add_error("row_count must use count aggregation.")
 
+        if plan.style.orientation and plan.style.orientation not in {"vertical", "horizontal"}:
+            result.add_error("style.orientation must be vertical or horizontal.")
+        if plan.style.orientation == "horizontal" and plan.chart_type == "bar":
+            result.add_warning("horizontal orientation should usually use horizontal_bar.")
+        if plan.chart_type == "horizontal_bar" and plan.style.orientation is None:
+            result.add_warning("horizontal_bar charts should declare style.orientation = horizontal.")
+
     def _validate_diagram(self, plan: VisualPlan, result: ValidationResult) -> None:
-        if plan.diagram_type == "flowchart":
-            result.add_warning("Diagram extraction starts in a later sprint; current plan is neutral only.")
-        elif plan.diagram_type == "sequence_diagram":
-            result.add_warning("Diagram extraction starts in a later sprint; current plan is neutral only.")
-        else:
-            result.add_warning("Diagram extraction starts in a later sprint; current plan is neutral only.")
+        if not plan.diagram_nodes:
+            result.add_error("diagram plans must include diagram_nodes.")
+        if not plan.diagram_edges:
+            result.add_error("diagram plans must include diagram_edges.")
+
+        known_nodes = {node.id for node in plan.diagram_nodes}
+        for node in plan.diagram_nodes:
+            if not node.id.strip():
+                result.add_error("diagram node ids must not be blank.")
+            if not node.label.strip():
+                result.add_error("diagram node labels must not be blank.")
+            if node.node_type not in {"process", "decision", "start", "end"}:
+                result.add_warning(f"diagram node type '{node.node_type}' is not standard.")
+        for edge in plan.diagram_edges:
+            if edge.source not in known_nodes:
+                result.add_error(f"diagram edge source '{edge.source}' does not exist.")
+            if edge.target not in known_nodes:
+                result.add_error(f"diagram edge target '{edge.target}' does not exist.")
+            if edge.label and edge.label not in {"Yes", "No"}:
+                result.add_warning(f"diagram edge label '{edge.label}' may not be supported by all renderers.")
