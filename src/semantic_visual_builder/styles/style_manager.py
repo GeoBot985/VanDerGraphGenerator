@@ -44,5 +44,8 @@ class StyleManager:
             raise ValueError(errors)
         return self.style_store.save_user_style(style)
 
+    def save_extracted_style(self, style: StyleProfile) -> Path:
+        return self.save_style(style)
+
     def validate_style(self, style: StyleProfile) -> ValidationResult:
         return self.style_validator.validate_style(style)

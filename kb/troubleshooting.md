@@ -11,6 +11,8 @@
 - Style profiles are deterministic and limited to validated chart and diagram styling.
 - Only renderer-safe fonts and colour values are accepted in style profiles.
 - Built-in style profiles are separate from recipes and can be saved under the user style directory.
+- Image style extraction falls back to deterministic palette analysis when vision support is unavailable.
+- Small or low-contrast images may produce approximate style drafts.
 
 ## Common issues
 
@@ -24,3 +26,5 @@
 - If a recipe import fails, confirm the JSON uses schema version 2.0 and does not contain executable content.
 - If a style file fails validation, confirm the schema version is 1.0 and the colour and font values are renderer-safe.
 - If the style chooser is empty, refresh the available style catalog or confirm the built-in style files exist.
+- If image extraction fails, confirm the file is PNG, JPG, JPEG, or WebP and that the image is readable by Pillow.
+- If vision analysis is unavailable, leave the vision checkbox off and use the deterministic fallback.

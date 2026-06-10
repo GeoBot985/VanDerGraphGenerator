@@ -7,6 +7,9 @@ from pathlib import Path
 
 from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.export.export_result import ExportResult
+from semantic_visual_builder.image_style.style_extraction_result import (
+    StyleExtractionResult,
+)
 from semantic_visual_builder.knowledge.graph_matrix import GraphMatrix
 from semantic_visual_builder.knowledge.product_kb import ProductKnowledgeBase
 from semantic_visual_builder.llm.llm_mapping_result import LlmMappingResult
@@ -20,12 +23,12 @@ from semantic_visual_builder.recipes.recipe_compatibility import (
     RecipeCompatibilityReport,
 )
 from semantic_visual_builder.recipes.recipe_schema import VisualRecipe
-from semantic_visual_builder.styles.style_applier import StyleApplicationResult
-from semantic_visual_builder.styles.style_schema import StyleProfile
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.runtime.runtime_paths import RuntimePaths
 from semantic_visual_builder.state.conversation_state import ConversationState
 from semantic_visual_builder.state.revision_history import RevisionHistory
+from semantic_visual_builder.styles.style_applier import StyleApplicationResult
+from semantic_visual_builder.styles.style_schema import StyleProfile
 from semantic_visual_builder.validation.validation_result import ValidationResult
 
 
@@ -61,6 +64,8 @@ class AppState:
     active_style_profile: StyleProfile | None = None
     available_style_profiles: list[StyleProfile] = field(default_factory=list)
     style_application_result: StyleApplicationResult | None = None
+    last_style_extraction_result: StyleExtractionResult | None = None
+    selected_style_image_path: Path | None = None
     runtime_paths: RuntimePaths | None = None
     status_messages: list[str] = field(default_factory=list)
 
@@ -150,6 +155,12 @@ class AppState:
     def set_available_style_profiles(self, styles: list[StyleProfile]) -> None:
         self.available_style_profiles = list(styles)
 
+    def set_style_extraction_result(self, result: StyleExtractionResult | None) -> None:
+        self.last_style_extraction_result = result
+
+    def set_selected_style_image_path(self, path: Path | None) -> None:
+        self.selected_style_image_path = path
+
     def apply_style_to_current_plan(
         self, result: StyleApplicationResult | None
     ) -> None:
@@ -159,7 +170,10 @@ class AppState:
         self.current_visual_plan = result.visual_plan
         self.mark_preview_stale()
         self.revision_history.add_revision(
-            f"Applied style profile: {result.visual_plan.metadata.style_profile_name or 'style'}",
+            (
+                "Applied style profile: "
+                f"{result.visual_plan.metadata.style_profile_name or 'style'}"
+            ),
             result.visual_plan,
             mapping_method=result.visual_plan.metadata.mapping_method,
             preview_stale=True,

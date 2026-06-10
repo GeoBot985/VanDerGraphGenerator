@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import requests
 
@@ -35,7 +36,9 @@ class OllamaGenerationError(RuntimeError):
 class OllamaClient:
     """Client for local Ollama discovery."""
 
-    def __init__(self, base_url: str = "http://localhost:11434", timeout_seconds: float = 2.0):
+    def __init__(
+        self, base_url: str = "http://localhost:11434", timeout_seconds: float = 2.0
+    ):
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
 
@@ -43,7 +46,9 @@ class OllamaClient:
         """Check whether Ollama is reachable."""
 
         try:
-            response = requests.get(f"{self.base_url}/api/version", timeout=self.timeout_seconds)
+            response = requests.get(
+                f"{self.base_url}/api/version", timeout=self.timeout_seconds
+            )
             response.raise_for_status()
             payload = response.json()
             version = payload.get("version") if isinstance(payload, dict) else None
@@ -55,7 +60,9 @@ class OllamaClient:
         """Return installed Ollama models, or an empty list if unavailable."""
 
         try:
-            response = requests.get(f"{self.base_url}/api/tags", timeout=self.timeout_seconds)
+            response = requests.get(
+                f"{self.base_url}/api/tags", timeout=self.timeout_seconds
+            )
             response.raise_for_status()
             payload = response.json()
         except Exception:
@@ -78,6 +85,17 @@ class OllamaClient:
 
     def chat(self, model: str, messages: list[dict[str, str]]) -> str:
         raise NotImplementedError("Chat generation is planned for a later sprint.")
+
+    def generate_vision(
+        self,
+        model: str,
+        image_path: Path,
+        prompt: str,
+        system: str | None = None,
+    ) -> str:
+        raise NotImplementedError(
+            "Vision generation is not implemented in this client yet."
+        )
 
     def generate(
         self,
@@ -105,6 +123,10 @@ class OllamaClient:
             data = response.json()
         except Exception as exc:
             raise OllamaGenerationError(str(exc)) from exc
-        if not isinstance(data, dict) or "response" not in data or not isinstance(data["response"], str):
+        if (
+            not isinstance(data, dict)
+            or "response" not in data
+            or not isinstance(data["response"], str)
+        ):
             raise OllamaGenerationError("Unexpected Ollama response format.")
         return data["response"]

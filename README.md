@@ -22,6 +22,9 @@ Translate natural-language requests into a neutral visual plan, validate it dete
 - Recipe save/load and compatibility checks
 - HTML preview/export
 - First-run runtime checks and environment reporting
+- Image-based style extraction prototype
+- Local deterministic palette extraction
+- Optional local Ollama vision model support
 
 ## Architecture Summary
 User request -> LLM semantic mapping -> Neutral visual plan -> Deterministic validation -> Renderer adapter -> Deterministic output

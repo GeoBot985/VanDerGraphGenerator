@@ -31,6 +31,11 @@
       "description": "The user may pick a built-in or saved style profile, then adjust colours, titles, highlights, or labels."
     },
     {
+      "step": 6.5,
+      "name": "Extract image style",
+      "description": "The user can upload a sample image and extract a reusable style profile draft."
+    },
+    {
       "step": 7,
       "name": "Preview and refine",
       "description": "The app creates a preview, applies user refinements, and asks clarifying questions when needed."

@@ -35,6 +35,9 @@
     "Renderer style adapters for Plotly and Mermaid",
     "Improved Plotly styling",
     "Improved Mermaid flowchart rendering",
+    "Extract a reusable style profile from a sample image",
+    "Deterministically extract dominant colours from uploaded images",
+    "Apply extracted style profiles to charts and diagrams",
     "Runtime path resolution for source and packaged execution",
     "First-run startup checks and environment reporting",
     "About dialog, troubleshooting dialog, and status panel"

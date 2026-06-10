@@ -23,6 +23,13 @@
     "Recipes preserve style intent but do not yet support full theme profiles.",
     "Style profiles are deterministic configuration, not image-based theme extraction.",
     "Style profiles support a limited renderer-safe font set and validated colour values.",
-    "Style profiles are currently scoped to charts and flowcharts."
+    "Style profiles are currently scoped to charts and flowcharts.",
+    "Image style extraction is approximate.",
+    "Image style extraction does not recreate chart layout or data.",
+    "Image style extraction does not identify exact fonts.",
+    "Image style extraction does not perform OCR.",
+    "Image style extraction does not guarantee brand compliance.",
+    "Vision-model interpretation is optional and depends on local Ollama capability.",
+    "Deterministic palette extraction is the fallback."
   ]
 }

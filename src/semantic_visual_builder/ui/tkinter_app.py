@@ -10,6 +10,14 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 from semantic_visual_builder.data.csv_loader import CsvLoader
 from semantic_visual_builder.data.data_profiler import DataProfiler
 from semantic_visual_builder.export.html_exporter import HtmlExporter
+from semantic_visual_builder.image_style import (
+    ImageLoader,
+    ImageStyleAnalyzer,
+    ImageStyleExtractionOrchestrator,
+    PaletteExtractor,
+    StyleDraftBuilder,
+    VlmStyleAnalyzer,
+)
 from semantic_visual_builder.knowledge.capability_answerer import CapabilityAnswerer
 from semantic_visual_builder.llm.json_repair import JsonRepair
 from semantic_visual_builder.llm.llm_response_parser import LlmResponseParser
@@ -64,6 +72,7 @@ from semantic_visual_builder.ui.error_dialog import show_error_dialog
 from semantic_visual_builder.ui.preview_panel import PreviewPanel
 from semantic_visual_builder.ui.recipe_panel import RecipePanel
 from semantic_visual_builder.ui.status_panel import StatusPanel
+from semantic_visual_builder.ui.style_extraction_panel import StyleExtractionPanel
 from semantic_visual_builder.ui.style_panel import StylePanel
 from semantic_visual_builder.ui.validation_panel import ValidationPanel
 from semantic_visual_builder.ui.widgets import make_readonly_text, set_text
@@ -139,9 +148,23 @@ class SemanticVisualBuilderApp:
         self.style_validator = StyleValidator()
         self.style_manager = StyleManager(self.style_store, self.style_validator)
         self.style_applier = StyleApplier()
+        self.image_loader = ImageLoader()
+        self.palette_extractor = PaletteExtractor()
+        self.image_style_analyzer = ImageStyleAnalyzer()
+        self.style_draft_builder = StyleDraftBuilder()
+        self.vlm_style_analyzer = VlmStyleAnalyzer(self.ollama_client)
+        self.image_style_orchestrator = ImageStyleExtractionOrchestrator(
+            self.image_loader,
+            self.palette_extractor,
+            self.image_style_analyzer,
+            self.style_draft_builder,
+            self.style_validator,
+            self.vlm_style_analyzer,
+        )
         self.preview_panel = PreviewPanel()
         self.recipe_panel = RecipePanel()
         self.style_panel = StylePanel()
+        self.style_extraction_panel = StyleExtractionPanel()
         self.status_panel = StatusPanel()
         self.validation_panel = ValidationPanel()
         self.renderer_registry = RendererRegistry(
@@ -159,7 +182,7 @@ class SemanticVisualBuilderApp:
         self.root = root or (tk.Tk() if build_ui else None)
         if self.root is None:
             return
-        self.root.title(f"{APP_NAME} - Sprint 7 Demo ({APP_VERSION})")
+        self.root.title(f"{APP_NAME} ({APP_VERSION})")
         self.root.geometry("1100x760")
         self._model_var = tk.StringVar(value="")
         self._status_var = tk.StringVar(value="")
@@ -172,6 +195,9 @@ class SemanticVisualBuilderApp:
         self._clarification_var = tk.StringVar(value="No pending clarification.")
         self._clarification_answer_var = tk.StringVar(value="")
         self._style_var = tk.StringVar(value="")
+        self._style_image_var = tk.StringVar(value="")
+        self._style_image_model_var = tk.StringVar(value="")
+        self._use_vision_var = tk.BooleanVar(value=False)
         self._build_ui()
         self._refresh_available_recipes()
         self._refresh_available_styles()
@@ -250,6 +276,46 @@ class SemanticVisualBuilderApp:
             side="left", padx=6
         )
 
+        style_extract_row = ttk.Frame(self.root)
+        style_extract_row.pack(fill="x", padx=12, pady=(6, 0))
+        ttk.Label(style_extract_row, text="Style Image:").pack(side="left")
+        self.style_image_combo = ttk.Combobox(
+            style_extract_row,
+            textvariable=self._style_image_model_var,
+            width=30,
+            state="readonly",
+        )
+        self.style_image_combo.pack(side="right", padx=(6, 0))
+        ttk.Label(style_extract_row, text="Vision model:").pack(side="right")
+        ttk.Checkbutton(
+            style_extract_row,
+            text="Use vision model if available",
+            variable=self._use_vision_var,
+        ).pack(side="right", padx=8)
+        ttk.Button(
+            style_extract_row,
+            text="Apply Extracted Style",
+            command=self.apply_extracted_style_action,
+        ).pack(side="right", padx=6)
+        ttk.Button(
+            style_extract_row,
+            text="Save Extracted Style",
+            command=self.save_extracted_style_action,
+        ).pack(side="right", padx=6)
+        ttk.Button(
+            style_extract_row,
+            text="Extract Style",
+            command=self.extract_style_action,
+        ).pack(side="right", padx=6)
+        ttk.Button(
+            style_extract_row,
+            text="Select Image",
+            command=self.select_style_image_action,
+        ).pack(side="right", padx=6)
+        ttk.Entry(style_extract_row, textvariable=self._style_image_var, width=45).pack(
+            side="right", padx=(6, 0)
+        )
+
         status_frame = ttk.LabelFrame(self.root, text="Status")
         status_frame.pack(fill="x", padx=12, pady=(8, 0))
         self.status_summary = make_readonly_text(status_frame, height=4)
@@ -302,6 +368,10 @@ class SemanticVisualBuilderApp:
         ttk.Label(right, text="Style").pack(anchor="w")
         self.style_text = make_readonly_text(right, height=5)
         self.style_text.pack(fill="both", expand=False, pady=(4, 8))
+
+        ttk.Label(right, text="Style Extraction").pack(anchor="w")
+        self.style_extraction_text = make_readonly_text(right, height=7)
+        self.style_extraction_text.pack(fill="both", expand=False, pady=(4, 8))
 
         ttk.Label(right, text="Dataset Profile").pack(anchor="w")
         self.profile_text = make_readonly_text(right, height=8)
@@ -368,7 +438,16 @@ class SemanticVisualBuilderApp:
         self.app_state.ollama_status = status
         self.app_state.model_registry.set_models(models)
         self._model_var.set(self.app_state.model_registry.selected_model or "")
-        self.model_combo["values"] = self.app_state.model_registry.get_model_names()
+        model_names = self.app_state.model_registry.get_model_names()
+        self.model_combo["values"] = model_names
+        if hasattr(self, "style_image_combo"):
+            self.style_image_combo["values"] = model_names
+            selected_image_model = self._style_image_model_var.get().strip()
+            if selected_image_model not in model_names:
+                self._style_image_model_var.set(
+                    self.app_state.model_registry.selected_model
+                    or (model_names[0] if model_names else "")
+                )
         if status.is_connected:
             self._set_status("Ollama connected.")
         else:
@@ -826,6 +905,19 @@ class SemanticVisualBuilderApp:
             ),
         )
 
+    def _update_style_extraction_view(self) -> None:
+        if not hasattr(self, "style_extraction_text"):
+            return
+        set_text(
+            self.style_extraction_text,
+            "\n\n".join(
+                [
+                    self.style_extraction_panel.image_text(self.app_state),
+                    self.style_extraction_panel.summary_text(self.app_state),
+                ]
+            ),
+        )
+
     def _update_validation_view(self) -> None:
         validation = self.app_state.current_validation_result
         set_text(
@@ -916,6 +1008,7 @@ class SemanticVisualBuilderApp:
         self._update_preview_view()
         self._update_recipe_view()
         self._update_style_view()
+        self._update_style_extraction_view()
         self._update_validation_view()
         self._update_clarification_view()
         self._update_workflow_view()
@@ -1185,6 +1278,125 @@ class SemanticVisualBuilderApp:
         self._refresh_all_views()
         return "Style cleared."
 
+    def select_style_image_action(self) -> str:
+        if self.app_state.runtime_paths is not None:
+            initial_dir = self.app_state.runtime_paths.asset_dir / "samples"
+        else:
+            initial_dir = Path.cwd() / "assets" / "samples"
+        filename = filedialog.askopenfilename(
+            filetypes=[
+                ("Image files", "*.png *.jpg *.jpeg *.webp"),
+                ("All files", "*.*"),
+            ],
+            initialdir=str(initial_dir),
+        )
+        if not filename:
+            return "Style image selection cancelled."
+        path = Path(filename)
+        self.app_state.set_selected_style_image_path(path)
+        self._style_image_var.set(str(path))
+        self.app_state.add_status(f"Style image selected: {path.name}")
+        self._refresh_all_views()
+        return f"Style image selected: {path.name}"
+
+    def extract_style_action(self) -> str:
+        selected = self._style_image_var.get().strip()
+        if not selected:
+            selection_message = self.select_style_image_action()
+            if "cancelled" in selection_message.lower():
+                return selection_message
+            selected = self._style_image_var.get().strip()
+        if not selected:
+            message = "Select a style image first."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        image_path = Path(selected)
+        if not image_path.exists():
+            message = f"Image file not found: {image_path}"
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        model_name = self._style_image_model_var.get().strip() or None
+        use_vlm = self._use_vision_var.get()
+        result = self.image_style_orchestrator.extract_style(
+            image_path=image_path,
+            style_name=None,
+            use_vlm=use_vlm,
+            vlm_model=model_name,
+        )
+        self.app_state.set_selected_style_image_path(image_path)
+        self.app_state.set_style_extraction_result(result)
+        if result.success and result.style_profile is not None:
+            self.app_state.add_status(
+                f"Extracted style draft: {result.style_profile.style_name}"
+            )
+        else:
+            self.app_state.add_status("Style extraction failed.")
+        self._refresh_all_views()
+        if result.success and result.style_profile is not None:
+            return f"Extracted style draft: {result.style_profile.style_name}"
+        return "; ".join(result.errors) if result.errors else "Style extraction failed."
+
+    def save_extracted_style_action(self) -> str:
+        result = self.app_state.last_style_extraction_result
+        if result is None or result.style_profile is None:
+            message = "Extract a style from an image first."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        style = result.style_profile
+        style_name = simpledialog.askstring(
+            "Save Extracted Style",
+            "Style name:",
+            initialvalue=style.style_name,
+        )
+        if not style_name:
+            return "Style save cancelled."
+        style.metadata.style_name = style_name
+        style.metadata.style_id = self.style_store._safe_name(style_name)
+        path = self.style_manager.save_extracted_style(style)
+        self.app_state.set_active_style_profile(style)
+        if hasattr(self, "_style_var"):
+            self._style_var.set(style.style_name)
+        self.app_state.add_status(f"Extracted style saved: {path}")
+        self._refresh_available_styles()
+        self._refresh_all_views()
+        return f"Extracted style saved: {path}"
+
+    def apply_extracted_style_action(self) -> str:
+        result = self.app_state.last_style_extraction_result
+        if result is None or result.style_profile is None:
+            message = "Extract a style from an image first."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        if self.app_state.current_visual_plan is None:
+            message = "Create a visual plan before applying an extracted style."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        style = result.style_profile
+        application_result = self.style_applier.apply_style(
+            self.app_state.current_visual_plan, style
+        )
+        self.app_state.apply_style_to_current_plan(application_result)
+        if not application_result.success or application_result.visual_plan is None:
+            message = (
+                "; ".join(application_result.errors)
+                if application_result.errors
+                else "Extracted style application failed."
+            )
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        self.app_state.set_active_style_profile(style)
+        if hasattr(self, "_style_var"):
+            self._style_var.set(style.style_name)
+        self.app_state.add_status(f"Applied extracted style: {style.style_name}")
+        self._refresh_all_views()
+        return f"Applied extracted style: {style.style_name}"
+
     def _looks_like_process_request(self, content: str) -> bool:
         text = content.lower()
         return "flowchart" in text or "process" in text or "diagram" in text
@@ -1220,9 +1432,7 @@ class SemanticVisualBuilderApp:
             metadata=StyleMetadata(
                 style_id=style_id,
                 style_name=style_name,
-                description=(
-                    "Derived from current visual plan."
-                ),
+                description=("Derived from current visual plan."),
             ),
             palette=ColourPalette(
                 primary=plan.style.palette.get("primary"),
