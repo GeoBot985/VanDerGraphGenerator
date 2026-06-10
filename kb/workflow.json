@@ -49,6 +49,11 @@
       "step": 10,
       "name": "Export and inspect",
       "description": "The user can export the HTML preview, inspect the environment report, and review troubleshooting guidance."
+    },
+    {
+      "step": 11,
+      "name": "Manage recipes",
+      "description": "The user can duplicate, rename, import, export, and review recipe compatibility before applying."
     }
   ]
 }

@@ -36,6 +36,12 @@ from semantic_visual_builder.planning.visual_plan import (
 from semantic_visual_builder.planning.workflow_state import WorkflowStep
 from semantic_visual_builder.recipes.recipe_applier import RecipeApplier
 from semantic_visual_builder.recipes.recipe_builder import RecipeBuilder
+from semantic_visual_builder.recipes.recipe_compatibility import (
+    RecipeCompatibilityChecker,
+)
+from semantic_visual_builder.recipes.recipe_import_export import RecipeImportExport
+from semantic_visual_builder.recipes.recipe_manager import RecipeManager
+from semantic_visual_builder.recipes.recipe_mapping import RecipeFieldMapper
 from semantic_visual_builder.recipes.recipe_store import RecipeStore
 from semantic_visual_builder.recipes.recipe_validator import RecipeValidator
 from semantic_visual_builder.renderers.chartjs_renderer import ChartJsRenderer
@@ -110,6 +116,16 @@ class SemanticVisualBuilderApp:
         self.recipe_applier = RecipeApplier()
         self.recipe_store = RecipeStore(get_recipes_dir())
         self.recipe_validator = RecipeValidator()
+        self.recipe_compatibility_checker = RecipeCompatibilityChecker()
+        self.recipe_field_mapper = RecipeFieldMapper()
+        self.recipe_manager = RecipeManager(
+            self.recipe_store,
+            self.recipe_validator,
+            self.recipe_compatibility_checker,
+            self.recipe_field_mapper,
+            self.recipe_applier,
+        )
+        self.recipe_import_export = RecipeImportExport()
         self.preview_panel = PreviewPanel()
         self.recipe_panel = RecipePanel()
         self.status_panel = StatusPanel()
@@ -142,6 +158,7 @@ class SemanticVisualBuilderApp:
         self._clarification_var = tk.StringVar(value="No pending clarification.")
         self._clarification_answer_var = tk.StringVar(value="")
         self._build_ui()
+        self._refresh_available_recipes()
         self.refresh_ollama()
         self._refresh_all_views()
 
@@ -840,6 +857,7 @@ class SemanticVisualBuilderApp:
     def _refresh_all_views(self) -> None:
         if self.root is None:
             return
+        self._refresh_available_recipes()
         self._update_profile_view()
         self._update_plan_view()
         self._update_preview_view()
@@ -849,6 +867,16 @@ class SemanticVisualBuilderApp:
         self._update_workflow_view()
         set_text(self.status_summary, self.status_panel.status_text(self.app_state))
         self._refresh_debug()
+
+    def _refresh_available_recipes(self) -> None:
+        try:
+            self.app_state.available_recipes = [
+                self.recipe_store.load_recipe(path)
+                for path in self.recipe_store.list_recipes()
+            ]
+        except Exception as exc:
+            self.app_state.available_recipes = []
+            self.app_state.add_status(f"Recipe catalog could not be loaded: {exc}")
 
     def _set_status(self, message: str) -> None:
         self._status_var.set(message)
@@ -927,6 +955,7 @@ class SemanticVisualBuilderApp:
             return message
         path = self.recipe_store.save_recipe(recipe)
         self.app_state.set_active_recipe(recipe, path)
+        self._refresh_available_recipes()
         message = f"Recipe saved: {path}"
         self.app_state.add_status(message)
         self._refresh_all_views()
@@ -941,13 +970,18 @@ class SemanticVisualBuilderApp:
         path = Path(filename)
         recipe = self.recipe_store.load_recipe(path)
         if self.app_state.dataset_context.profile is not None:
-            validation = self.recipe_validator.compatibility_report(
+            report = self.recipe_compatibility_checker.check_compatibility(
+                recipe, self.app_state.dataset_context.profile
+            )
+            self.app_state.set_recipe_compatibility_report(report)
+            validation = self.recipe_validator.validate_against_dataset(
                 recipe, self.app_state.dataset_context.profile
             )
             self.app_state.recipe_compatibility_result = validation
         else:
             validation = self.recipe_validator.validate_recipe(recipe)
             self.app_state.recipe_compatibility_result = validation
+            self.app_state.set_recipe_compatibility_report(None)
         self.app_state.set_active_recipe(recipe, path)
         self.app_state.add_status(f"Recipe loaded: {recipe.recipe_name}")
         self._refresh_all_views()
@@ -968,9 +1002,11 @@ class SemanticVisualBuilderApp:
             self.app_state.add_status(message)
             self._refresh_all_views()
             return message
-        result = self.recipe_applier.apply_recipe(recipe, profile)
+        result = self.recipe_manager.propose_and_apply(recipe, profile)
+        self.app_state.set_recipe_application_result(result)
+        self.app_state.set_recipe_compatibility_report(result.compatibility_report)
         self.app_state.recipe_compatibility_result = (
-            self.recipe_validator.compatibility_report(recipe, profile)
+            self.recipe_validator.validate_against_dataset(recipe, profile)
         )
         if not result.success or result.visual_plan is None:
             message = (
@@ -999,6 +1035,8 @@ class SemanticVisualBuilderApp:
     def clear_recipe_action(self) -> str:
         self.app_state.set_active_recipe(None)
         self.app_state.recipe_compatibility_result = None
+        self.app_state.set_recipe_compatibility_report(None)
+        self.app_state.set_recipe_application_result(None)
         self.app_state.add_status("Recipe cleared.")
         self._refresh_all_views()
         return "Recipe cleared."

@@ -1,9 +1,9 @@
 """Recipe applier tests."""
 
 from semantic_visual_builder.data.data_profiler import ColumnProfile, DatasetProfile
+from semantic_visual_builder.planning.visual_plan_schema import DataRole, VisualPlan
 from semantic_visual_builder.recipes.recipe_applier import RecipeApplier
 from semantic_visual_builder.recipes.recipe_builder import RecipeBuilder
-from semantic_visual_builder.planning.visual_plan_schema import DataRole, VisualPlan
 
 
 def _profile() -> DatasetProfile:
@@ -11,7 +11,15 @@ def _profile() -> DatasetProfile:
         row_count=10,
         column_count=3,
         columns=[
-            ColumnProfile("TransactionDate", "datetime64[ns]", "datetime", 0, 0.0, 10, ["2024-01-01"]),
+            ColumnProfile(
+                "TransactionDate",
+                "datetime64[ns]",
+                "datetime",
+                0,
+                0.0,
+                10,
+                ["2024-01-01"],
+            ),
             ColumnProfile("Region", "object", "categorical", 0, 0.0, 4, ["Gauteng"]),
             ColumnProfile("Amount", "float64", "numeric", 0, 0.0, 10, ["1.0"]),
         ],

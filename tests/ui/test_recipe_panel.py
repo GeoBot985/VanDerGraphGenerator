@@ -13,7 +13,7 @@ def test_recipe_panel_can_display_active_recipe_state() -> None:
     state.set_active_recipe(
         VisualRecipe(
             recipe_name="Amount by Region",
-            schema_version="1.0",
+            schema_version="2.0",
             visual_plan={"visual_kind": "chart"},
             expected_fields=[RecipeFieldExpectation(role="category", field_name="Region")],
         )

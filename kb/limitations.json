@@ -16,6 +16,10 @@
     "Offline renderer assets must be bundled or present under assets/vendor.",
     "Image-based style extraction is future.",
     "Packaged builds rely on bundled templates, assets, KB files, and graph matrix data.",
-    "HTML export is browser-oriented and does not yet produce PDF or Office formats."
+    "HTML export is browser-oriented and does not yet produce PDF or Office formats.",
+    "Recipe remapping is deterministic and limited.",
+    "Complex semantic remapping may require manual confirmation.",
+    "Recipes do not contain executable code.",
+    "Recipes preserve style intent but do not yet support full theme profiles."
   ]
 }

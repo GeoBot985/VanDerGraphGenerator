@@ -1,22 +1,22 @@
 {
   "metadata": {
-    "recipe_id": "amount_by_region",
-    "recipe_name": "Amount by Region",
-    "description": "Shows total amount by region as a bar chart.",
+    "recipe_id": "amount_by_status",
+    "recipe_name": "Amount by Status",
+    "description": "Shows total amount by status as a bar chart.",
     "schema_version": "2.0",
     "app_version_created": "0.8.0",
     "created_at": "2026-06-10T00:00:00Z",
     "updated_at": "2026-06-10T00:00:00Z",
     "author": null,
-    "tags": ["sample", "bar-chart", "amount"]
+    "tags": ["sample", "bar-chart", "status"]
   },
   "expected_fields": [
     {
       "role": "category",
-      "field_name": "Region",
+      "field_name": "Status",
       "semantic_type": "categorical",
       "required": true,
-      "aliases": ["Province", "Area", "Location"]
+      "aliases": ["State", "Outcome", "Result"]
     },
     {
       "role": "measure",
@@ -50,12 +50,12 @@
     "diagram_nodes": [],
     "diagram_edges": [],
     "style": {
-      "title": "Amount by Region",
+      "title": "Amount by Status",
       "subtitle": null,
       "colour_scheme": "corporate blue",
       "highlights": {},
       "labels": {
-        "category": "Region",
+        "category": "Status",
         "measure": "Total Amount"
       },
       "orientation": "vertical"
@@ -76,12 +76,12 @@
     "notes": []
   },
   "style": {
-    "title": "Amount by Region",
+    "title": "Amount by Status",
     "subtitle": null,
     "colour_scheme": "corporate blue",
     "highlights": {},
     "labels": {
-      "category": "Region",
+      "category": "Status",
       "measure": "Total Amount"
     },
     "orientation": "vertical"
@@ -91,7 +91,7 @@
     "output_type": "plotly_json"
   },
   "field_mapping_hints": {
-    "Region": ["Province", "Area", "Location"],
+    "Status": ["State", "Outcome", "Result"],
     "Amount": ["Value", "Total", "TotalAmount"]
   },
   "notes": []

@@ -1,64 +1,74 @@
 {
   "metadata": {
-    "recipe_id": "amount_by_region",
-    "recipe_name": "Amount by Region",
-    "description": "Shows total amount by region as a bar chart.",
+    "recipe_id": "failed_transactions_by_week",
+    "recipe_name": "Failed Transactions by Week",
+    "description": "Shows weekly failed transaction counts.",
     "schema_version": "2.0",
     "app_version_created": "0.8.0",
     "created_at": "2026-06-10T00:00:00Z",
     "updated_at": "2026-06-10T00:00:00Z",
     "author": null,
-    "tags": ["sample", "bar-chart", "amount"]
+    "tags": ["sample", "line-chart", "failed"]
   },
   "expected_fields": [
     {
-      "role": "category",
-      "field_name": "Region",
-      "semantic_type": "categorical",
+      "role": "x",
+      "field_name": "TransactionDate",
+      "semantic_type": "datetime",
       "required": true,
-      "aliases": ["Province", "Area", "Location"]
+      "aliases": ["TxnDate", "Date"]
     },
     {
-      "role": "measure",
-      "field_name": "Amount",
+      "role": "status_filter",
+      "field_name": "Status",
+      "semantic_type": "categorical",
+      "required": true,
+      "aliases": ["State", "Outcome", "Result"]
+    },
+    {
+      "role": "y",
+      "field_name": "row_count",
       "semantic_type": "numeric",
       "required": true,
-      "aliases": ["Value", "Total", "TotalAmount"]
+      "aliases": []
     }
   ],
   "visual_plan_template": {
     "visual_kind": "chart",
-    "intent": "compare_categories",
-    "chart_type": "bar",
+    "intent": "show_trend",
+    "chart_type": "line",
     "diagram_type": null,
     "data_roles": [
       {
-        "role": "category",
-        "field": "{{category}}",
-        "transform": null,
+        "role": "x",
+        "field": "{{x}}",
+        "transform": "week",
         "aggregation": null
       },
       {
-        "role": "measure",
-        "field": "{{measure}}",
+        "role": "y",
+        "field": "{{y}}",
         "transform": null,
-        "aggregation": "sum"
+        "aggregation": "count"
       }
     ],
-    "filters": [],
+    "filters": [
+      {
+        "field": "{{status_filter}}",
+        "operator": "equals",
+        "value": "Failed"
+      }
+    ],
     "grouping": [],
     "diagram_nodes": [],
     "diagram_edges": [],
     "style": {
-      "title": "Amount by Region",
+      "title": "Failed Transactions by Week",
       "subtitle": null,
-      "colour_scheme": "corporate blue",
+      "colour_scheme": "blue",
       "highlights": {},
-      "labels": {
-        "category": "Region",
-        "measure": "Total Amount"
-      },
-      "orientation": "vertical"
+      "labels": {},
+      "orientation": null
     },
     "render_target": {
       "renderer": "plotly",
@@ -76,23 +86,20 @@
     "notes": []
   },
   "style": {
-    "title": "Amount by Region",
+    "title": "Failed Transactions by Week",
     "subtitle": null,
-    "colour_scheme": "corporate blue",
+    "colour_scheme": "blue",
     "highlights": {},
-    "labels": {
-      "category": "Region",
-      "measure": "Total Amount"
-    },
-    "orientation": "vertical"
+    "labels": {},
+    "orientation": null
   },
   "renderer": {
     "renderer": "plotly",
     "output_type": "plotly_json"
   },
   "field_mapping_hints": {
-    "Region": ["Province", "Area", "Location"],
-    "Amount": ["Value", "Total", "TotalAmount"]
+    "TransactionDate": ["TxnDate", "Date"],
+    "Status": ["State", "Outcome", "Result"]
   },
   "notes": []
 }

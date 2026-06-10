@@ -17,3 +17,5 @@
 - If a recipe fails compatibility checks, confirm the dataset has the expected fields or apply the recipe only after loading a compatible dataset.
 - If the app is packaged, bundled assets and templates must still be present in the extracted runtime resources.
 - If the environment report shows missing files, rebuild the package or run from source to confirm the asset layout.
+- If recipe compatibility is only partial, review the suggested field mappings before applying.
+- If a recipe import fails, confirm the JSON uses schema version 2.0 and does not contain executable content.

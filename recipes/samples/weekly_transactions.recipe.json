@@ -1,7 +1,32 @@
 {
-  "recipe_name": "Weekly Transactions",
-  "schema_version": "1.0",
-  "visual_plan": {
+  "metadata": {
+    "recipe_id": "weekly_transactions",
+    "recipe_name": "Weekly Transactions",
+    "description": "Shows weekly transaction volume as a line chart.",
+    "schema_version": "2.0",
+    "app_version_created": "0.8.0",
+    "created_at": "2026-06-10T00:00:00Z",
+    "updated_at": "2026-06-10T00:00:00Z",
+    "author": null,
+    "tags": ["sample", "line-chart", "weekly"]
+  },
+  "expected_fields": [
+    {
+      "role": "x",
+      "field_name": "TransactionDate",
+      "semantic_type": "datetime",
+      "required": true,
+      "aliases": ["TxnDate", "Date"]
+    },
+    {
+      "role": "y",
+      "field_name": "row_count",
+      "semantic_type": "numeric",
+      "required": true,
+      "aliases": []
+    }
+  ],
+  "visual_plan_template": {
     "visual_kind": "chart",
     "intent": "show_trend",
     "chart_type": "line",
@@ -9,13 +34,13 @@
     "data_roles": [
       {
         "role": "x",
-        "field": "TransactionDate",
+        "field": "{{x}}",
         "transform": "week",
         "aggregation": null
       },
       {
         "role": "y",
-        "field": "row_count",
+        "field": "{{y}}",
         "transform": null,
         "aggregation": "count"
       }
@@ -34,7 +59,7 @@
     },
     "render_target": {
       "renderer": "plotly",
-      "output_format": null
+      "output_format": "plotly_json"
     },
     "metadata": {
       "plan_id": null,
@@ -47,21 +72,20 @@
     },
     "notes": []
   },
-  "expected_fields": [
-    {
-      "role": "x",
-      "field_name": "TransactionDate",
-      "semantic_type": "datetime",
-      "required": true
-    },
-    {
-      "role": "y",
-      "field_name": "row_count",
-      "semantic_type": "numeric",
-      "required": true
-    }
-  ],
-  "renderer": "plotly",
-  "description": "Weekly transaction trend sample recipe.",
-  "created_at": "2026-06-10T00:00:00Z"
+  "style": {
+    "title": "Weekly Transactions",
+    "subtitle": null,
+    "colour_scheme": "blue",
+    "highlights": {},
+    "labels": {},
+    "orientation": null
+  },
+  "renderer": {
+    "renderer": "plotly",
+    "output_type": "plotly_json"
+  },
+  "field_mapping_hints": {
+    "TransactionDate": ["TxnDate", "Date"]
+  },
+  "notes": []
 }
