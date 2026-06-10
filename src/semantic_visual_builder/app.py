@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.knowledge.graph_matrix import GraphMatrixLoader
 from semantic_visual_builder.knowledge.product_kb import ProductKnowledgeLoader
 from semantic_visual_builder.state.app_state import AppState

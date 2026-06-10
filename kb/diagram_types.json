@@ -1,1 +1,22 @@
-[]
+{
+  "supported_mvp": [
+    {
+      "name": "flowchart",
+      "purpose": "Show process steps, decisions, and branches.",
+      "renderer": "mermaid"
+    },
+    {
+      "name": "sequence_diagram",
+      "purpose": "Show interactions between actors or systems over time.",
+      "renderer": "mermaid"
+    }
+  ],
+  "future": [
+    "er_diagram",
+    "state_diagram",
+    "gantt",
+    "timeline",
+    "mind_map",
+    "network_graph"
+  ]
+}

@@ -1,13 +1,18 @@
 {
   "app_name": "Van Der Graph Generator",
   "internal_name": "semantic_visual_builder",
+  "positioning": "Local semantic visual planning with deterministic output and guided workflow.",
   "mvp_capabilities": [
     "CSV input",
+    "Process text input",
     "Guided visual workflow",
     "Local Ollama model selection",
+    "Capability Q&A from product knowledge",
+    "Neutral visual plan creation",
+    "Deterministic field mapping",
+    "Deterministic validation",
     "Mermaid diagram rendering",
     "Plotly or Chart.js chart rendering",
-    "Deterministic validation",
     "Conversational refinement"
   ],
   "future_capabilities": [

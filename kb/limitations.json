@@ -1,6 +1,7 @@
 {
   "mvp_limitations": [
     "No arbitrary Python execution",
+    "No generated Python renderer plugin in MVP",
     "No live database querying",
     "No Power BI replacement",
     "No unrestricted chart generation",

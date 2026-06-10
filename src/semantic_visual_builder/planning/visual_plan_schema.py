@@ -1,39 +1,50 @@
-"""Visual plan schema stubs."""
+"""Neutral visual plan schema."""
+
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
 
 
 @dataclass
-class DataMapping:
-    """Placeholder data mapping schema."""
-
-    roles: dict[str, str] = field(default_factory=dict)
+class DataRole:
+    role: str
+    field: str | None = None
+    transform: str | None = None
+    aggregation: str | None = None
 
 
 @dataclass
 class StyleIntent:
-    """Placeholder styling schema."""
-
-    settings: dict[str, Any] = field(default_factory=dict)
+    title: str | None = None
+    colour_scheme: str | None = None
+    highlights: dict[str, Any] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
 class RenderTarget:
-    """Placeholder render target schema."""
-
-    renderer: str
-    output: str | None = None
+    renderer: str | None = None
+    output_format: str | None = None
 
 
 @dataclass
 class VisualPlan:
-    """Neutral visual plan placeholder."""
-
     visual_kind: str
     intent: str
-    renderer: str | None = None
     chart_type: str | None = None
     diagram_type: str | None = None
-    data_mapping: dict[str, Any] = field(default_factory=dict)
-    style: dict[str, Any] = field(default_factory=dict)
+    data_roles: list[DataRole] = field(default_factory=list)
+    filters: list[dict[str, Any]] = field(default_factory=list)
+    grouping: list[str] = field(default_factory=list)
+    style: StyleIntent = field(default_factory=StyleIntent)
+    render_target: RenderTarget = field(default_factory=RenderTarget)
+    notes: list[str] = field(default_factory=list)
+
+    @property
+    def renderer(self) -> str | None:
+        return self.render_target.renderer
+
+    @renderer.setter
+    def renderer(self, value: str | None) -> None:
+        self.render_target.renderer = value
