@@ -1,1 +1,3 @@
+$ErrorActionPreference = "Stop"
+
 pytest

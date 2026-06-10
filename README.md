@@ -1,7 +1,7 @@
 # Van Der Graph Generator
 
 ## Overview
-Van Der Graph Generator is a local semantic visual-programming tool that gives users the ease of LLM-driven input while preserving the power, repeatability, and reliability of deterministic visual rendering.
+Van Der Graph Generator is a local semantic visual-programming tool that gives users the ease of LLM-driven input while preserving the repeatability and reliability of deterministic visual rendering.
 
 Internal package name: `semantic_visual_builder`
 
@@ -19,6 +19,9 @@ Translate natural-language requests into a neutral visual plan, validate it dete
 - Plotly or Chart.js chart rendering
 - Deterministic validation
 - Conversational refinement
+- Recipe save/load and compatibility checks
+- HTML preview/export
+- First-run runtime checks and environment reporting
 
 ## Architecture Summary
 User request -> LLM semantic mapping -> Neutral visual plan -> Deterministic validation -> Renderer adapter -> Deterministic output
@@ -31,16 +34,24 @@ Use Python 3.11 or newer and install the project dependencies from `requirements
 python -m semantic_visual_builder
 ```
 
+Useful demo flags:
+
+```powershell
+python -m semantic_visual_builder --version
+python -m semantic_visual_builder --env-report
+python -m semantic_visual_builder --smoke-test
+```
+
 ## Testing
 ```powershell
 pytest
 ```
 
 ## Packaging
-Packaging is intentionally deferred. The repository includes a placeholder PyInstaller spec for future work.
+Packaging uses the PyInstaller spec under [`build/pyinstaller/VanDerGraphGenerator.spec`](./build/pyinstaller/VanDerGraphGenerator.spec).
 
 ## Project Status
-Sprint 0 scaffold only. No production rendering or Ollama integration is implemented yet.
+Sprint 7 demo build. The app now includes runtime path resolution, first-run checks, environment reporting, and packaging support scaffolding.
 
 ## License
 MIT

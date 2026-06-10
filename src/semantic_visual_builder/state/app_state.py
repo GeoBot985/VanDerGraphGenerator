@@ -16,6 +16,7 @@ from semantic_visual_builder.llm.ollama_client import OllamaStatus
 from semantic_visual_builder.planning.clarification import PendingClarification
 from semantic_visual_builder.export.export_result import ExportResult
 from semantic_visual_builder.recipes.recipe_schema import VisualRecipe
+from semantic_visual_builder.runtime.runtime_paths import RuntimePaths
 from semantic_visual_builder.state.conversation_state import ConversationState
 from semantic_visual_builder.state.revision_history import RevisionHistory
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
@@ -48,6 +49,7 @@ class AppState:
     active_recipe_name: str | None = None
     active_recipe: VisualRecipe | None = None
     recipe_compatibility_result: ValidationResult | None = None
+    runtime_paths: RuntimePaths | None = None
     status_messages: list[str] = field(default_factory=list)
 
     def add_status(self, message: str) -> None:

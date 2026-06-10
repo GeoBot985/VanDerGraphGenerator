@@ -44,6 +44,11 @@
       "step": 9,
       "name": "Apply recipe",
       "description": "The user can load and apply a compatible recipe to a new dataset."
+    },
+    {
+      "step": 10,
+      "name": "Export and inspect",
+      "description": "The user can export the HTML preview, inspect the environment report, and review troubleshooting guidance."
     }
   ]
 }

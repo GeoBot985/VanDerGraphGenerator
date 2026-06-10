@@ -23,7 +23,10 @@
     "Basic recipe compatibility checks",
     "Basic recipe application to compatible datasets",
     "Improved Plotly styling",
-    "Improved Mermaid flowchart rendering"
+    "Improved Mermaid flowchart rendering",
+    "Runtime path resolution for source and packaged execution",
+    "First-run startup checks and environment reporting",
+    "About dialog, troubleshooting dialog, and status panel"
   ],
   "future_capabilities": [
     "Excel input",
