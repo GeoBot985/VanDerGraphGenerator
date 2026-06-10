@@ -38,6 +38,10 @@ def summarize_visual_plan(plan: VisualPlan) -> str:
         lines.append(f"Chart type: {plan.chart_type}")
     if plan.diagram_type:
         lines.append(f"Diagram type: {plan.diagram_type}")
+    if plan.diagram_nodes:
+        lines.append(f"Diagram nodes: {len(plan.diagram_nodes)}")
+    if plan.diagram_edges:
+        lines.append(f"Diagram edges: {len(plan.diagram_edges)}")
     for role in plan.data_roles:
         descriptor = role.field or "unassigned"
         if role.transform:

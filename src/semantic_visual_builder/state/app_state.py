@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.knowledge.graph_matrix import GraphMatrix
@@ -13,6 +14,7 @@ from semantic_visual_builder.llm.model_registry import ModelRegistry
 from semantic_visual_builder.llm.ollama_client import OllamaStatus
 from semantic_visual_builder.state.conversation_state import ConversationState
 from semantic_visual_builder.state.revision_history import RevisionHistory
+from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.validation.validation_result import ValidationResult
 
 
@@ -28,6 +30,8 @@ class AppState:
     current_visual_plan: VisualPlan | None = None
     current_validation_result: ValidationResult | None = None
     revision_history: RevisionHistory = field(default_factory=RevisionHistory)
+    last_renderer_output: RendererOutput | None = None
+    last_preview_path: Path | None = None
     status_messages: list[str] = field(default_factory=list)
 
     def add_status(self, message: str) -> None:
@@ -35,7 +39,16 @@ class AppState:
 
     def set_visual_plan(self, plan: VisualPlan, description: str = "Updated visual plan") -> None:
         self.current_visual_plan = plan
+        self.last_renderer_output = None
+        self.last_preview_path = None
         self.revision_history.add_revision(description, plan)
+        self.add_status("Visual plan changed. Preview needs regeneration.")
 
     def set_validation_result(self, result: ValidationResult) -> None:
         self.current_validation_result = result
+
+    def set_renderer_output(self, output: RendererOutput) -> None:
+        self.last_renderer_output = output
+
+    def set_preview_path(self, path: Path) -> None:
+        self.last_preview_path = path

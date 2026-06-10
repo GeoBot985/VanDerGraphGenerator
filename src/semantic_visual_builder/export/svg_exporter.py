@@ -1,1 +1,2 @@
-"""SVG exporter placeholder."""
+"""SVG exporter placeholder for future work."""
+

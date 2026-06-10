@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import tkinter as tk
+from pathlib import Path
 from tkinter import filedialog, ttk
 
 from semantic_visual_builder.data.csv_loader import CsvLoader
@@ -15,10 +15,19 @@ from semantic_visual_builder.planning.message_classifier import MessageClassifie
 from semantic_visual_builder.planning.refinement_engine import RefinementEngine
 from semantic_visual_builder.planning.visual_plan import summarize_visual_plan
 from semantic_visual_builder.planning.workflow_state import WorkflowStep
+from semantic_visual_builder.renderers.chartjs_renderer import ChartJsRenderer
+from semantic_visual_builder.renderers.mermaid_renderer import MermaidRenderer
+from semantic_visual_builder.renderers.plotly_renderer import PlotlyRenderer
+from semantic_visual_builder.renderers.python_renderer_future import PythonRendererFuture
+from semantic_visual_builder.renderers.renderer_registry import RendererRegistry
+from semantic_visual_builder.webview.html_preview_host import HtmlPreviewHost
+from semantic_visual_builder.webview.renderer_host import RendererHost
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.ui.widgets import make_readonly_text, set_text
 from semantic_visual_builder.validation.capability_validator import CapabilityValidator
 from semantic_visual_builder.validation.visual_plan_validator import VisualPlanValidator
+from semantic_visual_builder.export.html_exporter import HtmlExporter
+from semantic_visual_builder.utils.paths import get_previews_dir, get_webview_template_dir
 
 
 class SemanticVisualBuilderApp:
@@ -35,6 +44,12 @@ class SemanticVisualBuilderApp:
         self.plan_validator = VisualPlanValidator()
         self.capability_validator = CapabilityValidator()
         self.capability_answerer = CapabilityAnswerer(app_state.product_kb) if app_state.product_kb else None
+        self.renderer_registry = RendererRegistry(
+            [PlotlyRenderer(), MermaidRenderer(), ChartJsRenderer(), PythonRendererFuture()]
+        )
+        self.renderer_host = RendererHost(get_webview_template_dir())
+        self.html_exporter = HtmlExporter(get_previews_dir())
+        self.preview_host = HtmlPreviewHost()
         self.conversation_state = self.app_state.conversation_state
         self.root = root or (tk.Tk() if build_ui else None)
         if self.root is None:
@@ -63,6 +78,9 @@ class SemanticVisualBuilderApp:
         self.model_combo.pack(side="left")
         ttk.Button(top, text="Refresh Models", command=self.refresh_ollama).pack(side="left", padx=6)
         ttk.Button(top, text="Load CSV", command=self.load_csv).pack(side="left", padx=6)
+        ttk.Button(top, text="Generate Preview", command=self.generate_preview).pack(side="left", padx=6)
+        ttk.Button(top, text="Open Last Preview", command=self.open_last_preview).pack(side="left", padx=6)
+        ttk.Button(top, text="Show Renderer Output", command=self.show_renderer_output).pack(side="left", padx=6)
 
         middle = ttk.Frame(self.root)
         middle.pack(fill="both", expand=True, padx=12, pady=12)
@@ -107,6 +125,7 @@ class SemanticVisualBuilderApp:
         self.debug_text.pack(fill="both", expand=False)
 
         self._append_preview("Preview placeholder")
+        self._set_status("Sprint 3 previews use online JavaScript CDN assets. Offline bundled renderer assets will be added in a later packaging sprint.")
 
     def refresh_ollama(self) -> None:
         from semantic_visual_builder.llm.ollama_client import OllamaClient
@@ -134,6 +153,8 @@ class SemanticVisualBuilderApp:
         self.app_state.dataset_context.profile = profile
         self.app_state.current_visual_plan = None
         self.app_state.current_validation_result = None
+        self.app_state.last_renderer_output = None
+        self.app_state.last_preview_path = None
         self.app_state.workflow_state.advance_to(WorkflowStep.VISUAL_GOAL_REQUIRED)
         self.app_state.add_status(f"Loaded CSV: {loaded.path.name}")
         self._append_preview(f"Loaded dataset: {loaded.path.name}")
@@ -219,6 +240,59 @@ class SemanticVisualBuilderApp:
         self.app_state.add_status("Applied refinement to the current visual plan.")
         return self._visual_plan_response(refined, validation)
 
+    def generate_preview(self) -> str:
+        plan = self.app_state.current_visual_plan
+        validation = self.app_state.current_validation_result
+        if plan is None or validation is None or not validation.is_valid:
+            message = "No valid visual plan is ready. Load data and describe the visual first."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+
+        try:
+            renderer = self.renderer_registry.get_renderer(plan)
+            renderer_output = renderer.render(plan, self.app_state.dataset_context)
+            renderer_validation = renderer.validate_output(renderer_output)
+            if not renderer_validation.is_valid:
+                message = "Preview could not be generated: renderer output validation failed."
+                self.app_state.add_status(message)
+                self.app_state.set_renderer_output(renderer_output)
+                self._refresh_all_views()
+                return message
+
+            html = self.renderer_host.build_html(renderer_output)
+            preview_path = self.html_exporter.export_html(html)
+            self.app_state.set_renderer_output(renderer_output)
+            self.app_state.set_preview_path(preview_path)
+            self.preview_host.open_preview(preview_path)
+            self.app_state.add_status(f"Preview generated: {preview_path}")
+            self._refresh_all_views()
+            return f"Preview generated: {preview_path}"
+        except Exception as exc:
+            message = f"Preview could not be generated: {exc}"
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+
+    def open_last_preview(self) -> str:
+        path = self.app_state.last_preview_path
+        if path is None:
+            message = "No preview file has been generated yet."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        self.preview_host.open_preview(path)
+        message = f"Opened preview: {path}"
+        self.app_state.add_status(message)
+        self._refresh_all_views()
+        return message
+
+    def show_renderer_output(self) -> str:
+        text = self._renderer_output_text()
+        self.app_state.add_status("Renderer output displayed.")
+        self._refresh_all_views()
+        return text
+
     def _visual_plan_response(self, plan, validation) -> str:
         return (
             "I interpreted this as a neutral visual plan.\n\n"
@@ -271,6 +345,7 @@ class SemanticVisualBuilderApp:
                 lines.append(f"Ollama version: {self.app_state.ollama_status.version}")
             if self.app_state.ollama_status.error:
                 lines.append(f"Ollama error: {self.app_state.ollama_status.error}")
+        lines.extend(self._renderer_debug_lines())
         set_text(self.debug_text, "\n".join(lines) or "Ready.")
 
     def _refresh_all_views(self) -> None:
@@ -293,6 +368,27 @@ class SemanticVisualBuilderApp:
         if not validation.messages:
             return "Plan is valid."
         return "\n".join(f"{item.severity.value.upper()}: {item.message}" for item in validation.messages)
+
+    def _renderer_debug_lines(self) -> list[str]:
+        lines: list[str] = []
+        output = self.app_state.last_renderer_output
+        if output is not None:
+            lines.append(f"Renderer: {output.renderer_name}")
+            lines.append(f"Output type: {output.output_type}")
+        if self.app_state.last_preview_path is not None:
+            lines.append(f"Preview file: {self.app_state.last_preview_path}")
+        renderer_output_text = self._renderer_output_text()
+        if renderer_output_text:
+            lines.append("Renderer output:")
+            lines.extend(renderer_output_text.splitlines())
+        return lines
+
+    def _renderer_output_text(self) -> str:
+        output = self.app_state.last_renderer_output
+        if output is None:
+            return "No renderer output yet."
+        content = output.content
+        return content if len(content) <= 2000 else content[:2000] + "..."
 
     def _looks_like_process_request(self, content: str) -> bool:
         text = content.lower()

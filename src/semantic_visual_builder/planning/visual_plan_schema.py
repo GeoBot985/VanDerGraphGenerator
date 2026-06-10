@@ -29,6 +29,20 @@ class RenderTarget:
 
 
 @dataclass
+class DiagramNode:
+    id: str
+    label: str
+    node_type: str = "process"
+
+
+@dataclass
+class DiagramEdge:
+    source: str
+    target: str
+    label: str | None = None
+
+
+@dataclass
 class VisualPlan:
     visual_kind: str
     intent: str
@@ -37,6 +51,8 @@ class VisualPlan:
     data_roles: list[DataRole] = field(default_factory=list)
     filters: list[dict[str, Any]] = field(default_factory=list)
     grouping: list[str] = field(default_factory=list)
+    diagram_nodes: list[DiagramNode] = field(default_factory=list)
+    diagram_edges: list[DiagramEdge] = field(default_factory=list)
     style: StyleIntent = field(default_factory=StyleIntent)
     render_target: RenderTarget = field(default_factory=RenderTarget)
     notes: list[str] = field(default_factory=list)

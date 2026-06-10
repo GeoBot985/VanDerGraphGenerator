@@ -5,6 +5,7 @@ from __future__ import annotations
 from semantic_visual_builder.data.data_profiler import DatasetProfile
 from semantic_visual_builder.knowledge.graph_matrix import GraphMatrix
 
+from .diagram_plan_builder import DiagramPlanBuilder
 from .field_mapper import FieldMapper
 from .visual_plan import set_role
 from .visual_plan_schema import VisualPlan
@@ -52,12 +53,24 @@ class IntentMapper:
         )
         plan.render_target.renderer = renderer
 
+        if intent == "show_process":
+            plan = DiagramPlanBuilder().build_basic_flowchart(message)
+            plan.render_target.renderer = "mermaid"
+
         if dataset_profile is not None:
             plan = FieldMapper().propose_roles(message, dataset_profile, plan)
 
         if intent == "show_trend" and dataset_profile is not None and not plan.data_roles:
             set_role(plan, "x", dataset_profile.columns[0].name if dataset_profile.columns else None)
             set_role(plan, "y", "row_count", aggregation="count")
+
+        if intent == "compare_categories" and dataset_profile is not None:
+            if "amount by region" in text:
+                set_role(plan, "category", "Region")
+                set_role(plan, "measure", "Amount", aggregation="sum")
+            elif "transactions by region" in text:
+                set_role(plan, "category", "Region")
+                set_role(plan, "measure", "row_count", aggregation="count")
 
         if graph_matrix is not None and plan.render_target.renderer is None:
             if plan.intent in graph_matrix.list_intents():

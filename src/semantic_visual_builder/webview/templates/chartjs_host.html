@@ -1,2 +1,16 @@
 <!doctype html>
-<html><body>Chart.js host placeholder</body></html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Van Der Graph Generator Preview</title>
+  <!-- TODO: bundle local JS assets for offline packaging in a later sprint. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <canvas id="chart" style="width:100%;height:90vh;"></canvas>
+  <script>
+    const config = {{CHARTJS_CONFIG_JSON}};
+    new Chart(document.getElementById("chart"), config);
+  </script>
+</body>
+</html>

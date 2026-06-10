@@ -49,6 +49,14 @@ class FieldMapper:
             ]
             return updated
 
+        if "transactions by region" in text:
+            category = first_matching(categorical_fields, ("Region",))
+            updated.data_roles = [
+                DataRole(role="category", field=category),
+                DataRole(role="measure", field="row_count", aggregation="count"),
+            ]
+            return updated
+
         if "transactions by status" in text:
             category = first_matching(categorical_fields, ("Status",))
             updated.data_roles = [

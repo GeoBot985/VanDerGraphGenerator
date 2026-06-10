@@ -1,1 +1,1 @@
-"""PNG exporter placeholder."""
+"""PNG exporter placeholder for future work."""

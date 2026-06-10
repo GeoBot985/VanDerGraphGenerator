@@ -1,2 +1,17 @@
 <!doctype html>
-<html><body>Mermaid host placeholder</body></html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Van Der Graph Generator Diagram Preview</title>
+  <!-- TODO: bundle local JS assets for offline packaging in a later sprint. -->
+</head>
+<body>
+  <pre class="mermaid">
+{{MERMAID_CODE}}
+  </pre>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true });
+  </script>
+</body>
+</html>

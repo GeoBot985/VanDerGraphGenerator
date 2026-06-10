@@ -1,16 +1,30 @@
 """Chart.js renderer placeholder."""
 
-from .base_renderer import BaseRenderer
+from __future__ import annotations
+
+from semantic_visual_builder.data.dataset_context import DatasetContext
+from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
+from semantic_visual_builder.renderers.base_renderer import BaseRenderer
+from semantic_visual_builder.renderers.renderer_result import RendererOutput
+from semantic_visual_builder.validation.validation_result import ValidationResult
 
 
 class ChartJsRenderer(BaseRenderer):
-    """Stub Chart.js renderer."""
+    """Future Chart.js adapter placeholder."""
 
-    def can_render(self, visual_plan) -> bool:
+    name = "chartjs"
+
+    def can_render(self, visual_plan: VisualPlan) -> bool:
         return False
 
-    def render(self, visual_plan, dataset=None):
-        return None
+    def render(
+        self,
+        visual_plan: VisualPlan,
+        dataset_context: DatasetContext | None = None,
+    ) -> RendererOutput:
+        raise NotImplementedError("Chart.js rendering is not active in Sprint 3.")
 
-    def validate_output(self, output):
-        return True
+    def validate_output(self, output: RendererOutput) -> ValidationResult:
+        result = ValidationResult()
+        result.add_error("Chart.js rendering is not active in Sprint 3.")
+        return result

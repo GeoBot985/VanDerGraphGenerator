@@ -10,6 +10,7 @@ def test_package_imports() -> None:
     import semantic_visual_builder.planning
     import semantic_visual_builder.state
     import semantic_visual_builder.renderers
+    import semantic_visual_builder.webview
     import semantic_visual_builder.ui
     import semantic_visual_builder.validation
 

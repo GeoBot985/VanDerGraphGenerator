@@ -1,12 +1,32 @@
-"""Base renderer contract placeholder."""
+"""Base renderer contract."""
+
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+from semantic_visual_builder.data.dataset_context import DatasetContext
+from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
+from semantic_visual_builder.renderers.renderer_result import RendererOutput
+from semantic_visual_builder.validation.validation_result import ValidationResult
 
 
-class BaseRenderer:
-    def can_render(self, visual_plan) -> bool:
+class BaseRenderer(ABC):
+    """Adapter contract for deterministic renderers."""
+
+    name: str
+
+    @abstractmethod
+    def can_render(self, visual_plan: VisualPlan) -> bool:
         raise NotImplementedError
 
-    def render(self, visual_plan, dataset=None):
+    @abstractmethod
+    def render(
+        self,
+        visual_plan: VisualPlan,
+        dataset_context: DatasetContext | None = None,
+    ) -> RendererOutput:
         raise NotImplementedError
 
-    def validate_output(self, output):
+    @abstractmethod
+    def validate_output(self, output: RendererOutput) -> ValidationResult:
         raise NotImplementedError

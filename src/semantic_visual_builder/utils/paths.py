@@ -24,3 +24,21 @@ def get_graph_matrix_dir() -> Path:
     """Return the graph matrix directory."""
 
     return get_project_root() / "graph_matrix"
+
+
+def get_exports_dir() -> Path:
+    """Return the export directory."""
+
+    return get_project_root() / "exports"
+
+
+def get_previews_dir() -> Path:
+    """Return the HTML preview directory."""
+
+    return get_exports_dir() / "previews"
+
+
+def get_webview_template_dir() -> Path:
+    """Return the HTML template directory."""
+
+    return get_project_root() / "src" / "semantic_visual_builder" / "webview" / "templates"
