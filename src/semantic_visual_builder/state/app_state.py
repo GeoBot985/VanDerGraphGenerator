@@ -11,6 +11,7 @@ from semantic_visual_builder.knowledge.product_kb import ProductKnowledgeBase
 from semantic_visual_builder.planning.workflow_state import WorkflowState
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 from semantic_visual_builder.llm.model_registry import ModelRegistry
+from semantic_visual_builder.llm.llm_mapping_result import LlmMappingResult
 from semantic_visual_builder.llm.ollama_client import OllamaStatus
 from semantic_visual_builder.state.conversation_state import ConversationState
 from semantic_visual_builder.state.revision_history import RevisionHistory
@@ -32,6 +33,10 @@ class AppState:
     revision_history: RevisionHistory = field(default_factory=RevisionHistory)
     last_renderer_output: RendererOutput | None = None
     last_preview_path: Path | None = None
+    llm_mapping_enabled: bool = True
+    last_llm_mapping_result: LlmMappingResult | None = None
+    last_mapping_method: str | None = None
+    last_fallback_reason: str | None = None
     status_messages: list[str] = field(default_factory=list)
 
     def add_status(self, message: str) -> None:
@@ -52,3 +57,6 @@ class AppState:
 
     def set_preview_path(self, path: Path) -> None:
         self.last_preview_path = path
+
+    def set_llm_mapping_enabled(self, enabled: bool) -> None:
+        self.llm_mapping_enabled = enabled

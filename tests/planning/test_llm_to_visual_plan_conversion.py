@@ -1,0 +1,51 @@
+"""LLM draft to visual plan conversion tests."""
+
+from semantic_visual_builder.llm.llm_mapping_result import LlmVisualPlanDraft
+from semantic_visual_builder.planning.visual_plan import visual_plan_from_llm_draft
+
+
+def test_llm_chart_draft_converts_to_visual_plan_roles() -> None:
+    draft = LlmVisualPlanDraft(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        roles={
+            "category": {"field": "Region"},
+            "measure": {"field": "Amount", "aggregation": "sum"},
+        },
+        style={"title": "Total Amount by Region", "colour_scheme": "blue", "highlights": {}},
+        renderer="plotly",
+    )
+    plan = visual_plan_from_llm_draft(draft)
+    assert plan.visual_kind == "chart"
+    assert plan.chart_type == "bar"
+    assert plan.render_target.renderer == "plotly"
+    assert plan.style.title == "Total Amount by Region"
+    assert {role.role for role in plan.data_roles} == {"category", "measure"}
+
+
+def test_llm_flowchart_draft_converts_to_diagram_plan() -> None:
+    draft = LlmVisualPlanDraft(
+        visual_kind="diagram",
+        intent="show_process",
+        diagram_type="flowchart",
+        roles={},
+        style={"title": "Process Flow"},
+        renderer="mermaid",
+    )
+    plan = visual_plan_from_llm_draft(draft)
+    assert plan.visual_kind == "diagram"
+    assert plan.diagram_type == "flowchart"
+    assert plan.render_target.renderer == "mermaid"
+
+
+def test_style_title_converts_correctly() -> None:
+    draft = LlmVisualPlanDraft(visual_kind="chart", intent="compare_categories", chart_type="bar", roles={}, style={"title": "Test"})
+    plan = visual_plan_from_llm_draft(draft)
+    assert plan.style.title == "Test"
+
+
+def test_renderer_converts_to_render_target() -> None:
+    draft = LlmVisualPlanDraft(visual_kind="chart", intent="compare_categories", chart_type="bar", roles={}, renderer="plotly")
+    plan = visual_plan_from_llm_draft(draft)
+    assert plan.render_target.renderer == "plotly"

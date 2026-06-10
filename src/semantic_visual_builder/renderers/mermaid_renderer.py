@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-
 from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.planning.visual_plan_schema import DiagramEdge, DiagramNode, VisualPlan
 from semantic_visual_builder.renderers.base_renderer import BaseRenderer

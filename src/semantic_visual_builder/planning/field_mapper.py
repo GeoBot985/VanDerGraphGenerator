@@ -45,7 +45,7 @@ class FieldMapper:
             measure = first_matching(numeric_fields, ("Amount",))
             updated.data_roles = [
                 DataRole(role="category", field=category),
-                DataRole(role="measure", field=measure),
+                DataRole(role="measure", field=measure, aggregation="sum"),
             ]
             return updated
 

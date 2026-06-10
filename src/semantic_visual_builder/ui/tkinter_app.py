@@ -11,8 +11,8 @@ from semantic_visual_builder.data.data_profiler import DataProfiler
 from semantic_visual_builder.knowledge.capability_answerer import CapabilityAnswerer
 from semantic_visual_builder.planning.field_mapper import FieldMapper
 from semantic_visual_builder.planning.intent_mapper import IntentMapper
+from semantic_visual_builder.planning.planning_orchestrator import PlanningOrchestrator
 from semantic_visual_builder.planning.message_classifier import MessageClassifier, MessageIntent
-from semantic_visual_builder.planning.refinement_engine import RefinementEngine
 from semantic_visual_builder.planning.visual_plan import summarize_visual_plan
 from semantic_visual_builder.planning.workflow_state import WorkflowStep
 from semantic_visual_builder.renderers.chartjs_renderer import ChartJsRenderer
@@ -20,12 +20,18 @@ from semantic_visual_builder.renderers.mermaid_renderer import MermaidRenderer
 from semantic_visual_builder.renderers.plotly_renderer import PlotlyRenderer
 from semantic_visual_builder.renderers.python_renderer_future import PythonRendererFuture
 from semantic_visual_builder.renderers.renderer_registry import RendererRegistry
+from semantic_visual_builder.llm.json_repair import JsonRepair
+from semantic_visual_builder.llm.llm_response_parser import LlmResponseParser
+from semantic_visual_builder.llm.llm_semantic_mapper import LlmSemanticMapper
+from semantic_visual_builder.llm.ollama_client import OllamaClient
+from semantic_visual_builder.llm.prompt_builder import VisualIntentPromptBuilder
 from semantic_visual_builder.webview.html_preview_host import HtmlPreviewHost
 from semantic_visual_builder.webview.renderer_host import RendererHost
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.ui.widgets import make_readonly_text, set_text
 from semantic_visual_builder.validation.capability_validator import CapabilityValidator
 from semantic_visual_builder.validation.visual_plan_validator import VisualPlanValidator
+from semantic_visual_builder.validation.llm_output_validator import LlmOutputValidator
 from semantic_visual_builder.export.html_exporter import HtmlExporter
 from semantic_visual_builder.utils.paths import get_previews_dir, get_webview_template_dir
 
@@ -40,10 +46,24 @@ class SemanticVisualBuilderApp:
         self.message_classifier = MessageClassifier()
         self.intent_mapper = IntentMapper()
         self.field_mapper = FieldMapper()
-        self.refinement_engine = RefinementEngine()
         self.plan_validator = VisualPlanValidator()
         self.capability_validator = CapabilityValidator()
         self.capability_answerer = CapabilityAnswerer(app_state.product_kb) if app_state.product_kb else None
+        self.ollama_client = OllamaClient()
+        self.llm_mapper = LlmSemanticMapper(
+            ollama_client=self.ollama_client,
+            prompt_builder=VisualIntentPromptBuilder(),
+            response_parser=LlmResponseParser(),
+            output_validator=LlmOutputValidator(),
+            json_repair=JsonRepair(),
+        )
+        self.planning_orchestrator = PlanningOrchestrator(
+            llm_mapper=self.llm_mapper,
+            deterministic_mapper=self.intent_mapper,
+            field_mapper=self.field_mapper,
+            visual_plan_validator=self.plan_validator,
+            capability_validator=self.capability_validator,
+        )
         self.renderer_registry = RendererRegistry(
             [PlotlyRenderer(), MermaidRenderer(), ChartJsRenderer(), PythonRendererFuture()]
         )
@@ -59,8 +79,11 @@ class SemanticVisualBuilderApp:
         self._model_var = tk.StringVar(value="")
         self._status_var = tk.StringVar(value="")
         self._chat_var = tk.StringVar(value="")
+        self._use_llm_var = tk.BooleanVar(value=self.app_state.llm_mapping_enabled)
         self._workflow_var = tk.StringVar(value="")
         self._revision_var = tk.StringVar(value="")
+        self._mapping_method_var = tk.StringVar(value="Mapping method: deterministic")
+        self._fallback_reason_var = tk.StringVar(value="Fallback reason: none")
         self._build_ui()
         self.refresh_ollama()
         self._refresh_all_views()
@@ -76,6 +99,8 @@ class SemanticVisualBuilderApp:
         ttk.Label(top, text="Model:").pack(side="left", padx=(24, 6))
         self.model_combo = ttk.Combobox(top, textvariable=self._model_var, state="readonly", width=34)
         self.model_combo.pack(side="left")
+        ttk.Checkbutton(top, text="Use LLM semantic mapping", variable=self._use_llm_var, command=self._on_toggle_llm_mapping).pack(side="left", padx=6)
+        ttk.Label(top, textvariable=self._mapping_method_var).pack(side="left", padx=6)
         ttk.Button(top, text="Refresh Models", command=self.refresh_ollama).pack(side="left", padx=6)
         ttk.Button(top, text="Load CSV", command=self.load_csv).pack(side="left", padx=6)
         ttk.Button(top, text="Generate Preview", command=self.generate_preview).pack(side="left", padx=6)
@@ -201,44 +226,44 @@ class SemanticVisualBuilderApp:
         return "\n".join(lines)
 
     def _handle_visual_request(self, content: str) -> str:
-        dataset_profile = self.app_state.dataset_context.profile
-        if dataset_profile is None and not self._looks_like_process_request(content):
-            self.app_state.workflow_state.advance_to(WorkflowStep.DATA_REQUIRED)
-            return "Please load a dataset first so I can map the visual request deterministically."
-
-        plan = self.intent_mapper.map_request_to_plan(content, dataset_profile, self.app_state.graph_matrix)
-        if dataset_profile is not None:
-            plan = self.field_mapper.propose_roles(content, dataset_profile, plan)
-
-        validation = self.plan_validator.validate(plan, dataset_profile, self.app_state.graph_matrix)
-        capability_check = self.capability_validator.validate_against_capabilities(plan, self.app_state.product_kb) if self.app_state.product_kb else None
-        if capability_check is not None:
-            for message in capability_check.messages:
-                validation.messages.append(message)
-        self.app_state.set_visual_plan(plan, description="Created visual plan")
-        self.app_state.set_validation_result(validation)
-
-        if validation.is_valid:
-            self.app_state.workflow_state.advance_to(WorkflowStep.PLAN_READY)
-            self.app_state.add_status("Created and validated a neutral visual plan.")
-        else:
-            self.app_state.workflow_state.advance_to(WorkflowStep.FIELD_MAPPING_CONFIRMED)
-            self.app_state.add_status("Visual plan created with validation issues.")
-        return self._visual_plan_response(plan, validation)
+        return self._run_planning(content, is_refinement=False)
 
     def _handle_refinement_request(self, content: str) -> str:
         if self.app_state.current_visual_plan is None:
             return "Create a visual plan first, then I can apply refinements."
-        refined = self.refinement_engine.apply_refinement(self.app_state.current_visual_plan, content)
-        validation = self.plan_validator.validate(refined, self.app_state.dataset_context.profile, self.app_state.graph_matrix)
-        if self.app_state.product_kb is not None:
-            capability_check = self.capability_validator.validate_against_capabilities(refined, self.app_state.product_kb)
-            validation.messages.extend(capability_check.messages)
-        self.app_state.set_visual_plan(refined, description="Refined visual plan")
-        self.app_state.set_validation_result(validation)
-        self.app_state.workflow_state.advance_to(WorkflowStep.REFINEMENT_LOOP)
-        self.app_state.add_status("Applied refinement to the current visual plan.")
-        return self._visual_plan_response(refined, validation)
+        return self._run_planning(content, is_refinement=True)
+
+    def _run_planning(self, content: str, is_refinement: bool) -> str:
+        use_llm = self._use_llm_var.get() and bool(self.app_state.model_registry.selected_model)
+        if not self._use_llm_var.get():
+            self.app_state.add_status("LLM semantic mapping disabled. Deterministic mapper used.")
+        elif self._use_llm_var.get() and not self.app_state.model_registry.selected_model:
+            self.app_state.add_status("No Ollama model selected. Deterministic mapper used.")
+        result = self.planning_orchestrator.create_or_update_plan(
+            user_message=content,
+            app_state=self.app_state,
+            use_llm=use_llm,
+        )
+        if result.visual_plan is not None:
+            self.app_state.set_visual_plan(result.visual_plan, description="Updated visual plan")
+        self.app_state.current_validation_result = result.validation_result
+        self.app_state.last_llm_mapping_result = result.llm_mapping_result
+        self.app_state.last_mapping_method = result.mapping_method
+        self.app_state.last_fallback_reason = "; ".join(result.messages) if result.used_fallback or result.messages else None
+        self.app_state.workflow_state.advance_to(
+            (WorkflowStep.REFINEMENT_LOOP if is_refinement else WorkflowStep.PLAN_READY)
+            if result.validation_result.is_valid
+            else WorkflowStep.FIELD_MAPPING_CONFIRMED
+        )
+        if result.used_fallback:
+            self.app_state.add_status("LLM mapping failed. Falling back to deterministic rule-based mapping.")
+        for message in result.messages:
+            self.app_state.add_status(message)
+        validation = result.validation_result
+        plan = result.visual_plan
+        if plan is None:
+            return "No visual plan could be created."
+        return self._visual_plan_response(plan, validation)
 
     def generate_preview(self) -> str:
         plan = self.app_state.current_visual_plan
@@ -336,6 +361,10 @@ class SemanticVisualBuilderApp:
     def _update_workflow_view(self) -> None:
         self._workflow_var.set(f"Workflow step: {self.app_state.workflow_state.current_step.value}")
         self._revision_var.set(f"Revision count: {self.app_state.revision_history.count()}")
+        mapping_method = self.app_state.last_mapping_method or "deterministic"
+        self._mapping_method_var.set(f"Mapping method: {mapping_method}")
+        fallback_reason = self.app_state.last_fallback_reason or "none"
+        self._fallback_reason_var.set(f"Fallback reason: {fallback_reason}")
 
     def _refresh_debug(self) -> None:
         lines = list(self.app_state.status_messages)
@@ -345,6 +374,21 @@ class SemanticVisualBuilderApp:
                 lines.append(f"Ollama version: {self.app_state.ollama_status.version}")
             if self.app_state.ollama_status.error:
                 lines.append(f"Ollama error: {self.app_state.ollama_status.error}")
+        lines.append(f"LLM semantic mapping: {'Enabled' if self.app_state.llm_mapping_enabled else 'Disabled'}")
+        lines.append(f"Selected model: {self.app_state.model_registry.selected_model or 'None'}")
+        lines.append(self._mapping_method_var.get())
+        lines.append(self._fallback_reason_var.get())
+        if self.app_state.last_llm_mapping_result is not None:
+            lines.append("LLM raw response:")
+            lines.extend(self.app_state.last_llm_mapping_result.raw_response.splitlines()[:10] or ["<empty>"])
+            lines.append("Parsed LLM JSON:")
+            lines.append(str(self.app_state.last_llm_mapping_result.parsed_json))
+        if self.app_state.current_visual_plan is not None:
+            lines.append("Final VisualPlan:")
+            lines.extend(summarize_visual_plan(self.app_state.current_visual_plan).splitlines())
+        if self.app_state.current_validation_result is not None:
+            lines.append("Validation result:")
+            lines.append(self._format_validation(self.app_state.current_validation_result))
         lines.extend(self._renderer_debug_lines())
         set_text(self.debug_text, "\n".join(lines) or "Ready.")
 
@@ -389,6 +433,12 @@ class SemanticVisualBuilderApp:
             return "No renderer output yet."
         content = output.content
         return content if len(content) <= 2000 else content[:2000] + "..."
+
+    def _on_toggle_llm_mapping(self) -> None:
+        self.app_state.set_llm_mapping_enabled(self._use_llm_var.get())
+        state = "enabled" if self._use_llm_var.get() else "disabled"
+        self.app_state.add_status(f"LLM semantic mapping {state}.")
+        self._refresh_all_views()
 
     def _looks_like_process_request(self, content: str) -> bool:
         text = content.lower()

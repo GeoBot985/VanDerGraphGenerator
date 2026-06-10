@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from semantic_visual_builder.renderers.renderer_result import RendererOutput

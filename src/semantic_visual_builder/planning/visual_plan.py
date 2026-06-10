@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from .visual_plan_schema import DataRole, VisualPlan
+from semantic_visual_builder.llm.llm_mapping_result import LlmVisualPlanDraft
+
+from .visual_plan_schema import DataRole, RenderTarget, StyleIntent, VisualPlan
 
 
 def get_role(plan: VisualPlan, role: str) -> DataRole | None:
@@ -60,3 +62,35 @@ def summarize_visual_plan(plan: VisualPlan) -> str:
 
 def clone_visual_plan(plan: VisualPlan) -> VisualPlan:
     return deepcopy(plan)
+
+
+def visual_plan_from_llm_draft(draft: LlmVisualPlanDraft) -> VisualPlan:
+    plan = VisualPlan(
+        visual_kind=draft.visual_kind,
+        intent=draft.intent,
+        chart_type=draft.chart_type,
+        diagram_type=draft.diagram_type,
+        style=StyleIntent(
+            title=(draft.style or {}).get("title"),
+            colour_scheme=(draft.style or {}).get("colour_scheme"),
+            highlights=(draft.style or {}).get("highlights", {}) or {},
+        ),
+        render_target=RenderTarget(renderer=draft.renderer),
+    )
+    for role_name, role_data in (draft.roles or {}).items():
+        if not isinstance(role_data, dict):
+            continue
+        plan.data_roles.append(
+            DataRole(
+                role=role_name,
+                field=role_data.get("field"),
+                transform=role_data.get("transform"),
+                aggregation=role_data.get("aggregation"),
+            )
+        )
+    plan.filters = [item for item in draft.filters if isinstance(item, dict)]
+    plan.grouping = [item for item in draft.grouping if isinstance(item, str)]
+    plan.notes.extend([f"Assumption: {item}" for item in draft.assumptions])
+    if draft.questions:
+        plan.notes.extend([f"Question: {item}" for item in draft.questions])
+    return plan

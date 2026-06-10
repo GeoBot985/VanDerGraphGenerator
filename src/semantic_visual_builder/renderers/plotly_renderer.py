@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-from collections import defaultdict
-from datetime import datetime
 
 import pandas as pd
 
@@ -103,9 +101,10 @@ class PlotlyRenderer(BaseRenderer):
         grouped = self._aggregate_category(dataframe, category.field, measure)
         if horizontal:
             trace = {"type": "bar", "orientation": "h", "x": grouped["value"].tolist(), "y": grouped["label"].tolist(), "name": self._measure_name(measure)}
+            layout = self._layout(plan, x_title=self._measure_name(measure), y_title=category.field or "Category")
         else:
             trace = {"type": "bar", "x": grouped["label"].tolist(), "y": grouped["value"].tolist(), "name": self._measure_name(measure)}
-        layout = self._layout(plan, x_title=category.field or "Category", y_title=self._measure_name(measure))
+            layout = self._layout(plan, x_title=category.field or "Category", y_title=self._measure_name(measure))
         return trace, layout
 
     def _build_scatter(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object]]:

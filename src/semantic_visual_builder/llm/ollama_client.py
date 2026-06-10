@@ -28,6 +28,10 @@ class OllamaStatus:
     error: str | None = None
 
 
+class OllamaGenerationError(RuntimeError):
+    """Raised when a controlled Ollama generation call fails."""
+
+
 class OllamaClient:
     """Client for local Ollama discovery."""
 
@@ -74,3 +78,33 @@ class OllamaClient:
 
     def chat(self, model: str, messages: list[dict[str, str]]) -> str:
         raise NotImplementedError("Chat generation is planned for a later sprint.")
+
+    def generate(
+        self,
+        model: str,
+        prompt: str,
+        system: str | None = None,
+        temperature: float = 0.0,
+    ) -> str:
+        if not model.strip():
+            raise ValueError("model must not be blank")
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "system": system,
+            "temperature": temperature,
+            "stream": False,
+        }
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                json=payload,
+                timeout=self.timeout_seconds,
+            )
+            response.raise_for_status()
+            data = response.json()
+        except Exception as exc:
+            raise OllamaGenerationError(str(exc)) from exc
+        if not isinstance(data, dict) or "response" not in data or not isinstance(data["response"], str):
+            raise OllamaGenerationError("Unexpected Ollama response format.")
+        return data["response"]
