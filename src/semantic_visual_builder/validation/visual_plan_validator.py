@@ -1,0 +1,1 @@
+"""Visual plan validation placeholder."""

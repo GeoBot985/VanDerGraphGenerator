@@ -1,0 +1,22 @@
+{
+  "intents": [
+    {
+      "intent": "compare_categories",
+      "preferred_visuals": ["bar", "horizontal_bar"],
+      "required_roles": ["category", "measure"],
+      "renderer_targets": ["plotly", "chartjs"]
+    },
+    {
+      "intent": "show_trend",
+      "preferred_visuals": ["line", "bar"],
+      "required_roles": ["time_or_order", "measure"],
+      "renderer_targets": ["plotly", "chartjs"]
+    },
+    {
+      "intent": "show_process",
+      "preferred_visuals": ["flowchart"],
+      "required_roles": ["nodes", "edges"],
+      "renderer_targets": ["mermaid"]
+    }
+  ]
+}

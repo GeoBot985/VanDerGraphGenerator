@@ -1,0 +1,20 @@
+{
+  "app_name": "Van Der Graph Generator",
+  "internal_name": "semantic_visual_builder",
+  "mvp_capabilities": [
+    "CSV input",
+    "Guided visual workflow",
+    "Local Ollama model selection",
+    "Mermaid diagram rendering",
+    "Plotly or Chart.js chart rendering",
+    "Deterministic validation",
+    "Conversational refinement"
+  ],
+  "future_capabilities": [
+    "Excel input",
+    "SQL result input",
+    "Generated Python renderer plugin",
+    "PowerPoint export",
+    "Word report embedding"
+  ]
+}

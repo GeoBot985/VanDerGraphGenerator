@@ -1,0 +1,10 @@
+{
+  "mvp_limitations": [
+    "No arbitrary Python execution",
+    "No live database querying",
+    "No Power BI replacement",
+    "No unrestricted chart generation",
+    "No internet requirement except local Ollama API",
+    "No Graphviz dependency in MVP"
+  ]
+}

@@ -1,0 +1,6 @@
+TransactionDate,Region,Status,Amount
+2026-01-01,Western Cape,Approved,1200.50
+2026-01-02,Gauteng,Approved,850.00
+2026-01-03,Western Cape,Failed,300.00
+2026-01-08,Kwazulu-Natal,Approved,1450.75
+2026-01-10,Gauteng,Failed,220.00

@@ -1,0 +1,5 @@
+{
+  "app_name": "Van Der Graph Generator",
+  "internal_name": "semantic_visual_builder",
+  "ollama_base_url": "http://localhost:11434"
+}

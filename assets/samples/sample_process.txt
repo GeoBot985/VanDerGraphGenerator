@@ -1,0 +1,1 @@
+A user submits a request. The request is reviewed by an analyst. If the request is complete, it is approved and sent for processing. If information is missing, it is returned to the user for correction.
