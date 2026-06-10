@@ -24,13 +24,29 @@
       "name": "pie",
       "purpose": "Show simple part-to-whole composition.",
       "limits": ["Avoid more than 6 categories.", "Avoid time series.", "Avoid when precise ranking matters."]
+    },
+    {
+      "name": "histogram",
+      "purpose": "Show the distribution of a single numeric field.",
+      "limits": ["Requires exactly one numeric field.", "Bin count is automatic; manual binning not supported."]
+    },
+    {
+      "name": "box_plot",
+      "purpose": "Show spread and outliers of a numeric field, optionally grouped by a category.",
+      "limits": ["Requires at least one numeric field.", "Optional grouping category."]
+    },
+    {
+      "name": "heatmap",
+      "purpose": "Show a matrix of values using colour intensity.",
+      "limits": ["Requires two categorical fields and one numeric measure.", "Large matrices may be hard to read."]
+    },
+    {
+      "name": "stacked_bar",
+      "purpose": "Show part-to-whole composition across categories over time or groups.",
+      "limits": ["Requires a category, a stack-grouping field, and a measure.", "Too many stack groups reduce readability."]
     }
   ],
   "future": [
-    "stacked_bar",
-    "heatmap",
-    "box_plot",
-    "histogram",
     "dashboard"
   ]
 }

@@ -37,6 +37,16 @@
     "Style comparison is based on deterministic heuristics, not perceptual similarity.",
     "Built-in styles cannot be overwritten by import.",
     "Recipe default styles are stored as IDs; if the style is deleted the ID becomes stale.",
-    "Style profiles are not executable code and cannot trigger renderer-level injections."
+    "Style profiles are not executable code and cannot trigger renderer-level injections.",
+    "Excel input supports .xlsx only; .xls and .xlsm are not supported.",
+    "Only one worksheet can be loaded at a time.",
+    "Histogram and box_plot are Plotly-only chart types; Mermaid and Chart.js do not support them.",
+    "Heatmap requires exactly two categorical fields and one numeric measure.",
+    "Stacked bar requires a stack-grouping field; if absent the renderer falls back to a grouped bar.",
+    "Schema matching is deterministic; ambiguous field names may require manual confirmation.",
+    "Report HTML export embeds chart HTML inline; external dependencies are not bundled by default.",
+    "User settings are stored as a local JSON file; no cloud sync.",
+    "Gallery items are read-only config; the user cannot add gallery items from within the app.",
+    "Gallery runner sets up app state but does not auto-trigger generation."
   ]
 }

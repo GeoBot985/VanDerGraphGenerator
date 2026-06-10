@@ -1,0 +1,64 @@
+{
+  "items": [
+    {
+      "item_id": "sales_bar",
+      "title": "Monthly Sales Bar Chart",
+      "description": "A simple bar chart showing monthly sales revenue from a CSV dataset.",
+      "sample_dataset_path": "assets/samples/sales_monthly.csv",
+      "sample_recipe_path": null,
+      "sample_style_id": null,
+      "prompt": "Show me a bar chart of monthly sales revenue",
+      "expected_visual_kind": "chart",
+      "expected_chart_type": "bar",
+      "expected_diagram_type": null
+    },
+    {
+      "item_id": "team_flow",
+      "title": "Team Onboarding Flowchart",
+      "description": "A process flowchart for a team onboarding workflow using Mermaid.",
+      "sample_dataset_path": null,
+      "sample_recipe_path": null,
+      "sample_style_id": null,
+      "prompt": "Create a flowchart for the employee onboarding process: HR sends welcome email, then IT sets up laptop, then manager introduction, then training",
+      "expected_visual_kind": "diagram",
+      "expected_chart_type": null,
+      "expected_diagram_type": "flowchart"
+    },
+    {
+      "item_id": "scatter_correlation",
+      "title": "Height vs Weight Scatter Plot",
+      "description": "Scatter plot exploring correlation between two numeric fields.",
+      "sample_dataset_path": "assets/samples/height_weight.csv",
+      "sample_recipe_path": null,
+      "sample_style_id": null,
+      "prompt": "Show me the correlation between height and weight",
+      "expected_visual_kind": "chart",
+      "expected_chart_type": "scatter",
+      "expected_diagram_type": null
+    },
+    {
+      "item_id": "distribution_histogram",
+      "title": "Age Distribution Histogram",
+      "description": "Histogram showing the distribution of customer ages.",
+      "sample_dataset_path": "assets/samples/customers.csv",
+      "sample_recipe_path": null,
+      "sample_style_id": null,
+      "prompt": "Show the distribution of customer ages as a histogram",
+      "expected_visual_kind": "chart",
+      "expected_chart_type": "histogram",
+      "expected_diagram_type": null
+    },
+    {
+      "item_id": "stacked_region",
+      "title": "Sales by Region Stacked Bar",
+      "description": "Stacked bar chart comparing sales contribution per product across regions.",
+      "sample_dataset_path": "assets/samples/regional_sales.csv",
+      "sample_recipe_path": null,
+      "sample_style_id": null,
+      "prompt": "Show total sales stacked by product category for each region",
+      "expected_visual_kind": "chart",
+      "expected_chart_type": "stacked_bar",
+      "expected_diagram_type": null
+    }
+  ]
+}

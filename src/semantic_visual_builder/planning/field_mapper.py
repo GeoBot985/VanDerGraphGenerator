@@ -56,6 +56,67 @@ class FieldMapper:
                 return match.group(1).strip().rstrip(".,")
             return None
 
+        # --- Histogram ---
+        if updated.chart_type == "histogram" or "distribution of" in text or "histogram" in text:
+            value_field: str | None = None
+            for word in text.split():
+                for col in numeric_fields:
+                    if word == col.lower() or word == col.lower().replace(" ", "_"):
+                        value_field = col
+                        break
+            if value_field is None:
+                value_field = first_matching(numeric_fields, ("Amount", "Value", "Price"))
+            if value_field:
+                updated.chart_type = "histogram"
+                updated.data_roles = [DataRole(role="value", field=value_field)]
+                updated.render_target.renderer = "plotly"
+            return updated
+
+        # --- Box plot ---
+        if updated.chart_type == "box_plot" or "box plot" in text or "spread of" in text:
+            value_field = first_matching(numeric_fields, ("Amount", "Value", "Price"))
+            category_field = first_matching(categorical_fields, ("Region", "Status", "Category"))
+            updated.chart_type = "box_plot"
+            updated.render_target.renderer = "plotly"
+            roles = [DataRole(role="value", field=value_field)]
+            if category_field:
+                roles.append(DataRole(role="category", field=category_field))
+            updated.data_roles = roles
+            return updated
+
+        # --- Heatmap ---
+        if updated.chart_type == "heatmap" or "heatmap" in text:
+            x_cat = first_matching(categorical_fields, ("Status", "Category", "Type"))
+            y_cat = first_matching(
+                [f for f in categorical_fields if f != x_cat],
+                ("Region", "Area", "Location"),
+            )
+            measure = first_matching(numeric_fields, ("Amount", "Value", "Count"))
+            updated.chart_type = "heatmap"
+            updated.render_target.renderer = "plotly"
+            updated.data_roles = [
+                DataRole(role="x_category", field=x_cat),
+                DataRole(role="y_category", field=y_cat),
+                DataRole(role="measure", field=measure or "row_count", aggregation="sum" if measure else "count"),
+            ]
+            return updated
+
+        # --- Stacked bar ---
+        if updated.chart_type == "stacked_bar" or "stacked" in text or "split by" in text:
+            category = first_matching(categorical_fields, ("Region", "Area", "Category"))
+            stack_candidates = [f for f in categorical_fields if f != category]
+            stack = first_matching(stack_candidates, ("Status", "Type", "Group"))
+            measure = first_matching(numeric_fields, ("Amount", "Value"))
+            updated.chart_type = "stacked_bar"
+            updated.render_target.renderer = "plotly"
+            updated.data_roles = [
+                DataRole(role="category", field=category),
+                DataRole(role="stack", field=stack),
+                DataRole(role="measure", field=measure or "row_count", aggregation="sum" if measure else "count"),
+            ]
+            return updated
+
+        # --- Existing patterns ---
         if "average amount by status" in text:
             return set_category_measure(first_matching(categorical_fields, ("Status",)), first_matching(numeric_fields, ("Amount",)), "avg")
 

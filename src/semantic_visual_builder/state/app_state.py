@@ -28,6 +28,9 @@ from semantic_visual_builder.runtime.runtime_paths import RuntimePaths
 from semantic_visual_builder.state.conversation_state import ConversationState
 from semantic_visual_builder.state.revision_history import RevisionHistory
 from semantic_visual_builder.styles.style_applier import StyleApplicationResult
+from semantic_visual_builder.export.export_manager import ExportRequest
+from semantic_visual_builder.gallery.gallery_schema import GalleryItem
+from semantic_visual_builder.settings.settings_schema import AppSettings
 from semantic_visual_builder.styles.style_comparison import StyleComparisonResult
 from semantic_visual_builder.styles.style_review_model import EditableStyleDraft
 from semantic_visual_builder.styles.style_schema import StyleProfile
@@ -73,6 +76,10 @@ class AppState:
     last_imported_style_path: Path | None = None
     last_exported_style_path: Path | None = None
     vision_capable_models: list[str] = field(default_factory=list)
+    app_settings: AppSettings = field(default_factory=AppSettings)
+    gallery_items: list[GalleryItem] = field(default_factory=list)
+    active_gallery_item: GalleryItem | None = None
+    last_export_request: ExportRequest | None = None
     runtime_paths: RuntimePaths | None = None
     status_messages: list[str] = field(default_factory=list)
 
@@ -209,3 +216,15 @@ class AppState:
 
     def set_vision_capable_models(self, models: list[str]) -> None:
         self.vision_capable_models = list(models)
+
+    def set_app_settings(self, settings: AppSettings) -> None:
+        self.app_settings = settings
+
+    def set_gallery_items(self, items: list[GalleryItem]) -> None:
+        self.gallery_items = list(items)
+
+    def set_active_gallery_item(self, item: GalleryItem | None) -> None:
+        self.active_gallery_item = item
+
+    def set_last_export_request(self, request: ExportRequest | None) -> None:
+        self.last_export_request = request

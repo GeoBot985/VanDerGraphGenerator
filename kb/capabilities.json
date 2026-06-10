@@ -48,10 +48,19 @@
     "Style comparison ranking with similarity scores",
     "Runtime path resolution for source and packaged execution",
     "First-run startup checks and environment reporting",
-    "About dialog, troubleshooting dialog, and status panel"
+    "About dialog, troubleshooting dialog, and status panel",
+    "Excel .xlsx input with worksheet selection",
+    "Histogram chart type via Plotly",
+    "Box plot chart type via Plotly",
+    "Heatmap chart type via Plotly",
+    "Stacked bar chart type via Plotly",
+    "Improved dataset schema field matching (5-level deterministic matching)",
+    "Report-ready self-contained HTML export with title and metadata",
+    "User settings save and load as JSON",
+    "Sample workflow gallery with pre-configured examples",
+    "Export manager routing (html, report_html, png, svg)"
   ],
   "future_capabilities": [
-    "Excel input",
     "SQL result input",
     "Generated Python renderer plugin",
     "PowerPoint export",

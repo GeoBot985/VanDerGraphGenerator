@@ -32,6 +32,22 @@ class IntentMapper:
             visual_kind = "diagram"
             diagram_type = "flowchart"
             renderer = "mermaid"
+        elif "heatmap" in text or ("by" in text and "and" in text and "heatmap" in text):
+            intent = "show_matrix"
+            chart_type = "heatmap"
+            renderer = "plotly"
+        elif "stacked" in text or "split by" in text:
+            intent = "compare_stacked_categories"
+            chart_type = "stacked_bar"
+            renderer = "plotly"
+        elif any(marker in text for marker in ("distribution of", "histogram", "spread of", "box plot")):
+            if "box plot" in text or "spread of" in text:
+                intent = "show_distribution"
+                chart_type = "box_plot"
+            else:
+                intent = "show_distribution"
+                chart_type = "histogram"
+            renderer = "plotly"
         elif "relationship between" in text or "scatter" in text:
             intent = "show_relationship"
             chart_type = "scatter"

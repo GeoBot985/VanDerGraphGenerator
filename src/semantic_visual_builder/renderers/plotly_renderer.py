@@ -14,9 +14,14 @@ from semantic_visual_builder.renderers.plotly_style_adapter import PlotlyStyleAd
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.validation.validation_result import ValidationResult
 
+_SUPPORTED_CHART_TYPES = {
+    "bar", "horizontal_bar", "line", "scatter", "pie",
+    "stacked_bar", "histogram", "box_plot", "heatmap",
+}
+
 
 class PlotlyRenderer(BaseRenderer):
-    """Render basic chart plans to Plotly JSON."""
+    """Render chart plans to Plotly JSON."""
 
     name = "plotly"
 
@@ -24,7 +29,7 @@ class PlotlyRenderer(BaseRenderer):
         self.style_adapter = PlotlyStyleAdapter()
 
     def can_render(self, visual_plan: VisualPlan) -> bool:
-        return visual_plan.visual_kind == "chart" and visual_plan.chart_type in {"bar", "horizontal_bar", "line", "scatter", "pie"}
+        return visual_plan.visual_kind == "chart" and visual_plan.chart_type in _SUPPORTED_CHART_TYPES
 
     def render(
         self,
@@ -36,8 +41,8 @@ class PlotlyRenderer(BaseRenderer):
         if dataset_context is None or dataset_context.loaded_dataset is None:
             raise ValueError("PlotlyRenderer requires a loaded dataset.")
         dataframe = dataset_context.loaded_dataset.dataframe.copy()
-        trace, layout, warnings = self._build_chart(visual_plan, dataframe)
-        config = {"data": [trace], "layout": layout}
+        traces, layout, warnings = self._build_chart_multi(visual_plan, dataframe)
+        config = {"data": traces, "layout": layout}
         config = self.style_adapter.apply_style_to_config(config, visual_plan)
         content = json.dumps(config, ensure_ascii=False)
         metadata = {
@@ -64,6 +69,23 @@ class PlotlyRenderer(BaseRenderer):
         if not isinstance(payload.get("layout"), dict):
             result.add_error("Plotly JSON layout must be an object.")
         return result
+
+    def _build_chart_multi(
+        self, plan: VisualPlan, dataframe: pd.DataFrame
+    ) -> tuple[list[dict[str, object]], dict[str, object], list[str]]:
+        from semantic_visual_builder.renderers.plotly_chart_builders import PlotlyChartBuilders
+        chart_type = plan.chart_type or "bar"
+        builders = PlotlyChartBuilders()
+        if chart_type == "histogram":
+            return builders.build_histogram(plan, dataframe)
+        if chart_type == "box_plot":
+            return builders.build_box_plot(plan, dataframe)
+        if chart_type == "heatmap":
+            return builders.build_heatmap(plan, dataframe)
+        if chart_type == "stacked_bar":
+            return builders.build_stacked_bar(plan, dataframe)
+        trace, layout, warnings = self._build_chart(plan, dataframe)
+        return [trace], layout, warnings
 
     def _build_chart(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object], list[str]]:
         chart_type = plan.chart_type or "bar"
