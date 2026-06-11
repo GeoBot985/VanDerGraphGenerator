@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from semantic_visual_builder.data.data_profiler import DatasetProfile
 from semantic_visual_builder.knowledge.graph_matrix import GraphMatrix
@@ -44,6 +45,7 @@ class VisualIntentPromptBuilder:
                 )
                 lines.append(column_line)
 
+        contract = self._build_graph_matrix_contract(graph_matrix)
         contract_note = (
             "Use only chart_types, diagram_types, roles, renderers, "
             "aggregations, transforms, and filter operators defined below."
@@ -54,14 +56,17 @@ class VisualIntentPromptBuilder:
                 "Graph matrix authoritative contract:",
                 contract_note,
                 "Do not invent unsupported visuals or renderers.",
+                "Every role object must include a field. For category/measure charts,"
+                " use actual dataset columns. If the user asks for a count, use"
+                " row_count or a counted measure.",
             ]
         )
-        if graph_matrix is not None:
+        if contract is not None:
             lines.extend(
                 [
                     "",
-                    "Graph matrix JSON:",
-                    json.dumps(graph_matrix.raw, ensure_ascii=False, indent=2),
+                    "Graph matrix contract:",
+                    json.dumps(contract, ensure_ascii=False, separators=(",", ":")),
                 ]
             )
 
@@ -83,7 +88,10 @@ class VisualIntentPromptBuilder:
                 (
                     '{"action":"create_plan","visual_kind":"chart",'
                     '"intent":"compare_categories","chart_type":"bar",'
-                    '"diagram_type":null,"roles":{},"filters":[],"grouping":[],'
+                    '"diagram_type":null,"roles":{'
+                    '"category":{"field":"Region"},'
+                    '"measure":{"field":"Amount","aggregation":"sum"}},'
+                    '"filters":[],"grouping":[],'
                     '"style":{"title":null,"subtitle":null,'
                     '"colour_scheme":null,"highlights":{},'
                     '"labels":{},"orientation":null},"renderer":"plotly",'
@@ -134,3 +142,62 @@ class VisualIntentPromptBuilder:
             )
         )
         return "\n".join(lines)
+
+    def _build_graph_matrix_contract(
+        self, graph_matrix: GraphMatrix | None
+    ) -> dict[str, Any] | None:
+        if graph_matrix is None:
+            return None
+
+        def _spec_summary(spec: dict[str, Any]) -> dict[str, Any]:
+            summary: dict[str, Any] = {}
+            for key in (
+                "visual_kind",
+                "intent",
+                "required_roles",
+                "optional_roles",
+                "allowed_renderers",
+            ):
+                value = spec.get(key)
+                if value is not None:
+                    summary[key] = value
+            return summary
+
+        def _role_summary(spec: dict[str, Any]) -> dict[str, Any]:
+            summary: dict[str, Any] = {}
+            for key in (
+                "semantic_types",
+                "allowed_visual_kinds",
+                "allowed_chart_types",
+                "allowed_diagram_types",
+                "allowed_aggregations",
+                "allowed_transforms",
+            ):
+                value = spec.get(key)
+                if value is not None:
+                    summary[key] = value
+            return summary
+
+        return {
+            "schema_version": graph_matrix.schema_version(),
+            "visual_kinds": graph_matrix.visual_kinds(),
+            "actions": graph_matrix.raw.get("actions", []),
+            "allowed_aggregations": graph_matrix.allowed_aggregations(),
+            "allowed_transforms": graph_matrix.allowed_transforms(),
+            "allowed_filter_operators": graph_matrix.allowed_filter_operators(),
+            "roles": {
+                name: _role_summary(spec)
+                for name, spec in graph_matrix.roles().items()
+                if isinstance(spec, dict)
+            },
+            "chart_types": {
+                name: _spec_summary(spec)
+                for name, spec in graph_matrix.chart_types().items()
+                if isinstance(spec, dict)
+            },
+            "diagram_types": {
+                name: _spec_summary(spec)
+                for name, spec in graph_matrix.diagram_types().items()
+                if isinstance(spec, dict)
+            },
+        }

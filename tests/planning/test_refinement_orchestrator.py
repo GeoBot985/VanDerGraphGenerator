@@ -105,6 +105,29 @@ def test_failed_llm_refinement_falls_back_to_deterministic_refinement() -> None:
     assert result.visual_plan.chart_type == "horizontal_bar"
 
 
+def test_deterministic_refinement_updates_explicit_chart_type_change() -> None:
+    current_plan = VisualPlan(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="pie",
+        data_roles=[
+            DataRole(role="category", field="Region"),
+            DataRole(role="measure", field="Amount", aggregation="count"),
+        ],
+    )
+    current_plan.render_target.renderer = "plotly"
+    state = _state()
+    state.model_registry.selected_model = None
+
+    result = _orchestrator(
+        LlmMappingResult(raw_response="", parsed_json=None, draft=None, errors=["off"])
+    ).refine_plan(current_plan, "change it to a bar chart", state, use_llm=True)
+
+    assert result.used_fallback is True
+    assert result.visual_plan is not None
+    assert result.visual_plan.chart_type == "bar"
+
+
 def test_invalid_refined_plan_triggers_clarification() -> None:
     current_plan = VisualPlan(
         visual_kind="chart",

@@ -13,6 +13,31 @@ from .visual_plan_schema import DataRole, VisualPlan
 class FieldMapper:
     """Propose plan roles using a deterministic dataset profile lookup."""
 
+    def complete_missing_roles(
+        self,
+        message: str,
+        dataset_profile: DatasetProfile,
+        plan: VisualPlan,
+    ) -> VisualPlan:
+        updated = clone_visual_plan(plan)
+        proposed = self.propose_roles(message, dataset_profile, updated)
+        proposed_roles = {role.role: role for role in proposed.data_roles}
+        for index, role in enumerate(updated.data_roles):
+            if role.field:
+                continue
+            proposal = proposed_roles.get(role.role)
+            if proposal is None:
+                continue
+            if proposal.field is not None:
+                updated.data_roles[index].field = proposal.field
+            if updated.data_roles[index].transform is None:
+                updated.data_roles[index].transform = proposal.transform
+            if updated.data_roles[index].aggregation is None:
+                updated.data_roles[index].aggregation = proposal.aggregation
+        if not updated.data_roles and proposed.data_roles:
+            updated.data_roles = proposed.data_roles
+        return updated
+
     def propose_roles(self, message: str, dataset_profile: DatasetProfile, plan: VisualPlan) -> VisualPlan:
         text = message.lower()
         updated = clone_visual_plan(plan)

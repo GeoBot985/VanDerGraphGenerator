@@ -128,3 +128,24 @@ def test_stores_mapping_method_correctly() -> None:
         )
     ).create_or_update_plan("Show total amount by region", _app_state(), use_llm=True)
     assert result.mapping_method == "llm_with_repair"
+
+
+def test_llm_plan_with_missing_role_fields_is_completed_and_accepted() -> None:
+    draft = LlmVisualPlanDraft(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="pie",
+        roles={
+            "category": {"semantic_types": ["categorical"], "allowed_visual_kinds": ["chart"]},
+            "measure": {"semantic_types": ["numeric"], "allowed_visual_kinds": ["chart"]},
+        },
+        renderer="plotly",
+    )
+    result = _orchestrator(
+        LlmMappingResult(raw_response="{}", parsed_json={}, draft=draft)
+    ).create_or_update_plan("make a pie chart. Sum of txns per region", _app_state(), use_llm=True)
+
+    assert result.mapping_method == "llm"
+    assert result.used_fallback is False
+    assert result.visual_plan is not None
+    assert all(role.field for role in result.visual_plan.data_roles)

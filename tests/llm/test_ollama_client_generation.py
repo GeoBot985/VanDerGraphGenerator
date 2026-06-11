@@ -26,8 +26,12 @@ def test_generate_sends_model_prompt_and_default_temperature(monkeypatch: pytest
     assert captured["url"].endswith("/api/generate")
     assert captured["json"]["model"] == "gemma4:12b"
     assert captured["json"]["prompt"] == "prompt text"
-    assert captured["json"]["temperature"] == 0.0
+    assert captured["json"]["format"] == "json"
+    assert captured["json"]["options"]["temperature"] == 0.0
+    assert captured["json"]["options"]["num_predict"] == 256
+    assert captured["json"]["keep_alive"] == "5m"
     assert captured["json"]["stream"] is False
+    assert captured["timeout"] == client.generation_timeout_seconds
 
 
 def test_generate_raises_on_connection_failure(monkeypatch: pytest.MonkeyPatch) -> None:

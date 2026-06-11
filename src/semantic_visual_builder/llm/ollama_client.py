@@ -37,10 +37,14 @@ class OllamaClient:
     """Client for local Ollama discovery."""
 
     def __init__(
-        self, base_url: str = "http://localhost:11434", timeout_seconds: float = 2.0
+        self,
+        base_url: str = "http://localhost:11434",
+        timeout_seconds: float = 2.0,
+        generation_timeout_seconds: float = 300.0,
     ):
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
+        self.generation_timeout_seconds = generation_timeout_seconds
 
     def get_status(self) -> OllamaStatus:
         """Check whether Ollama is reachable."""
@@ -110,14 +114,19 @@ class OllamaClient:
             "model": model,
             "prompt": prompt,
             "system": system,
-            "temperature": temperature,
+            "format": "json",
+            "options": {
+                "temperature": temperature,
+                "num_predict": 256,
+            },
             "stream": False,
+            "keep_alive": "5m",
         }
         try:
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 json=payload,
-                timeout=self.timeout_seconds,
+                timeout=self.generation_timeout_seconds,
             )
             response.raise_for_status()
             data = response.json()

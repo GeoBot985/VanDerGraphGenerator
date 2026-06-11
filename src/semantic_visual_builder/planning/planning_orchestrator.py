@@ -13,6 +13,7 @@ from semantic_visual_builder.planning.deterministic_fallback_mapper import (
     DeterministicFallbackMapper,
 )
 from semantic_visual_builder.planning.field_mapper import FieldMapper
+from semantic_visual_builder.planning.visual_plan import get_role
 from semantic_visual_builder.planning.visual_plan import (
     summarize_visual_plan,
     visual_plan_from_llm_draft,
@@ -85,6 +86,16 @@ class PlanningOrchestrator:
             )
             if llm_result.draft is not None:
                 plan = visual_plan_from_llm_draft(llm_result.draft)
+                if dataset_profile is not None and self._needs_field_completion(plan):
+                    completed_plan = self.field_mapper.complete_missing_roles(
+                        user_message, dataset_profile, plan
+                    )
+                    if completed_plan != plan:
+                        plan = completed_plan
+                        messages.append(
+                            "Completed missing LLM role fields with deterministic "
+                            "field mapping."
+                        )
                 plan.metadata.mapping_method = (
                     "llm_with_repair" if llm_result.used_repair else "llm"
                 )
@@ -181,3 +192,26 @@ class PlanningOrchestrator:
             )
             validation.messages.extend(capability_result.messages)
         return validation
+
+    def _needs_field_completion(self, plan: VisualPlan) -> bool:
+        return not plan.data_roles or any(role.field is None for role in plan.data_roles) or (
+            plan.visual_kind == "chart"
+            and plan.chart_type is not None
+            and any(
+                get_role(plan, required_role) is None
+                or get_role(plan, required_role).field is None
+                for required_role in {
+                    "category",
+                    "measure",
+                    "x",
+                    "y",
+                    "time_or_order",
+                    "value",
+                    "x_category",
+                    "y_category",
+                    "series",
+                    "stack",
+                }
+                if get_role(plan, required_role) is not None
+            )
+        )

@@ -234,6 +234,7 @@ class SemanticVisualBuilderApp:
             top, textvariable=self._model_var, state="readonly", width=34
         )
         self.model_combo.pack(side="left")
+        self.model_combo.bind("<<ComboboxSelected>>", self._on_model_selected)
         ttk.Checkbutton(
             top,
             text="Use LLM semantic mapping",
@@ -520,6 +521,7 @@ class SemanticVisualBuilderApp:
         self._chat_var.set("")
         self.conversation_state.add_user_message(content)
         self._append_chat(f"User: {content}")
+        self._sync_selected_model_from_ui()
 
         if self.app_state.pending_clarification is not None:
             response = self._handle_clarification_answer(content)
@@ -633,6 +635,7 @@ class SemanticVisualBuilderApp:
         return self._run_refinement(content)
 
     def _run_planning(self, content: str, is_refinement: bool) -> str:
+        self._sync_selected_model_from_ui()
         use_llm = self._use_llm_var.get() and bool(
             self.app_state.model_registry.selected_model
         )
@@ -686,6 +689,7 @@ class SemanticVisualBuilderApp:
         current_plan = self.app_state.current_visual_plan
         if current_plan is None:
             return "Create a visual plan first, then I can apply refinements."
+        self._sync_selected_model_from_ui()
         use_llm = self._use_llm_var.get() and bool(
             self.app_state.model_registry.selected_model
         )
@@ -1157,6 +1161,18 @@ class SemanticVisualBuilderApp:
         self.app_state.set_llm_mapping_enabled(self._use_llm_var.get())
         state = "enabled" if self._use_llm_var.get() else "disabled"
         self.app_state.add_status(f"LLM semantic mapping {state}.")
+        self._refresh_all_views()
+
+    def _sync_selected_model_from_ui(self) -> None:
+        selected = self._model_var.get().strip()
+        if selected:
+            self.app_state.model_registry.select_model(selected)
+        else:
+            self.app_state.model_registry.selected_model = None
+
+    def _on_model_selected(self, event: tk.Event | None = None) -> None:
+        _ = event
+        self._sync_selected_model_from_ui()
         self._refresh_all_views()
 
     def answer_clarification_action(self) -> str:

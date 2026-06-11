@@ -10,6 +10,8 @@ from semantic_visual_builder.planning.clarification_engine import ClarificationE
 from semantic_visual_builder.planning.deterministic_fallback_patch_planner import (
     DeterministicFallbackPatchPlanner,
 )
+from semantic_visual_builder.planning.field_mapper import FieldMapper
+from semantic_visual_builder.planning.visual_plan import get_role
 from semantic_visual_builder.planning.visual_plan import summarize_visual_plan
 from semantic_visual_builder.planning.visual_plan_patch import VisualPlanPatch
 from semantic_visual_builder.planning.visual_plan_patch_applier import (
@@ -39,6 +41,7 @@ class RefinementOrchestrator:
         self,
         llm_mapper: LlmSemanticMapper,
         deterministic_refinement_engine: object | None = None,
+        field_mapper: FieldMapper | None = None,
         visual_plan_validator: VisualPlanValidator | None = None,
         capability_validator: CapabilityValidator | None = None,
         clarification_engine: ClarificationEngine | None = None,
@@ -48,6 +51,7 @@ class RefinementOrchestrator:
     ):
         self.llm_mapper = llm_mapper
         self.deterministic_refinement_engine = deterministic_refinement_engine
+        self.field_mapper = field_mapper or FieldMapper()
         self.deterministic_fallback_patch_planner = (
             deterministic_fallback_patch_planner or DeterministicFallbackPatchPlanner()
         )
@@ -87,6 +91,16 @@ class RefinementOrchestrator:
                 refined = self.patch_applier.apply_patch(
                     current_plan, VisualPlanPatch.from_llm_draft(llm_result.draft)
                 )
+                if dataset_profile is not None and self._needs_field_completion(refined):
+                    completed_refined = self.field_mapper.complete_missing_roles(
+                        user_message, dataset_profile, refined
+                    )
+                    if completed_refined != refined:
+                        refined = completed_refined
+                        messages.append(
+                            "Completed missing LLM role fields with deterministic "
+                            "field mapping."
+                        )
                 refined.metadata.mapping_method = (
                     "llm_with_repair" if llm_result.used_repair else "llm"
                 )
@@ -280,4 +294,27 @@ class RefinementOrchestrator:
             style=style,
             render_target=render_target,
             notes=notes,
+        )
+
+    def _needs_field_completion(self, plan: VisualPlan) -> bool:
+        return not plan.data_roles or any(role.field is None for role in plan.data_roles) or (
+            plan.visual_kind == "chart"
+            and plan.chart_type is not None
+            and any(
+                get_role(plan, required_role) is None
+                or get_role(plan, required_role).field is None
+                for required_role in {
+                    "category",
+                    "measure",
+                    "x",
+                    "y",
+                    "time_or_order",
+                    "value",
+                    "x_category",
+                    "y_category",
+                    "series",
+                    "stack",
+                }
+                if get_role(plan, required_role) is not None
+            )
         )

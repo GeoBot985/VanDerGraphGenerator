@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from .visual_plan import clone_visual_plan
 from .visual_plan_patch import VisualPlanPatch
 from .visual_plan_schema import StyleIntent, VisualPlan
@@ -17,19 +19,12 @@ class DeterministicFallbackPatchPlanner:
         patch = VisualPlanPatch(style=StyleIntent())
         notes: list[str] = []
 
-        if "make it a bar chart" in text or "make it bar chart" in text:
-            patch.chart_type = "bar"
-            notes.append("Refinement: chart type set to bar.")
-        elif "make it a line chart" in text:
-            patch.chart_type = "line"
-            notes.append("Refinement: chart type set to line.")
-        elif "make it horizontal" in text:
-            patch.chart_type = "horizontal_bar"
-            patch.style.orientation = "horizontal"
-            notes.append("Refinement: chart type set to horizontal_bar.")
-        elif "use pie chart" in text or "turn this into a pie" in text:
-            patch.chart_type = "pie"
-            notes.append("Refinement: chart type set to pie.")
+        chart_type = self._extract_requested_chart_type(text)
+        if chart_type is not None:
+            patch.chart_type = chart_type
+            if chart_type == "horizontal_bar":
+                patch.style.orientation = "horizontal"
+            notes.append(f"Refinement: chart type set to {chart_type}.")
 
         title = self._extract_after(message, text, "title should be")
         if title is None:
@@ -52,6 +47,57 @@ class DeterministicFallbackPatchPlanner:
 
         patch.notes = notes or None
         return patch
+
+    def _extract_requested_chart_type(self, text: str) -> str | None:
+        chart_type_patterns = {
+            "horizontal_bar": [
+                r"\bhorizontal\s+bar\b",
+                r"\bhorizontal\b",
+            ],
+            "stacked_bar": [
+                r"\bstacked\s+bar\b",
+            ],
+            "box_plot": [
+                r"\bbox\s+plot\b",
+                r"\bboxplot\b",
+            ],
+            "heatmap": [
+                r"\bheatmap\b",
+            ],
+            "histogram": [
+                r"\bhistogram\b",
+            ],
+            "scatter": [
+                r"\bscatter\b",
+            ],
+            "line": [
+                r"\bline\s+chart\b",
+                r"\bline\b",
+            ],
+            "pie": [
+                r"\bpie\s+chart\b",
+                r"\bpie\b",
+                r"\bdonut\b",
+            ],
+            "bar": [
+                r"\bbar\s+chart\b",
+                r"\bbar\b",
+            ],
+        }
+        change_verbs = r"(?:make|change|convert|switch|turn|use|set)"
+        for chart_type, patterns in chart_type_patterns.items():
+            for pattern in patterns:
+                if re.search(rf"{change_verbs}.*{pattern}", text):
+                    return chart_type
+                if re.search(rf"{change_verbs}.*to.*{pattern}", text):
+                    return chart_type
+                if re.search(rf"{change_verbs}.*into.*{pattern}", text):
+                    return chart_type
+                if re.search(rf"\bto\b.*{pattern}", text):
+                    return chart_type
+                if re.search(rf"\binto\b.*{pattern}", text):
+                    return chart_type
+        return None
 
     def _extract_after(self, original: str, lowered: str, marker: str) -> str | None:
         index = lowered.find(marker)
