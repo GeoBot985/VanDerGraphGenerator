@@ -1,7 +1,10 @@
 """LLM draft to visual plan conversion tests."""
 
 from semantic_visual_builder.llm.llm_mapping_result import LlmVisualPlanDraft
-from semantic_visual_builder.planning.visual_plan import visual_plan_from_llm_draft
+from semantic_visual_builder.planning.visual_plan import (
+    summarize_visual_plan,
+    visual_plan_from_llm_draft,
+)
 
 
 def test_llm_chart_draft_converts_to_visual_plan_roles() -> None:
@@ -49,3 +52,42 @@ def test_renderer_converts_to_render_target() -> None:
     draft = LlmVisualPlanDraft(visual_kind="chart", intent="compare_categories", chart_type="bar", roles={}, renderer="plotly")
     plan = visual_plan_from_llm_draft(draft)
     assert plan.render_target.renderer == "plotly"
+
+
+def test_summary_includes_background_fields() -> None:
+    draft = LlmVisualPlanDraft(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        roles={"category": {"field": "Region"}, "measure": {"field": "Amount", "aggregation": "sum"}},
+        style={"background": "#90ee90", "plot_background": "#90ee90"},
+        renderer="plotly",
+    )
+    plan = visual_plan_from_llm_draft(draft)
+
+    summary = summarize_visual_plan(plan)
+
+    assert "Background: #90ee90" in summary
+    assert "Plot background: #90ee90" in summary
+
+
+def test_structured_background_object_is_normalised_to_hex_string() -> None:
+    draft = LlmVisualPlanDraft(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        roles={
+            "category": {"field": "Region"},
+            "measure": {"field": "Amount", "aggregation": "sum"},
+        },
+        style={
+            "background": {"type": "solid", "color": "#e6ffe6"},
+            "plot_background": {"type": "solid", "color": "#e6ffe6"},
+        },
+        renderer="plotly",
+    )
+
+    plan = visual_plan_from_llm_draft(draft)
+
+    assert plan.style.background == "#e6ffe6"
+    assert plan.style.plot_background == "#e6ffe6"

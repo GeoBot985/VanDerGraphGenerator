@@ -122,6 +122,10 @@ class PlotlyRenderer(BaseRenderer):
             "y": counts["_y"].tolist(),
             "name": "Transactions",
         }
+        primary_colour = self._primary_palette_colour(plan)
+        if primary_colour:
+            trace["line"] = {"color": primary_colour}
+            trace["marker"] = {"color": primary_colour}
         layout_title = "Week" if transform == "week" else "Month" if transform == "month" else "Year" if transform == "year" else (x_role.field or "Time")
         layout = self._layout(plan, x_title=layout_title, y_title="Transactions")
         return trace, layout, []
@@ -155,7 +159,7 @@ class PlotlyRenderer(BaseRenderer):
         y_values = pd.to_numeric(dataframe[y_role.field], errors="coerce")
         valid = ~(x_values.isna() | y_values.isna())
         trace = {"type": "scatter", "mode": "markers", "x": x_values[valid].tolist(), "y": y_values[valid].tolist(), "name": "Points"}
-        color = self._colour_for_scheme(plan.style.colour_scheme)
+        color = self._primary_palette_colour(plan) or self._colour_for_scheme(plan.style.colour_scheme)
         if color:
             trace["marker"] = {"color": color}
         layout = self._layout(plan, x_title=x_role.field or "X", y_title=y_role.field or "Y")
@@ -205,7 +209,7 @@ class PlotlyRenderer(BaseRenderer):
         }
 
     def _bar_colors(self, plan: VisualPlan, labels: list[str]) -> list[str] | None:
-        scheme = self._colour_for_scheme(plan.style.colour_scheme)
+        scheme = self._primary_palette_colour(plan) or self._colour_for_scheme(plan.style.colour_scheme)
         highlight = plan.style.highlights or {}
         highlight_value = str(highlight.get("value", "")).lower()
         if not scheme and not highlight_value:
@@ -219,6 +223,18 @@ class PlotlyRenderer(BaseRenderer):
             else:
                 colors.append(base_color)
         return colors
+
+    def _primary_palette_colour(self, plan: VisualPlan) -> str | None:
+        palette = plan.style.palette if isinstance(plan.style.palette, dict) else {}
+        primary = palette.get("primary")
+        if isinstance(primary, str) and primary:
+            return primary
+        sequence = palette.get("sequence")
+        if isinstance(sequence, list):
+            for colour in sequence:
+                if isinstance(colour, str) and colour:
+                    return colour
+        return None
 
     def _highlight_warnings(self, plan: VisualPlan, category_field: str | None) -> list[str]:
         highlight = plan.style.highlights or {}

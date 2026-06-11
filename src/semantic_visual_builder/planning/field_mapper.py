@@ -6,12 +6,118 @@ import re
 
 from semantic_visual_builder.data.data_profiler import DatasetProfile
 
-from .visual_plan import clone_visual_plan
+from .visual_plan import clone_visual_plan, get_role
 from .visual_plan_schema import DataRole, VisualPlan
 
 
 class FieldMapper:
     """Propose plan roles using a deterministic dataset profile lookup."""
+
+    def normalize_roles_for_chart_type(
+        self, plan: VisualPlan, dataset_profile: DatasetProfile | None = None
+    ) -> VisualPlan:
+        updated = clone_visual_plan(plan)
+        chart_type = updated.chart_type
+        if chart_type is None:
+            return updated
+
+        category_role = get_role(updated, "category") or get_role(
+            updated, "time_or_order"
+        )
+        measure_role = get_role(updated, "measure")
+        x_role = get_role(updated, "x")
+        y_role = get_role(updated, "y")
+
+        if chart_type in {"bar", "horizontal_bar", "pie", "stacked_bar"}:
+            category = category_role or x_role
+            measure = measure_role or y_role
+            roles: list[DataRole] = []
+            if category is not None:
+                roles.append(
+                    DataRole(
+                        role="category",
+                        field=category.field,
+                        transform=category.transform,
+                        aggregation=category.aggregation,
+                    )
+                )
+            if measure is not None:
+                roles.append(
+                    DataRole(
+                        role="measure",
+                        field=measure.field,
+                        transform=measure.transform,
+                        aggregation=measure.aggregation,
+                    )
+                )
+            updated.data_roles = roles
+            return updated
+
+        if chart_type == "line":
+            x = x_role or category_role
+            y = y_role or measure_role
+            if x is None and dataset_profile is not None:
+                datetime_fields = [
+                    column.name
+                    for column in dataset_profile.columns
+                    if column.semantic_type == "datetime"
+                ]
+                categorical_fields = [
+                    column.name
+                    for column in dataset_profile.columns
+                    if column.semantic_type == "categorical"
+                ]
+                if datetime_fields:
+                    x = DataRole(role="x", field=datetime_fields[0], transform="day")
+                elif categorical_fields:
+                    x = DataRole(role="x", field=categorical_fields[0])
+            roles = []
+            if x is not None:
+                roles.append(
+                    DataRole(
+                        role="x",
+                        field=x.field,
+                        transform=x.transform,
+                        aggregation=x.aggregation,
+                    )
+                )
+            if y is not None:
+                roles.append(
+                    DataRole(
+                        role="y",
+                        field=y.field,
+                        transform=y.transform,
+                        aggregation=y.aggregation,
+                    )
+                )
+            updated.data_roles = roles
+            updated.intent = "show_trend"
+            return updated
+
+        if chart_type == "scatter":
+            roles = []
+            if x_role is not None:
+                roles.append(
+                    DataRole(
+                        role="x",
+                        field=x_role.field,
+                        transform=x_role.transform,
+                        aggregation=x_role.aggregation,
+                    )
+                )
+            if y_role is not None:
+                roles.append(
+                    DataRole(
+                        role="y",
+                        field=y_role.field,
+                        transform=y_role.transform,
+                        aggregation=y_role.aggregation,
+                    )
+                )
+            updated.data_roles = roles
+            return updated
+
+        return updated
 
     def complete_missing_roles(
         self,
@@ -19,7 +125,7 @@ class FieldMapper:
         dataset_profile: DatasetProfile,
         plan: VisualPlan,
     ) -> VisualPlan:
-        updated = clone_visual_plan(plan)
+        updated = self.normalize_roles_for_chart_type(plan, dataset_profile)
         proposed = self.propose_roles(message, dataset_profile, updated)
         proposed_roles = {role.role: role for role in proposed.data_roles}
         for index, role in enumerate(updated.data_roles):

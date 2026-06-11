@@ -128,6 +128,198 @@ def test_deterministic_refinement_updates_explicit_chart_type_change() -> None:
     assert result.visual_plan.chart_type == "bar"
 
 
+def test_deterministic_refinement_realigns_roles_when_switching_to_line() -> None:
+    current_plan = VisualPlan(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="pie",
+        data_roles=[
+            DataRole(role="category", field="Region"),
+            DataRole(role="measure", field="Amount", aggregation="sum"),
+        ],
+    )
+    current_plan.render_target.renderer = "plotly"
+    state = _state()
+    state.model_registry.selected_model = None
+
+    result = _orchestrator(
+        LlmMappingResult(raw_response="", parsed_json=None, draft=None, errors=["off"])
+    ).refine_plan(current_plan, "please change to a line graph", state, use_llm=True)
+
+    assert result.used_fallback is True
+    assert result.visual_plan is not None
+    assert result.visual_plan.chart_type == "line"
+    assert {role.role for role in result.visual_plan.data_roles} == {"x", "y"}
+
+
+def test_deterministic_refinement_sets_background_colour() -> None:
+    current_plan = VisualPlan(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        data_roles=[
+            DataRole(role="category", field="Region"),
+            DataRole(role="measure", field="Amount", aggregation="sum"),
+        ],
+    )
+    current_plan.render_target.renderer = "plotly"
+    state = _state()
+    state.model_registry.selected_model = None
+
+    result = _orchestrator(
+        LlmMappingResult(raw_response="", parsed_json=None, draft=None, errors=["off"])
+    ).refine_plan(
+        current_plan, "please make the background light green", state, use_llm=True
+    )
+
+    assert result.used_fallback is True
+    assert result.visual_plan is not None
+    assert result.visual_plan.style.background == "#90ee90"
+    assert result.visual_plan.style.plot_background == "#90ee90"
+
+
+def test_deterministic_refinement_sets_series_colour() -> None:
+    current_plan = VisualPlan(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        data_roles=[
+            DataRole(role="category", field="Region"),
+            DataRole(role="measure", field="Amount", aggregation="sum"),
+        ],
+    )
+    current_plan.render_target.renderer = "plotly"
+    state = _state()
+    state.model_registry.selected_model = None
+
+    result = _orchestrator(
+        LlmMappingResult(raw_response="", parsed_json=None, draft=None, errors=["off"])
+    ).refine_plan(
+        current_plan,
+        "please make the bars light grey",
+        state,
+        use_llm=True,
+    )
+
+    assert result.used_fallback is True
+    assert result.visual_plan is not None
+    assert result.visual_plan.style.palette["primary"] == "#d3d3d3"
+
+
+def test_llm_noop_style_refinement_uses_deterministic_style_patch() -> None:
+    current_plan = VisualPlan(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        data_roles=[
+            DataRole(role="category", field="Region"),
+            DataRole(role="measure", field="Amount", aggregation="sum"),
+        ],
+    )
+    current_plan.render_target.renderer = "plotly"
+    result = _orchestrator(
+        LlmMappingResult(
+            raw_response="{}",
+            parsed_json={},
+            draft=LlmVisualPlanDraft(
+                visual_kind="chart",
+                intent="compare_categories",
+                chart_type="bar",
+                roles={
+                    "category": {"field": "Region"},
+                    "measure": {"field": "Amount", "aggregation": "sum"},
+                },
+                style={},
+                renderer="plotly",
+            ),
+        )
+    ).refine_plan(current_plan, "please make the background light green", _state())
+
+    assert result.used_fallback is False
+    assert result.visual_plan is not None
+    assert result.visual_plan.style.background == "#90ee90"
+    assert any("deterministic style refinement" in message for message in result.messages)
+
+
+def test_llm_partial_style_refinement_keeps_llm_background_and_adds_missing_series_colour() -> None:
+    current_plan = VisualPlan(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        data_roles=[
+            DataRole(role="category", field="Region"),
+            DataRole(role="measure", field="Amount", aggregation="sum"),
+        ],
+    )
+    current_plan.render_target.renderer = "plotly"
+    result = _orchestrator(
+        LlmMappingResult(
+            raw_response="{}",
+            parsed_json={},
+            draft=LlmVisualPlanDraft(
+                visual_kind="chart",
+                intent="compare_categories",
+                chart_type="bar",
+                roles={
+                    "category": {"field": "Region"},
+                    "measure": {"field": "Amount", "aggregation": "sum"},
+                },
+                style={"background": "#333333", "plot_background": "#333333"},
+                renderer="plotly",
+            ),
+        )
+    ).refine_plan(
+        current_plan,
+        "make the background dark grey and the bars light grey",
+        _state(),
+    )
+
+    assert result.used_fallback is False
+    assert result.visual_plan is not None
+    assert result.visual_plan.style.background == "#333333"
+    assert result.visual_plan.style.plot_background == "#333333"
+    assert result.visual_plan.style.palette["primary"] == "#d3d3d3"
+    assert any("deterministic style refinement" in message for message in result.messages)
+
+
+def test_llm_structured_background_refinement_is_normalised() -> None:
+    current_plan = VisualPlan(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        data_roles=[
+            DataRole(role="category", field="Region"),
+            DataRole(role="measure", field="Amount", aggregation="sum"),
+        ],
+    )
+    current_plan.render_target.renderer = "plotly"
+    result = _orchestrator(
+        LlmMappingResult(
+            raw_response="{}",
+            parsed_json={},
+            draft=LlmVisualPlanDraft(
+                visual_kind="chart",
+                intent="compare_categories",
+                chart_type="bar",
+                roles={
+                    "category": {"field": "Region"},
+                    "measure": {"field": "Amount", "aggregation": "sum"},
+                },
+                style={
+                    "background": {"type": "solid", "color": "#e6ffe6"},
+                    "plot_background": {"type": "solid", "color": "#e6ffe6"},
+                },
+                renderer="plotly",
+            ),
+        )
+    ).refine_plan(current_plan, "set background colour to light green", _state())
+
+    assert result.used_fallback is False
+    assert result.visual_plan is not None
+    assert result.visual_plan.style.background == "#e6ffe6"
+    assert result.visual_plan.style.plot_background == "#e6ffe6"
+
+
 def test_invalid_refined_plan_triggers_clarification() -> None:
     current_plan = VisualPlan(
         visual_kind="chart",

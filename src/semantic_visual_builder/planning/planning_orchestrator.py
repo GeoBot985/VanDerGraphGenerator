@@ -9,6 +9,7 @@ from semantic_visual_builder.knowledge.product_kb import ProductKnowledgeBase
 from semantic_visual_builder.llm.llm_mapping_result import LlmMappingResult
 from semantic_visual_builder.llm.llm_semantic_mapper import LlmSemanticMapper
 from semantic_visual_builder.planning.clarification import ClarificationRequest
+from semantic_visual_builder.planning.clarification_engine import ClarificationEngine
 from semantic_visual_builder.planning.deterministic_fallback_mapper import (
     DeterministicFallbackMapper,
 )
@@ -46,12 +47,14 @@ class PlanningOrchestrator:
         field_mapper: FieldMapper,
         visual_plan_validator: VisualPlanValidator,
         capability_validator: CapabilityValidator,
+        clarification_engine: ClarificationEngine | None = None,
     ):
         self.llm_mapper = llm_mapper
         self.deterministic_mapper = deterministic_mapper
         self.field_mapper = field_mapper
         self.visual_plan_validator = visual_plan_validator
         self.capability_validator = capability_validator
+        self.clarification_engine = clarification_engine or ClarificationEngine()
 
     def create_or_update_plan(
         self,
@@ -102,7 +105,12 @@ class PlanningOrchestrator:
                 validation = self._validate(
                     plan, dataset_profile, product_kb, graph_matrix
                 )
-                if validation.is_valid:
+                clarification_requests = (
+                    self.clarification_engine.detect_needed_clarification(
+                        plan, dataset_profile, graph_matrix
+                    )
+                )
+                if validation.is_valid and not clarification_requests:
                     return PlanningResult(
                         visual_plan=plan,
                         validation_result=validation,
@@ -113,6 +121,22 @@ class PlanningOrchestrator:
                         used_fallback=False,
                         messages=messages,
                         clarification_requests=[],
+                    )
+                if clarification_requests:
+                    messages.append(
+                        "The request is missing one required detail before the "
+                        "plan can be finalized."
+                    )
+                    return PlanningResult(
+                        visual_plan=plan,
+                        validation_result=validation,
+                        mapping_method="llm_with_repair"
+                        if llm_result.used_repair
+                        else "llm",
+                        llm_mapping_result=llm_result,
+                        used_fallback=False,
+                        messages=messages,
+                        clarification_requests=clarification_requests,
                     )
                 unsupported_visual = any(
                     message.message.startswith("Unsupported chart_type")
@@ -166,6 +190,9 @@ class PlanningOrchestrator:
         validation = self._validate(
             deterministic_plan, dataset_profile, product_kb, graph_matrix
         )
+        clarification_requests = self.clarification_engine.detect_needed_clarification(
+            deterministic_plan, dataset_profile, graph_matrix
+        )
         return PlanningResult(
             visual_plan=deterministic_plan,
             validation_result=validation,
@@ -173,7 +200,7 @@ class PlanningOrchestrator:
             llm_mapping_result=llm_result,
             used_fallback=True,
             messages=messages,
-            clarification_requests=[],
+            clarification_requests=clarification_requests,
         )
 
     def _validate(

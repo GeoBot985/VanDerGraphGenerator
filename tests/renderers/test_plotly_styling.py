@@ -42,6 +42,14 @@ def test_blue_colour_scheme_maps_to_marker_colour() -> None:
     assert "#4C78A8" in output.content
 
 
+def test_primary_palette_colour_overrides_default_bar_colour() -> None:
+    context = _sample_context()
+    plan = FieldMapper().propose_roles("Show amount by region", context.profile, IntentMapper().map_request_to_plan("Show amount by region", context.profile))
+    plan.style.palette = {"primary": "#d3d3d3"}
+    output = PlotlyRenderer().render(plan, context)
+    assert "#d3d3d3" in output.content
+
+
 def test_highlight_category_produces_marker_colour_list() -> None:
     context = _sample_context()
     plan = FieldMapper().propose_roles("Show amount by region", context.profile, IntentMapper().map_request_to_plan("Show amount by region", context.profile))

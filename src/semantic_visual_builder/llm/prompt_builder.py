@@ -93,7 +93,8 @@ class VisualIntentPromptBuilder:
                     '"measure":{"field":"Amount","aggregation":"sum"}},'
                     '"filters":[],"grouping":[],'
                     '"style":{"title":null,"subtitle":null,'
-                    '"colour_scheme":null,"highlights":{},'
+                    '"colour_scheme":null,"palette":{"primary":null,"secondary":null,"accent":null,"sequence":[]},'
+                    '"background":null,"plot_background":null,"highlights":{},'
                     '"labels":{},"orientation":null},"renderer":"plotly",'
                     '"confidence":0.0,"assumptions":[],"questions":[],'
                     '"diagram_nodes":[],"diagram_edges":[]}'
@@ -102,6 +103,10 @@ class VisualIntentPromptBuilder:
                     "Action must be one of: create_plan, refine_plan, "
                     "answer_capability, workflow_help, clarification_needed, "
                     "unsupported."
+                ),
+                (
+                    "For trace, bar, line, or slice colours, use "
+                    "style.palette.primary or style.palette.sequence."
                 ),
                 "",
                 "Return JSON only. Do not include code fences or commentary.",

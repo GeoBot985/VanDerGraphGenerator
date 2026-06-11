@@ -43,6 +43,7 @@ from semantic_visual_builder.planning.semantic_input_orchestrator import (
 )
 from semantic_visual_builder.planning.visual_plan import (
     summarize_visual_plan,
+    visual_plan_from_dict,
     visual_plan_to_dict,
 )
 from semantic_visual_builder.planning.visual_plan_patch_applier import (
@@ -128,6 +129,7 @@ class SemanticVisualBuilderApp:
             field_mapper=self.field_mapper,
             visual_plan_validator=self.plan_validator,
             capability_validator=self.capability_validator,
+            clarification_engine=ClarificationEngine(),
         )
         self.refinement_orchestrator = RefinementOrchestrator(
             llm_mapper=self.llm_mapper,
@@ -346,8 +348,42 @@ class SemanticVisualBuilderApp:
         panes.add(right, weight=7)
 
         ttk.Label(left, text="Chat / Control").pack(anchor="w")
-        self.chat_log = make_readonly_text(left, height=16)
-        self.chat_log.pack(fill="both", expand=True, pady=(4, 8))
+        chat_log_frame = ttk.Frame(left)
+        chat_log_frame.pack(fill="both", expand=True, pady=(4, 8))
+        self.chat_log = make_readonly_text(chat_log_frame, height=24)
+        self.chat_log.pack(side="left", fill="both", expand=True)
+        self.chat_log.configure(
+            background="#f6f3ee",
+            foreground="#1d1d1d",
+            selectbackground="#c8d8f0",
+            insertbackground="#1d1d1d",
+        )
+        self.chat_log.tag_configure(
+            "user_prefix", foreground="#0b5cab", font=("Segoe UI", 10, "bold")
+        )
+        self.chat_log.tag_configure(
+            "user_body", foreground="#16324f", font=("Consolas", 10)
+        )
+        self.chat_log.tag_configure(
+            "assistant_prefix", foreground="#8b2e00", font=("Segoe UI", 10, "bold")
+        )
+        self.chat_log.tag_configure(
+            "assistant_body", foreground="#442c1d", font=("Consolas", 10)
+        )
+        self.chat_log.tag_configure(
+            "system_prefix", foreground="#5b3470", font=("Segoe UI", 10, "bold")
+        )
+        self.chat_log.tag_configure(
+            "system_body", foreground="#3e2d4a", font=("Consolas", 10)
+        )
+        self.chat_log.tag_configure(
+            "divider", foreground="#9b8f84", font=("Consolas", 9)
+        )
+        chat_scroll = ttk.Scrollbar(
+            chat_log_frame, orient="vertical", command=self.chat_log.yview
+        )
+        chat_scroll.pack(side="right", fill="y")
+        self.chat_log.configure(yscrollcommand=chat_scroll.set)
         entry_row = ttk.Frame(left)
         entry_row.pack(fill="x")
         self.chat_entry = ttk.Entry(entry_row, textvariable=self._chat_var)
@@ -355,21 +391,6 @@ class SemanticVisualBuilderApp:
         ttk.Button(entry_row, text="Send", command=self.send_chat).pack(
             side="left", padx=6
         )
-
-        ttk.Label(left, text="Clarification").pack(anchor="w", pady=(10, 0))
-        self.clarification_text = make_readonly_text(left, height=7)
-        self.clarification_text.pack(fill="both", expand=False, pady=(4, 6))
-        clarification_row = ttk.Frame(left)
-        clarification_row.pack(fill="x")
-        self.clarification_entry = ttk.Entry(
-            clarification_row, textvariable=self._clarification_answer_var
-        )
-        self.clarification_entry.pack(side="left", fill="x", expand=True)
-        ttk.Button(
-            clarification_row,
-            text="Answer Clarification",
-            command=self.answer_clarification_action,
-        ).pack(side="left", padx=6)
 
         ttk.Label(right, text="Preview").pack(anchor="w")
         self.preview_text = make_readonly_text(right, height=4)
@@ -523,9 +544,17 @@ class SemanticVisualBuilderApp:
         self._append_chat(f"User: {content}")
         self._sync_selected_model_from_ui()
 
-        if self.app_state.pending_clarification is not None:
+        if (
+            self.app_state.pending_clarification is not None
+            and not self._should_treat_pending_clarification_as_new_request(content)
+        ):
             response = self._handle_clarification_answer(content)
         else:
+            if self.app_state.pending_clarification is not None:
+                self.app_state.set_pending_clarification(None)
+                self._append_system_message(
+                    "Discarded the pending clarification and treated this as a new request."
+                )
             semantic_result = self.semantic_input_orchestrator.handle_message(
                 content,
                 self.app_state,
@@ -534,6 +563,25 @@ class SemanticVisualBuilderApp:
             response = self._handle_semantic_result(content, semantic_result)
         self._append_assistant_response(response)
         self._refresh_all_views()
+
+    def _should_treat_pending_clarification_as_new_request(self, content: str) -> bool:
+        text = content.strip().lower()
+        if not text:
+            return False
+        request_markers = (
+            "please ",
+            "make ",
+            "change ",
+            "show ",
+            "turn ",
+            "convert ",
+            "switch ",
+            "use ",
+            "set ",
+        )
+        if any(text.startswith(marker) for marker in request_markers):
+            return True
+        return " chart" in text or " graph" in text
 
     def _handle_semantic_result(self, content: str, result: SemanticInputResult) -> str:
         self.app_state.current_validation_result = result.validation_result
@@ -558,15 +606,25 @@ class SemanticVisualBuilderApp:
                 request = result.clarification_requests[0]
                 pending = PendingClarification(
                     request=request,
-                    partial_plan_json=None
-                    if self.app_state.current_visual_plan is None
-                    else visual_plan_to_dict(self.app_state.current_visual_plan),
-                    partial_plan_id=self.app_state.current_visual_plan.metadata.plan_id
-                    if self.app_state.current_visual_plan
-                    else None,
+                    partial_plan_json=(
+                        visual_plan_to_dict(result.visual_plan)
+                        if result.visual_plan is not None
+                        else None
+                        if self.app_state.current_visual_plan is None
+                        else visual_plan_to_dict(self.app_state.current_visual_plan)
+                    ),
+                    partial_plan_id=(
+                        result.visual_plan.metadata.plan_id
+                        if result.visual_plan is not None
+                        else self.app_state.current_visual_plan.metadata.plan_id
+                        if self.app_state.current_visual_plan
+                        else None
+                    ),
                 )
                 self.app_state.set_pending_clarification(pending)
-                self._update_clarification_view()
+                self._append_system_message(
+                    "Waiting for the missing detail. Reply in chat with one of the options or a direct answer."
+                )
                 return self._clarification_prompt_text(request)
             return "I need one more detail before I can update the plan."
         if result.action == "unsupported":
@@ -738,7 +796,9 @@ class SemanticVisualBuilderApp:
                 else None,
             )
             self.app_state.set_pending_clarification(pending)
-            self._update_clarification_view()
+            self._append_system_message(
+                "Waiting for the missing detail. Reply in chat with one of the options or a direct answer."
+            )
             return self._clarification_prompt_text(request)
         if result.visual_plan is None:
             return "No refined visual plan could be accepted."
@@ -751,10 +811,15 @@ class SemanticVisualBuilderApp:
 
     def _handle_clarification_answer(self, content: str) -> str:
         pending = self.app_state.pending_clarification
-        if pending is None or self.app_state.current_visual_plan is None:
+        if pending is None:
+            return "There is no pending clarification."
+        base_plan = self.app_state.current_visual_plan
+        if base_plan is None and pending.partial_plan_json is not None:
+            base_plan = visual_plan_from_dict(pending.partial_plan_json)
+        if base_plan is None:
             return "There is no pending clarification."
         clarified = ClarificationEngine().apply_answer(
-            self.app_state.current_visual_plan, pending.request, content
+            base_plan, pending.request, content
         )
         self.app_state.set_pending_clarification(None)
         self.app_state.set_visual_plan(
@@ -766,7 +831,6 @@ class SemanticVisualBuilderApp:
             self.app_state.graph_matrix,
         )
         self.app_state.add_status("Clarification answer applied.")
-        self._update_clarification_view()
         return self._visual_plan_response(
             clarified, self.app_state.current_validation_result
         )
@@ -912,13 +976,26 @@ class SemanticVisualBuilderApp:
         )
 
     def _append_chat(self, text: str) -> None:
+        self._append_chat_message("User", text, "user")
+
+    def _append_chat_message(self, speaker: str, text: str, kind: str) -> None:
+        if not hasattr(self, "chat_log"):
+            return
+        prefix_tag = f"{kind}_prefix"
+        body_tag = f"{kind}_body"
         self.chat_log.configure(state="normal")
-        self.chat_log.insert("end", text + "\n")
+        self.chat_log.insert("end", f"{speaker}: ", prefix_tag)
+        self.chat_log.insert("end", text.strip() + "\n", body_tag)
+        self.chat_log.insert("end", "\n", "divider")
         self.chat_log.configure(state="disabled")
+        self.chat_log.see("end")
 
     def _append_assistant_response(self, text: str) -> None:
         self.conversation_state.add_assistant_message(text)
-        self._append_chat(f"Assistant: {text}")
+        self._append_chat_message("Assistant", text, "assistant")
+
+    def _append_system_message(self, text: str) -> None:
+        self._append_chat_message("System", text, "system")
 
     def _append_preview(self, text: str) -> None:
         set_text(self.preview_text, text)

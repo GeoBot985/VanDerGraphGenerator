@@ -7,6 +7,7 @@ from typing import Any
 
 from semantic_visual_builder.llm.llm_mapping_result import LlmVisualPlanDraft
 
+from .visual_plan import normalise_style_colour
 from .visual_plan_schema import (
     DataRole,
     DiagramEdge,
@@ -42,8 +43,8 @@ class VisualPlanPatch:
             font_family=style_data.get("font_family"),
             grid=style_data.get("grid"),
             legend_position=style_data.get("legend_position"),
-            background=style_data.get("background"),
-            plot_background=style_data.get("plot_background"),
+            background=normalise_style_colour(style_data.get("background")),
+            plot_background=normalise_style_colour(style_data.get("plot_background")),
             diagram_direction=style_data.get("diagram_direction"),
             highlights=style_data.get("highlights", {}) or {},
             labels=style_data.get("labels", {}) or {},

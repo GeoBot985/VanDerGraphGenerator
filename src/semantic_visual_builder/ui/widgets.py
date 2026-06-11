@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import ttk
 
 
 def make_readonly_text(parent: tk.Widget, height: int = 8) -> tk.Text:
-    text = tk.Text(parent, height=height, wrap="word")
+    text = tk.Text(
+        parent,
+        height=height,
+        wrap="word",
+        padx=10,
+        pady=8,
+        relief="solid",
+        borderwidth=1,
+    )
     text.configure(state="disabled")
     return text
 

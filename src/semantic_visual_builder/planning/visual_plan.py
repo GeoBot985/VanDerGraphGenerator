@@ -11,6 +11,18 @@ from semantic_visual_builder.llm.llm_mapping_result import LlmVisualPlanDraft
 from .visual_plan_schema import DataRole, DiagramEdge, DiagramNode, RenderTarget, StyleIntent, VisualPlan
 
 
+def normalise_style_colour(value: object) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        colour = value.get("color") or value.get("colour") or value.get("value")
+        if isinstance(colour, str):
+            return colour
+    return str(value)
+
+
 def get_role(plan: VisualPlan, role: str) -> DataRole | None:
     for item in plan.data_roles:
         if item.role == role:
@@ -61,6 +73,12 @@ def summarize_visual_plan(plan: VisualPlan) -> str:
         lines.append(f"Subtitle: {plan.style.subtitle}")
     if plan.style.colour_scheme:
         lines.append(f"Colour scheme: {plan.style.colour_scheme}")
+    if isinstance(plan.style.palette, dict) and plan.style.palette.get("primary"):
+        lines.append(f"Primary colour: {plan.style.palette.get('primary')}")
+    if plan.style.background:
+        lines.append(f"Background: {plan.style.background}")
+    if plan.style.plot_background:
+        lines.append(f"Plot background: {plan.style.plot_background}")
     if plan.style.orientation:
         lines.append(f"Orientation: {plan.style.orientation}")
     if plan.style.highlights:
@@ -93,8 +111,10 @@ def visual_plan_from_llm_draft(draft: LlmVisualPlanDraft) -> VisualPlan:
             font_family=(draft.style or {}).get("font_family"),
             grid=(draft.style or {}).get("grid"),
             legend_position=(draft.style or {}).get("legend_position"),
-            background=(draft.style or {}).get("background"),
-            plot_background=(draft.style or {}).get("plot_background"),
+            background=normalise_style_colour((draft.style or {}).get("background")),
+            plot_background=normalise_style_colour(
+                (draft.style or {}).get("plot_background")
+            ),
             diagram_direction=(draft.style or {}).get("diagram_direction"),
             highlights=(draft.style or {}).get("highlights", {}) or {},
             labels=(draft.style or {}).get("labels", {}) or {},
@@ -198,8 +218,8 @@ def visual_plan_from_dict(data: dict[str, Any]) -> VisualPlan:
             font_family=style_data.get("font_family"),
             grid=style_data.get("grid"),
             legend_position=style_data.get("legend_position"),
-            background=style_data.get("background"),
-            plot_background=style_data.get("plot_background"),
+            background=normalise_style_colour(style_data.get("background")),
+            plot_background=normalise_style_colour(style_data.get("plot_background")),
             diagram_direction=style_data.get("diagram_direction"),
             highlights=style_data.get("highlights", {}) or {},
             labels=style_data.get("labels", {}) or {},

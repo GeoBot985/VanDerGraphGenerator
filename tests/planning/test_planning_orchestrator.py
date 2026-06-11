@@ -149,3 +149,22 @@ def test_llm_plan_with_missing_role_fields_is_completed_and_accepted() -> None:
     assert result.used_fallback is False
     assert result.visual_plan is not None
     assert all(role.field for role in result.visual_plan.data_roles)
+
+
+def test_missing_required_input_returns_clarification_request() -> None:
+    draft = LlmVisualPlanDraft(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        roles={
+            "measure": {"field": "Amount", "aggregation": "sum"},
+        },
+        renderer="plotly",
+    )
+    result = _orchestrator(
+        LlmMappingResult(raw_response="{}", parsed_json={}, draft=draft)
+    ).create_or_update_plan("make a bar chart", _app_state(), use_llm=True)
+
+    assert result.visual_plan is not None
+    assert result.clarification_requests
+    assert result.clarification_requests[0].field_name == "category"

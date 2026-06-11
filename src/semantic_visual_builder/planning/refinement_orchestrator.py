@@ -91,6 +91,12 @@ class RefinementOrchestrator:
                 refined = self.patch_applier.apply_patch(
                     current_plan, VisualPlanPatch.from_llm_draft(llm_result.draft)
                 )
+                refined = self._apply_deterministic_style_patch_if_needed(
+                    current_plan, refined, user_message, messages
+                )
+                refined = self.field_mapper.normalize_roles_for_chart_type(
+                    refined, dataset_profile
+                )
                 if dataset_profile is not None and self._needs_field_completion(refined):
                     completed_refined = self.field_mapper.complete_missing_roles(
                         user_message, dataset_profile, refined
@@ -187,6 +193,9 @@ class RefinementOrchestrator:
         else:
             patch = VisualPlanPatch()
         refined = self.patch_applier.apply_patch(current_plan, patch)
+        refined = self.field_mapper.normalize_roles_for_chart_type(
+            refined, dataset_profile
+        )
         refined.metadata.mapping_method = "deterministic_fallback"
         validation = self._validate(refined, dataset_profile, product_kb, graph_matrix)
         clarification_requests = self.clarification_engine.detect_needed_clarification(
@@ -295,6 +304,82 @@ class RefinementOrchestrator:
             render_target=render_target,
             notes=notes,
         )
+
+    def _apply_deterministic_style_patch_if_needed(
+        self,
+        current_plan: VisualPlan,
+        refined: VisualPlan,
+        user_message: str,
+        messages: list[str],
+    ) -> VisualPlan:
+        fallback_patch = self.deterministic_fallback_patch_planner.build_patch(
+            current_plan, user_message
+        )
+        if fallback_patch.style is None:
+            return refined
+        patched = self._merge_missing_style_from_fallback(
+            current_plan, refined, fallback_patch
+        )
+        if patched == refined:
+            return refined
+        if refined == current_plan:
+            messages.append(
+                "Applied deterministic style refinement because the LLM "
+                "returned no style change."
+            )
+        else:
+            messages.append(
+                "Applied deterministic style refinement for style details the "
+                "LLM did not preserve."
+            )
+        return patched
+
+    def _merge_missing_style_from_fallback(
+        self,
+        current_plan: VisualPlan,
+        refined: VisualPlan,
+        fallback_patch: VisualPlanPatch,
+    ) -> VisualPlan:
+        if fallback_patch.style is None:
+            return refined
+
+        updated = refined
+        style_patch = VisualPlanPatch(style=type(fallback_patch.style)())
+        has_changes = False
+
+        if (
+            fallback_patch.style.background is not None
+            and refined.style.background == current_plan.style.background
+        ):
+            style_patch.style.background = fallback_patch.style.background
+            has_changes = True
+        if (
+            fallback_patch.style.plot_background is not None
+            and refined.style.plot_background == current_plan.style.plot_background
+        ):
+            style_patch.style.plot_background = fallback_patch.style.plot_background
+            has_changes = True
+        if (
+            fallback_patch.style.colour_scheme is not None
+            and refined.style.colour_scheme == current_plan.style.colour_scheme
+        ):
+            style_patch.style.colour_scheme = fallback_patch.style.colour_scheme
+            has_changes = True
+        if fallback_patch.style.palette:
+            merged_palette = dict(refined.style.palette or {})
+            for key, value in fallback_patch.style.palette.items():
+                if (
+                    key not in merged_palette
+                    or merged_palette.get(key) == current_plan.style.palette.get(key)
+                ):
+                    merged_palette[key] = value
+                    has_changes = True
+            if has_changes:
+                style_patch.style.palette = merged_palette
+
+        if has_changes:
+            updated = self.patch_applier.apply_patch(updated, style_patch)
+        return updated
 
     def _needs_field_completion(self, plan: VisualPlan) -> bool:
         return not plan.data_roles or any(role.field is None for role in plan.data_roles) or (

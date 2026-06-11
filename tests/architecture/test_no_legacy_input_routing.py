@@ -18,6 +18,12 @@ def test_send_chat_delegates_to_semantic_input_orchestrator() -> None:
     assert "semantic_input_orchestrator.handle_message(" in source
 
 
+def test_tkinter_app_no_longer_builds_a_separate_clarification_panel() -> None:
+    source = Path("src/semantic_visual_builder/ui/tkinter_app.py").read_text()
+    assert 'text="Answer Clarification"' not in source
+    assert 'ttk.Label(left, text="Clarification")' not in source
+
+
 def test_refinement_engine_does_not_parse_raw_user_text() -> None:
     source = Path(
         "src/semantic_visual_builder/planning/refinement_engine.py"
