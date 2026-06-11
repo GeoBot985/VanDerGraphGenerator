@@ -15,8 +15,10 @@ from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.validation.validation_result import ValidationResult
 
 _SUPPORTED_CHART_TYPES = {
-    "bar", "horizontal_bar", "line", "scatter", "pie",
-    "stacked_bar", "histogram", "box_plot", "heatmap",
+    "bar", "horizontal_bar", "line", "area", "stacked_area", "scatter",
+    "bubble", "pie", "donut", "stacked_bar", "histogram", "box_plot",
+    "heatmap", "treemap", "waterfall", "funnel", "radar", "gauge",
+    "kpi_card",
 }
 
 
@@ -84,6 +86,24 @@ class PlotlyRenderer(BaseRenderer):
             return builders.build_heatmap(plan, dataframe)
         if chart_type == "stacked_bar":
             return builders.build_stacked_bar(plan, dataframe)
+        if chart_type == "area":
+            return builders.build_area(plan, dataframe)
+        if chart_type == "stacked_area":
+            return builders.build_stacked_area(plan, dataframe)
+        if chart_type == "bubble":
+            return builders.build_bubble(plan, dataframe)
+        if chart_type == "treemap":
+            return builders.build_treemap(plan, dataframe)
+        if chart_type == "waterfall":
+            return builders.build_waterfall(plan, dataframe)
+        if chart_type == "funnel":
+            return builders.build_funnel(plan, dataframe)
+        if chart_type == "radar":
+            return builders.build_radar(plan, dataframe)
+        if chart_type == "gauge":
+            return builders.build_gauge(plan, dataframe)
+        if chart_type == "kpi_card":
+            return builders.build_kpi_card(plan, dataframe)
         trace, layout, warnings = self._build_chart(plan, dataframe)
         return [trace], layout, warnings
 
@@ -97,6 +117,8 @@ class PlotlyRenderer(BaseRenderer):
             return self._build_scatter(plan, dataframe)
         if chart_type == "pie":
             return self._build_pie(plan, dataframe)
+        if chart_type == "donut":
+            return self._build_pie(plan, dataframe, hole=0.45)
         return self._build_bar(plan, dataframe, horizontal=False)
 
     def _build_line(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object], list[str]]:
@@ -165,13 +187,15 @@ class PlotlyRenderer(BaseRenderer):
         layout = self._layout(plan, x_title=x_role.field or "X", y_title=y_role.field or "Y")
         return trace, layout, []
 
-    def _build_pie(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object], list[str]]:
+    def _build_pie(self, plan: VisualPlan, dataframe: pd.DataFrame, hole: float = 0.0) -> tuple[dict[str, object], dict[str, object], list[str]]:
         category = get_role(plan, "category")
         measure = get_role(plan, "measure")
         if category is None or measure is None:
             raise ValueError("Pie charts require category and measure roles.")
         grouped = self._aggregate_category(dataframe, category.field, measure)
         trace = {"type": "pie", "labels": grouped["label"].tolist(), "values": grouped["value"].tolist(), "name": self._measure_name(measure)}
+        if hole > 0:
+            trace["hole"] = hole
         colors = self._bar_colors(plan, grouped["label"].tolist())
         if colors:
             trace["marker"] = {"colors": colors}

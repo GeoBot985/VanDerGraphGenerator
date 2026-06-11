@@ -28,7 +28,17 @@ class FieldMapper:
         x_role = get_role(updated, "x")
         y_role = get_role(updated, "y")
 
-        if chart_type in {"bar", "horizontal_bar", "pie", "stacked_bar"}:
+        if chart_type in {
+            "bar",
+            "horizontal_bar",
+            "pie",
+            "donut",
+            "stacked_bar",
+            "treemap",
+            "waterfall",
+            "funnel",
+            "radar",
+        }:
             category = category_role or x_role
             measure = measure_role or y_role
             roles: list[DataRole] = []
@@ -53,7 +63,7 @@ class FieldMapper:
             updated.data_roles = roles
             return updated
 
-        if chart_type == "line":
+        if chart_type in {"line", "area"}:
             x = x_role or category_role
             y = y_role or measure_role
             if x is None and dataset_profile is not None:
@@ -94,7 +104,42 @@ class FieldMapper:
             updated.intent = "show_trend"
             return updated
 
-        if chart_type == "scatter":
+        if chart_type == "stacked_area":
+            x = x_role or category_role
+            stack_role = get_role(updated, "stack") or get_role(updated, "series")
+            roles = []
+            if x is not None:
+                roles.append(
+                    DataRole(
+                        role="x",
+                        field=x.field,
+                        transform=x.transform,
+                        aggregation=x.aggregation,
+                    )
+                )
+            if stack_role is not None:
+                roles.append(
+                    DataRole(
+                        role="stack",
+                        field=stack_role.field,
+                        transform=stack_role.transform,
+                        aggregation=stack_role.aggregation,
+                    )
+                )
+            if measure_role is not None:
+                roles.append(
+                    DataRole(
+                        role="measure",
+                        field=measure_role.field,
+                        transform=measure_role.transform,
+                        aggregation=measure_role.aggregation,
+                    )
+                )
+            updated.data_roles = roles
+            updated.intent = "show_trend"
+            return updated
+
+        if chart_type in {"scatter", "bubble"}:
             roles = []
             if x_role is not None:
                 roles.append(
@@ -114,7 +159,33 @@ class FieldMapper:
                         aggregation=y_role.aggregation,
                     )
                 )
+            if chart_type == "bubble":
+                size_role = get_role(updated, "size") or measure_role
+                if size_role is not None:
+                    roles.append(
+                        DataRole(
+                            role="size",
+                            field=size_role.field,
+                            transform=size_role.transform,
+                            aggregation=size_role.aggregation,
+                        )
+                    )
             updated.data_roles = roles
+            return updated
+
+        if chart_type in {"gauge", "kpi_card"}:
+            roles = []
+            if measure_role is not None:
+                roles.append(
+                    DataRole(
+                        role="measure",
+                        field=measure_role.field,
+                        transform=measure_role.transform,
+                        aggregation=measure_role.aggregation,
+                    )
+                )
+            updated.data_roles = roles
+            updated.intent = "show_single_value"
             return updated
 
         return updated
@@ -178,6 +249,23 @@ class FieldMapper:
             ]
             return updated
 
+        def set_time_series_measure(transform: str) -> VisualPlan:
+            x_field = first_matching(datetime_fields, ("TransactionDate", "Date", "CreatedAt"))
+            measure_field = first_matching(numeric_fields, ("Amount", "Value", "Price"))
+            if x_field is None and datetime_fields:
+                x_field = datetime_fields[0]
+            elif x_field is None and dataset_profile.columns:
+                x_field = dataset_profile.columns[0].name
+            updated.data_roles = [
+                DataRole(role="x", field=x_field, transform=transform),
+                DataRole(
+                    role="y",
+                    field=measure_field or "row_count",
+                    aggregation="sum" if measure_field else "count",
+                ),
+            ]
+            return updated
+
         def add_filter(field: str, value: str) -> None:
             updated.filters.append({"field": field, "operator": "equals", "value": value})
 
@@ -188,6 +276,34 @@ class FieldMapper:
             return None
 
         # --- Histogram ---
+        if updated.chart_type == "gauge" or "gauge" in text:
+            measure = first_matching(numeric_fields, ("Amount", "Value", "Score"))
+            updated.chart_type = "gauge"
+            updated.intent = "show_single_value"
+            updated.render_target.renderer = "plotly"
+            updated.data_roles = [
+                DataRole(
+                    role="measure",
+                    field=measure or "row_count",
+                    aggregation="sum" if measure else "count",
+                )
+            ]
+            return updated
+
+        if updated.chart_type == "kpi_card" or "kpi card" in text or "kpi" in text:
+            measure = first_matching(numeric_fields, ("Amount", "Value", "Score"))
+            updated.chart_type = "kpi_card"
+            updated.intent = "show_single_value"
+            updated.render_target.renderer = "plotly"
+            updated.data_roles = [
+                DataRole(
+                    role="measure",
+                    field=measure or "row_count",
+                    aggregation="sum" if measure else "count",
+                )
+            ]
+            return updated
+
         if updated.chart_type == "histogram" or "distribution of" in text or "histogram" in text:
             value_field: str | None = None
             for word in text.split():
@@ -203,6 +319,19 @@ class FieldMapper:
                 updated.render_target.renderer = "plotly"
             return updated
 
+        if updated.chart_type == "bubble" or "bubble" in text:
+            x_field = numeric_fields[0] if numeric_fields else None
+            y_field = numeric_fields[1] if len(numeric_fields) > 1 else x_field
+            size_field = numeric_fields[2] if len(numeric_fields) > 2 else x_field
+            updated.chart_type = "bubble"
+            updated.render_target.renderer = "plotly"
+            updated.data_roles = [
+                DataRole(role="x", field=x_field),
+                DataRole(role="y", field=y_field),
+                DataRole(role="size", field=size_field),
+            ]
+            return updated
+
         # --- Box plot ---
         if updated.chart_type == "box_plot" or "box plot" in text or "spread of" in text:
             value_field = first_matching(numeric_fields, ("Amount", "Value", "Price"))
@@ -213,6 +342,22 @@ class FieldMapper:
             if category_field:
                 roles.append(DataRole(role="category", field=category_field))
             updated.data_roles = roles
+            return updated
+
+        if updated.chart_type == "treemap" or "treemap" in text:
+            category = first_matching(categorical_fields, ("Region", "Status", "Category"))
+            measure = first_matching(numeric_fields, ("Amount", "Value"))
+            updated.chart_type = "treemap"
+            updated.intent = "show_matrix"
+            updated.render_target.renderer = "plotly"
+            updated.data_roles = [
+                DataRole(role="category", field=category),
+                DataRole(
+                    role="measure",
+                    field=measure or "row_count",
+                    aggregation="sum" if measure else "count",
+                ),
+            ]
             return updated
 
         # --- Heatmap ---
@@ -246,6 +391,44 @@ class FieldMapper:
                 DataRole(role="measure", field=measure or "row_count", aggregation="sum" if measure else "count"),
             ]
             return updated
+
+        if updated.chart_type == "stacked_area" or "stacked area" in text:
+            x_field = first_matching(datetime_fields, ("TransactionDate", "Date", "CreatedAt"))
+            stack = first_matching(categorical_fields, ("Status", "Type", "Group"))
+            measure = first_matching(numeric_fields, ("Amount", "Value"))
+            updated.chart_type = "stacked_area"
+            updated.intent = "show_trend"
+            updated.render_target.renderer = "plotly"
+            updated.data_roles = [
+                DataRole(role="x", field=x_field or (dataset_profile.columns[0].name if dataset_profile.columns else None), transform="day"),
+                DataRole(role="stack", field=stack),
+                DataRole(role="measure", field=measure or "row_count", aggregation="sum" if measure else "count"),
+            ]
+            return updated
+
+        if updated.chart_type == "area" or "area chart" in text:
+            updated.chart_type = "area"
+            updated.intent = "show_trend"
+            updated.render_target.renderer = "plotly"
+            return set_time_series_measure("day")
+
+        if updated.chart_type in {"waterfall", "funnel", "radar", "donut"} or any(
+            marker in text for marker in ("waterfall", "funnel", "radar", "donut")
+        ):
+            if "waterfall" in text or updated.chart_type == "waterfall":
+                updated.chart_type = "waterfall"
+            elif "funnel" in text or updated.chart_type == "funnel":
+                updated.chart_type = "funnel"
+            elif "radar" in text or updated.chart_type == "radar":
+                updated.chart_type = "radar"
+            else:
+                updated.chart_type = "donut"
+            updated.render_target.renderer = "plotly"
+            return set_category_measure(
+                first_matching(categorical_fields, ("Region", "Status", "Category")),
+                first_matching(numeric_fields, ("Amount", "Value")) or "row_count",
+                "sum" if numeric_fields else "count",
+            )
 
         # --- Existing patterns ---
         if "average amount by status" in text:

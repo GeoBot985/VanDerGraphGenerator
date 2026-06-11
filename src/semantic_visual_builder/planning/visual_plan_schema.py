@@ -18,6 +18,7 @@ class DataRole:
 class StyleIntent:
     title: str | None = None
     subtitle: str | None = None
+    title_size: int | None = None
     colour_scheme: str | None = None
     palette: dict[str, str] = field(default_factory=dict)
     font_family: str | None = None

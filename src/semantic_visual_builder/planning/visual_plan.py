@@ -71,6 +71,8 @@ def summarize_visual_plan(plan: VisualPlan) -> str:
         lines.append(f"Title: {plan.style.title}")
     if plan.style.subtitle:
         lines.append(f"Subtitle: {plan.style.subtitle}")
+    if plan.style.title_size:
+        lines.append(f"Title size: {plan.style.title_size}")
     if plan.style.colour_scheme:
         lines.append(f"Colour scheme: {plan.style.colour_scheme}")
     if isinstance(plan.style.palette, dict) and plan.style.palette.get("primary"):
@@ -106,6 +108,7 @@ def visual_plan_from_llm_draft(draft: LlmVisualPlanDraft) -> VisualPlan:
         style=StyleIntent(
             title=(draft.style or {}).get("title"),
             subtitle=(draft.style or {}).get("subtitle"),
+            title_size=_normalise_int((draft.style or {}).get("title_size")),
             colour_scheme=(draft.style or {}).get("colour_scheme"),
             palette=(draft.style or {}).get("palette", {}) or {},
             font_family=(draft.style or {}).get("font_family"),
@@ -213,6 +216,7 @@ def visual_plan_from_dict(data: dict[str, Any]) -> VisualPlan:
         plan.style = StyleIntent(
             title=style_data.get("title"),
             subtitle=style_data.get("subtitle"),
+            title_size=_normalise_int(style_data.get("title_size")),
             colour_scheme=style_data.get("colour_scheme"),
             palette=style_data.get("palette", {}) or {},
             font_family=style_data.get("font_family"),
@@ -269,6 +273,8 @@ def merge_visual_plans(base: VisualPlan, update: VisualPlan) -> VisualPlan:
         merged.style.title = update.style.title
     if update.style.subtitle is not None:
         merged.style.subtitle = update.style.subtitle
+    if update.style.title_size is not None:
+        merged.style.title_size = update.style.title_size
     if update.style.colour_scheme is not None:
         merged.style.colour_scheme = update.style.colour_scheme
     if update.style.palette:
@@ -309,3 +315,17 @@ def merge_visual_plans(base: VisualPlan, update: VisualPlan) -> VisualPlan:
     if update.notes:
         merged.notes.extend(item for item in update.notes if item not in merged.notes)
     return merged
+
+
+def _normalise_int(value: object) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if text.isdigit():
+            return int(text)
+    return None

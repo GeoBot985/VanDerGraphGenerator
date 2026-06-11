@@ -20,24 +20,42 @@ def test_graph_matrix_loads_intents() -> None:
         "show_matrix",
         "compare_stacked_categories",
         "show_relationship",
+        "show_single_value",
     ]
-    assert matrix.schema_version() == "1.0"
+    assert matrix.schema_version() == "1.1"
     assert matrix.supported_chart_types() == [
         "bar",
         "horizontal_bar",
         "line",
+        "area",
+        "stacked_area",
         "scatter",
+        "bubble",
         "pie",
+        "donut",
         "histogram",
         "box_plot",
         "heatmap",
         "stacked_bar",
+        "treemap",
+        "waterfall",
+        "funnel",
+        "radar",
+        "gauge",
+        "kpi_card",
     ]
-    assert matrix.supported_diagram_types() == ["flowchart", "sequence_diagram"]
+    assert matrix.supported_diagram_types() == [
+        "flowchart",
+        "sequence_diagram",
+        "erd",
+        "network_diagram",
+        "timeline",
+        "swimlane",
+    ]
     assert matrix.required_roles_for("stacked_bar") == ["category", "stack", "measure"]
     assert matrix.get_visual_spec("histogram")["required_roles"] == ["value"]
     assert matrix.get_visual_spec("sequence_diagram")["allowed_renderers"] == [
         "mermaid"
     ]
     assert matrix.renderer_allowed("flowchart", "mermaid") is True
-    assert matrix.renderer_allowed("donut", "plotly") is False
+    assert matrix.renderer_allowed("donut", "plotly") is True

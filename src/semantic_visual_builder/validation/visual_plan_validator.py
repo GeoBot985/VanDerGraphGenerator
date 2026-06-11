@@ -192,12 +192,22 @@ class VisualPlanValidator:
             "histogram",
             "box_plot",
             "heatmap",
+            "pie",
+            "donut",
+            "treemap",
+            "waterfall",
+            "funnel",
+            "radar",
+            "gauge",
+            "kpi_card",
         }:
             result.add_error("chart plans need an x, category, or time_or_order role.")
         if y_role is None and plan.chart_type not in {
             "histogram",
             "box_plot",
             "heatmap",
+            "gauge",
+            "kpi_card",
         }:
             result.add_error("chart plans need a y or measure role.")
 
@@ -225,7 +235,7 @@ class VisualPlanValidator:
                 )
 
         if (
-            plan.chart_type == "line"
+            plan.chart_type in {"line", "area", "stacked_area"}
             and x_role
             and not (
                 field_is_datetime(x_role.field)
@@ -233,12 +243,16 @@ class VisualPlanValidator:
             )
         ):
             result.add_warning("line charts work best with a date or ordered x role.")
-        if plan.chart_type == "scatter":
+        if plan.chart_type in {"scatter", "bubble"}:
             if not field_is_numeric(x_role.field if x_role else None):
                 result.add_error("scatter charts require numeric x.")
             if not field_is_numeric(y_role.field if y_role else None):
                 result.add_error("scatter charts require numeric y.")
-        if plan.chart_type == "pie":
+        if plan.chart_type == "bubble":
+            size_role = get_role(plan, "size")
+            if size_role is None or not field_is_numeric(size_role.field):
+                result.add_error("bubble charts require numeric size.")
+        if plan.chart_type in {"pie", "donut"}:
             if (
                 y_role
                 and y_role.aggregation != "count"
@@ -264,6 +278,25 @@ class VisualPlanValidator:
         if plan.chart_type == "stacked_bar":
             if get_role(plan, "stack") is None:
                 result.add_error("stacked_bar charts require a stack role.")
+        if plan.chart_type == "stacked_area":
+            if get_role(plan, "stack") is None:
+                result.add_error("stacked_area charts require a stack role.")
+        if plan.chart_type in {"treemap", "waterfall", "funnel", "radar"}:
+            category_role = get_role(plan, "category")
+            measure_role = get_role(plan, "measure")
+            if category_role is None or measure_role is None:
+                result.add_error(
+                    f"{plan.chart_type} charts require category and measure roles."
+                )
+        if plan.chart_type in {"gauge", "kpi_card"}:
+            measure_role = get_role(plan, "measure")
+            if measure_role is None or (
+                measure_role.aggregation != "count"
+                and not field_is_numeric(measure_role.field)
+            ):
+                result.add_error(
+                    f"{plan.chart_type} charts require a numeric or counted measure."
+                )
         if y_role and y_role.field == "row_count" and y_role.aggregation != "count":
             result.add_error("row_count must use count aggregation.")
 
@@ -299,7 +332,16 @@ class VisualPlanValidator:
                 result.add_error("diagram node ids must not be blank.")
             if not node.label.strip():
                 result.add_error("diagram node labels must not be blank.")
-            if node.node_type not in {"process", "decision", "start", "end"}:
+            if node.node_type not in {
+                "process",
+                "decision",
+                "start",
+                "end",
+                "entity",
+                "actor",
+                "lane",
+                "event",
+            }:
                 result.add_warning(
                     f"diagram node type '{node.node_type}' is not standard."
                 )

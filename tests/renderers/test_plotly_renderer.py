@@ -9,6 +9,7 @@ from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.data.data_profiler import DataProfiler
 from semantic_visual_builder.planning.field_mapper import FieldMapper
 from semantic_visual_builder.planning.intent_mapper import IntentMapper
+from semantic_visual_builder.planning.visual_plan_schema import DataRole, VisualPlan
 from semantic_visual_builder.renderers.plotly_renderer import PlotlyRenderer
 
 
@@ -64,3 +65,26 @@ def test_missing_dataset_raises_clear_error() -> None:
     plan, _ = _trend_plan()
     with pytest.raises(ValueError):
         PlotlyRenderer().render(plan, DatasetContext())
+
+
+@pytest.mark.parametrize(
+    ("chart_type", "roles", "expected_fragment"),
+    [
+        ("area", [DataRole(role="x", field="TransactionDate", transform="day"), DataRole(role="y", field="Amount", aggregation="sum")], '"fill": "tozeroy"'),
+        ("donut", [DataRole(role="category", field="Region"), DataRole(role="measure", field="Amount", aggregation="sum")], '"hole": 0.45'),
+        ("treemap", [DataRole(role="category", field="Region"), DataRole(role="measure", field="Amount", aggregation="sum")], '"type": "treemap"'),
+        ("funnel", [DataRole(role="category", field="Region"), DataRole(role="measure", field="Amount", aggregation="sum")], '"type": "funnel"'),
+        ("gauge", [DataRole(role="measure", field="Amount", aggregation="sum")], '"type": "indicator"'),
+    ],
+)
+def test_new_chart_types_render_plotly_json(chart_type, roles, expected_fragment) -> None:
+    context = _sample_context()
+    plan = VisualPlan(
+        visual_kind="chart",
+        intent="show_single_value" if chart_type in {"gauge", "kpi_card"} else "compare_categories",
+        chart_type=chart_type,
+        data_roles=roles,
+    )
+    plan.render_target.renderer = "plotly"
+    output = PlotlyRenderer().render(plan, context)
+    assert expected_fragment in output.content

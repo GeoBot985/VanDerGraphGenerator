@@ -121,6 +121,13 @@ class LlmOutputValidator:
         if style is not None and not isinstance(style, dict):
             result.add_error("style must be an object.")
         if isinstance(style, dict):
+            title_size = style.get("title_size")
+            if title_size is not None and (
+                isinstance(title_size, bool)
+                or not isinstance(title_size, (int, float))
+                or int(title_size) <= 0
+            ):
+                result.add_error("style.title_size must be a positive integer.")
             orientation = style.get("orientation")
             if orientation is not None and orientation not in {
                 "vertical",

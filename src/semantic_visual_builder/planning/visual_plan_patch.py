@@ -38,6 +38,15 @@ class VisualPlanPatch:
         style = StyleIntent(
             title=style_data.get("title"),
             subtitle=style_data.get("subtitle"),
+            title_size=(
+                int(style_data.get("title_size"))
+                if isinstance(style_data.get("title_size"), (int, float))
+                or (
+                    isinstance(style_data.get("title_size"), str)
+                    and style_data.get("title_size").strip().isdigit()
+                )
+                else None
+            ),
             colour_scheme=style_data.get("colour_scheme"),
             palette=style_data.get("palette", {}) or {},
             font_family=style_data.get("font_family"),

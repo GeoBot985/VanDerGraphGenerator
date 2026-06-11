@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "visual_kinds": ["chart", "diagram"],
   "actions": [
     "create_plan",
@@ -32,7 +32,7 @@
       "description": "Categorical grouping role for comparisons.",
       "semantic_types": ["categorical"],
       "allowed_visual_kinds": ["chart"],
-      "allowed_chart_types": ["bar", "horizontal_bar", "pie", "stacked_bar", "box_plot"],
+      "allowed_chart_types": ["bar", "horizontal_bar", "pie", "donut", "stacked_bar", "box_plot", "treemap", "waterfall", "funnel", "radar"],
       "allowed_aggregations": ["count"],
       "allowed_transforms": ["identity"]
     },
@@ -40,7 +40,7 @@
       "description": "Numeric metric role.",
       "semantic_types": ["numeric"],
       "allowed_visual_kinds": ["chart"],
-      "allowed_chart_types": ["bar", "horizontal_bar", "line", "scatter", "pie", "histogram", "box_plot", "heatmap", "stacked_bar"],
+      "allowed_chart_types": ["bar", "horizontal_bar", "line", "area", "scatter", "bubble", "pie", "donut", "histogram", "box_plot", "heatmap", "stacked_bar", "stacked_area", "treemap", "waterfall", "funnel", "radar", "gauge", "kpi_card"],
       "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
       "allowed_transforms": ["identity"]
     },
@@ -48,7 +48,7 @@
       "description": "Horizontal axis role.",
       "semantic_types": ["categorical", "numeric", "datetime"],
       "allowed_visual_kinds": ["chart"],
-      "allowed_chart_types": ["line", "scatter", "heatmap", "stacked_bar"],
+      "allowed_chart_types": ["line", "area", "scatter", "bubble", "heatmap", "stacked_bar", "stacked_area"],
       "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
       "allowed_transforms": ["identity", "day", "week", "month", "year"]
     },
@@ -56,7 +56,7 @@
       "description": "Vertical axis role.",
       "semantic_types": ["numeric", "categorical"],
       "allowed_visual_kinds": ["chart"],
-      "allowed_chart_types": ["line", "scatter"],
+      "allowed_chart_types": ["line", "area", "scatter", "bubble"],
       "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
       "allowed_transforms": ["identity"]
     },
@@ -64,15 +64,15 @@
       "description": "Time or ordinal grouping role.",
       "semantic_types": ["datetime", "categorical"],
       "allowed_visual_kinds": ["chart"],
-      "allowed_chart_types": ["line"],
+      "allowed_chart_types": ["line", "area", "stacked_area"],
       "allowed_aggregations": ["count"],
       "allowed_transforms": ["identity", "day", "week", "month", "year"]
     },
     "series": {
-      "description": "Series split for grouped bars.",
+      "description": "Series split for grouped bars, stacked areas, or multiple trends.",
       "semantic_types": ["categorical"],
       "allowed_visual_kinds": ["chart"],
-      "allowed_chart_types": ["stacked_bar"],
+      "allowed_chart_types": ["stacked_bar", "stacked_area"],
       "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
       "allowed_transforms": ["identity"]
     },
@@ -80,7 +80,7 @@
       "description": "Stack grouping role.",
       "semantic_types": ["categorical"],
       "allowed_visual_kinds": ["chart"],
-      "allowed_chart_types": ["stacked_bar"],
+      "allowed_chart_types": ["stacked_bar", "stacked_area"],
       "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
       "allowed_transforms": ["identity"]
     },
@@ -108,11 +108,19 @@
       "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
       "allowed_transforms": ["identity"]
     },
+    "size": {
+      "description": "Bubble size role.",
+      "semantic_types": ["numeric"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["bubble"],
+      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"]
+    },
     "nodes": {
       "description": "Diagram nodes or participants.",
       "semantic_types": ["categorical"],
       "allowed_visual_kinds": ["diagram"],
-      "allowed_diagram_types": ["flowchart", "sequence_diagram"],
+      "allowed_diagram_types": ["flowchart", "sequence_diagram", "erd", "network_diagram", "timeline", "swimlane"],
       "allowed_aggregations": ["count"],
       "allowed_transforms": ["identity"]
     },
@@ -120,163 +128,48 @@
       "description": "Diagram edges or messages.",
       "semantic_types": ["categorical"],
       "allowed_visual_kinds": ["diagram"],
-      "allowed_diagram_types": ["flowchart", "sequence_diagram"],
+      "allowed_diagram_types": ["flowchart", "sequence_diagram", "erd", "network_diagram", "swimlane"],
       "allowed_aggregations": ["count"],
       "allowed_transforms": ["identity"]
     }
   },
   "chart_types": {
-    "bar": {
-      "visual_kind": "chart",
-      "intent": "compare_categories",
-      "required_roles": ["category", "measure"],
-      "optional_roles": ["series"],
-      "allowed_renderers": ["plotly"],
-      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
-      "allowed_transforms": ["identity"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    },
-    "horizontal_bar": {
-      "visual_kind": "chart",
-      "intent": "compare_categories",
-      "required_roles": ["category", "measure"],
-      "optional_roles": ["series"],
-      "allowed_renderers": ["plotly"],
-      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
-      "allowed_transforms": ["identity"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    },
-    "line": {
-      "visual_kind": "chart",
-      "intent": "show_trend",
-      "required_roles": ["x", "y"],
-      "optional_roles": ["series"],
-      "allowed_renderers": ["plotly"],
-      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
-      "allowed_transforms": ["identity", "day", "week", "month", "year"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    },
-    "scatter": {
-      "visual_kind": "chart",
-      "intent": "show_relationship",
-      "required_roles": ["x", "y"],
-      "optional_roles": ["series"],
-      "allowed_renderers": ["plotly"],
-      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
-      "allowed_transforms": ["identity"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    },
-    "pie": {
-      "visual_kind": "chart",
-      "intent": "compare_categories",
-      "required_roles": ["category", "measure"],
-      "optional_roles": [],
-      "allowed_renderers": ["plotly"],
-      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
-      "allowed_transforms": ["identity"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    },
-    "histogram": {
-      "visual_kind": "chart",
-      "intent": "show_distribution",
-      "required_roles": ["value"],
-      "optional_roles": [],
-      "allowed_renderers": ["plotly"],
-      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
-      "allowed_transforms": ["identity"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    },
-    "box_plot": {
-      "visual_kind": "chart",
-      "intent": "show_distribution",
-      "required_roles": ["value"],
-      "optional_roles": ["category"],
-      "allowed_renderers": ["plotly"],
-      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
-      "allowed_transforms": ["identity"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    },
-    "heatmap": {
-      "visual_kind": "chart",
-      "intent": "show_matrix",
-      "required_roles": ["x_category", "y_category", "measure"],
-      "optional_roles": [],
-      "allowed_renderers": ["plotly"],
-      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
-      "allowed_transforms": ["identity"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    },
-    "stacked_bar": {
-      "visual_kind": "chart",
-      "intent": "compare_stacked_categories",
-      "required_roles": ["category", "stack", "measure"],
-      "optional_roles": [],
-      "allowed_renderers": ["plotly"],
-      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
-      "allowed_transforms": ["identity"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    }
+    "bar": { "visual_kind": "chart", "intent": "compare_categories", "required_roles": ["category", "measure"], "optional_roles": ["series"], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "horizontal_bar": { "visual_kind": "chart", "intent": "compare_categories", "required_roles": ["category", "measure"], "optional_roles": ["series"], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "line": { "visual_kind": "chart", "intent": "show_trend", "required_roles": ["x", "y"], "optional_roles": ["series"], "allowed_renderers": ["plotly"], "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity", "day", "week", "month", "year"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "area": { "visual_kind": "chart", "intent": "show_trend", "required_roles": ["x", "y"], "optional_roles": ["series"], "allowed_renderers": ["plotly"], "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity", "day", "week", "month", "year"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "stacked_area": { "visual_kind": "chart", "intent": "show_trend", "required_roles": ["x", "stack", "measure"], "optional_roles": ["series"], "allowed_renderers": ["plotly"], "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity", "day", "week", "month", "year"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "scatter": { "visual_kind": "chart", "intent": "show_relationship", "required_roles": ["x", "y"], "optional_roles": ["series"], "allowed_renderers": ["plotly"], "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "bubble": { "visual_kind": "chart", "intent": "show_relationship", "required_roles": ["x", "y", "size"], "optional_roles": ["series"], "allowed_renderers": ["plotly"], "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "pie": { "visual_kind": "chart", "intent": "compare_categories", "required_roles": ["category", "measure"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "donut": { "visual_kind": "chart", "intent": "compare_categories", "required_roles": ["category", "measure"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "histogram": { "visual_kind": "chart", "intent": "show_distribution", "required_roles": ["value"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "box_plot": { "visual_kind": "chart", "intent": "show_distribution", "required_roles": ["value"], "optional_roles": ["category"], "allowed_renderers": ["plotly"], "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "heatmap": { "visual_kind": "chart", "intent": "show_matrix", "required_roles": ["x_category", "y_category", "measure"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "stacked_bar": { "visual_kind": "chart", "intent": "compare_stacked_categories", "required_roles": ["category", "stack", "measure"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "treemap": { "visual_kind": "chart", "intent": "show_matrix", "required_roles": ["category", "measure"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "waterfall": { "visual_kind": "chart", "intent": "compare_categories", "required_roles": ["category", "measure"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "funnel": { "visual_kind": "chart", "intent": "compare_categories", "required_roles": ["category", "measure"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "radar": { "visual_kind": "chart", "intent": "compare_categories", "required_roles": ["category", "measure"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "gauge": { "visual_kind": "chart", "intent": "show_single_value", "required_roles": ["measure"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "kpi_card": { "visual_kind": "chart", "intent": "show_single_value", "required_roles": ["measure"], "optional_roles": [], "allowed_renderers": ["plotly"], "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"], "allowed_transforms": ["identity"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] }
   },
   "diagram_types": {
-    "flowchart": {
-      "visual_kind": "diagram",
-      "intent": "show_process",
-      "required_roles": ["nodes", "edges"],
-      "optional_roles": [],
-      "allowed_renderers": ["mermaid"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    },
-    "sequence_diagram": {
-      "visual_kind": "diagram",
-      "intent": "show_process",
-      "required_roles": ["nodes", "edges"],
-      "optional_roles": [],
-      "allowed_renderers": ["mermaid"],
-      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
-    }
+    "flowchart": { "visual_kind": "diagram", "intent": "show_process", "required_roles": ["nodes", "edges"], "optional_roles": [], "allowed_renderers": ["mermaid"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "sequence_diagram": { "visual_kind": "diagram", "intent": "show_process", "required_roles": ["nodes", "edges"], "optional_roles": [], "allowed_renderers": ["mermaid"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "erd": { "visual_kind": "diagram", "intent": "show_process", "required_roles": ["nodes", "edges"], "optional_roles": [], "allowed_renderers": ["mermaid"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "network_diagram": { "visual_kind": "diagram", "intent": "show_process", "required_roles": ["nodes", "edges"], "optional_roles": [], "allowed_renderers": ["mermaid"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "timeline": { "visual_kind": "diagram", "intent": "show_process", "required_roles": ["nodes"], "optional_roles": ["edges"], "allowed_renderers": ["mermaid"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] },
+    "swimlane": { "visual_kind": "diagram", "intent": "show_process", "required_roles": ["nodes", "edges"], "optional_roles": [], "allowed_renderers": ["mermaid"], "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"] }
   },
   "intents": [
-    {
-      "intent": "compare_categories",
-      "preferred_visuals": ["bar", "horizontal_bar", "pie"],
-      "required_roles": ["category", "measure"],
-      "renderer_targets": ["plotly"]
-    },
-    {
-      "intent": "show_trend",
-      "preferred_visuals": ["line", "bar"],
-      "required_roles": ["x", "y"],
-      "renderer_targets": ["plotly"]
-    },
-    {
-      "intent": "show_process",
-      "preferred_visuals": ["flowchart", "sequence_diagram"],
-      "required_roles": ["nodes", "edges"],
-      "renderer_targets": ["mermaid"]
-    },
-    {
-      "intent": "show_distribution",
-      "preferred_visuals": ["histogram", "box_plot"],
-      "required_roles": ["value"],
-      "renderer_targets": ["plotly"]
-    },
-    {
-      "intent": "show_matrix",
-      "preferred_visuals": ["heatmap"],
-      "required_roles": ["x_category", "y_category", "measure"],
-      "renderer_targets": ["plotly"]
-    },
-    {
-      "intent": "compare_stacked_categories",
-      "preferred_visuals": ["stacked_bar"],
-      "required_roles": ["category", "stack", "measure"],
-      "renderer_targets": ["plotly"]
-    },
-    {
-      "intent": "show_relationship",
-      "preferred_visuals": ["scatter"],
-      "required_roles": ["x", "y"],
-      "renderer_targets": ["plotly"]
-    }
+    { "intent": "compare_categories", "preferred_visuals": ["bar", "horizontal_bar", "pie", "donut", "waterfall", "funnel", "radar"], "required_roles": ["category", "measure"], "renderer_targets": ["plotly"] },
+    { "intent": "show_trend", "preferred_visuals": ["line", "area", "stacked_area", "bar"], "required_roles": ["x", "y"], "renderer_targets": ["plotly"] },
+    { "intent": "show_process", "preferred_visuals": ["flowchart", "sequence_diagram", "erd", "network_diagram", "timeline", "swimlane"], "required_roles": ["nodes"], "renderer_targets": ["mermaid"] },
+    { "intent": "show_distribution", "preferred_visuals": ["histogram", "box_plot"], "required_roles": ["value"], "renderer_targets": ["plotly"] },
+    { "intent": "show_matrix", "preferred_visuals": ["heatmap", "treemap"], "required_roles": ["measure"], "renderer_targets": ["plotly"] },
+    { "intent": "compare_stacked_categories", "preferred_visuals": ["stacked_bar", "stacked_area"], "required_roles": ["measure"], "renderer_targets": ["plotly"] },
+    { "intent": "show_relationship", "preferred_visuals": ["scatter", "bubble"], "required_roles": ["x", "y"], "renderer_targets": ["plotly"] },
+    { "intent": "show_single_value", "preferred_visuals": ["gauge", "kpi_card"], "required_roles": ["measure"], "renderer_targets": ["plotly"] }
   ]
 }

@@ -1,22 +1,15 @@
 {
   "supported_mvp": [
-    {
-      "name": "flowchart",
-      "purpose": "Show process steps, decisions, and branches.",
-      "renderer": "mermaid"
-    },
-    {
-      "name": "sequence_diagram",
-      "purpose": "Show interactions between actors or systems over time.",
-      "renderer": "mermaid"
-    }
+    { "name": "flowchart", "purpose": "Show process steps, decisions, and branches.", "renderer": "mermaid" },
+    { "name": "sequence_diagram", "purpose": "Show interactions between actors or systems over time.", "renderer": "mermaid" },
+    { "name": "erd", "purpose": "Show entities and their relationships.", "renderer": "mermaid" },
+    { "name": "network_diagram", "purpose": "Show linked systems, actors, or concepts as a network.", "renderer": "mermaid" },
+    { "name": "timeline", "purpose": "Show events arranged along a time sequence.", "renderer": "mermaid" },
+    { "name": "swimlane", "purpose": "Show process steps grouped into lanes.", "renderer": "mermaid" }
   ],
   "future": [
-    "er_diagram",
     "state_diagram",
     "gantt",
-    "timeline",
-    "mind_map",
-    "network_graph"
+    "mind_map"
   ]
 }

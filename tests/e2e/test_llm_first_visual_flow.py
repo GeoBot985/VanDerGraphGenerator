@@ -178,7 +178,7 @@ def test_histogram_flow_uses_llm_and_plotly() -> None:
     assert state.current_visual_plan.metadata.is_preview_stale is True
 
 
-def test_unsupported_donut_chart_is_rejected_by_contract() -> None:
+def test_unsupported_sunburst_chart_is_rejected_by_contract() -> None:
     state = _state()
     orchestrator, mapper = _orchestrator(
         LlmMappingResult(
@@ -188,7 +188,7 @@ def test_unsupported_donut_chart_is_rejected_by_contract() -> None:
                 visual_kind="chart",
                 intent="compare_categories",
                 action="create_plan",
-                chart_type="donut",
+                chart_type="sunburst",
                 roles={
                     "category": {"field": "Region"},
                     "measure": {"field": "Amount", "aggregation": "sum"},
@@ -198,13 +198,13 @@ def test_unsupported_donut_chart_is_rejected_by_contract() -> None:
         )
     )
 
-    result = orchestrator.handle_message("make a donut chart", state, use_llm=True)
+    result = orchestrator.handle_message("make a sunburst chart", state, use_llm=True)
     assert mapper.calls == 1
     assert result.action == "unsupported"
     assert result.visual_plan is None
     assert result.trace is not None
     assert result.trace.validation_success is False
     assert any(
-        "Unsupported chart_type: donut." in message
+        "Unsupported chart_type: sunburst." in message
         for message in result.trace.validation_errors
     )

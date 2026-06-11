@@ -30,8 +30,10 @@ def test_prompt_includes_user_request_columns_and_contract() -> None:
     assert "graph matrix authoritative contract" in prompt.lower()
     assert '"action"' in prompt
     assert "create_plan" in prompt
+    assert '"title_size":null' in prompt
     assert '"palette":{"primary":null,"secondary":null,"accent":null,"sequence":[]}' in prompt
     assert "style.palette.primary or style.palette.sequence" in prompt
+    assert "style.title_size as an integer" in prompt
     assert "schema_version" in prompt
     assert "required json output contract" in prompt.lower()
     assert "TransactionDate,Region,Status,Amount" not in prompt

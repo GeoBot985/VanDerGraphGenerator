@@ -282,6 +282,46 @@ def test_llm_partial_style_refinement_keeps_llm_background_and_adds_missing_seri
     assert any("deterministic style refinement" in message for message in result.messages)
 
 
+def test_llm_partial_style_refinement_keeps_llm_title_and_adds_missing_title_size() -> None:
+    current_plan = VisualPlan(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        data_roles=[
+            DataRole(role="category", field="Region"),
+            DataRole(role="measure", field="Amount", aggregation="sum"),
+        ],
+    )
+    current_plan.render_target.renderer = "plotly"
+    result = _orchestrator(
+        LlmMappingResult(
+            raw_response="{}",
+            parsed_json={},
+            draft=LlmVisualPlanDraft(
+                visual_kind="chart",
+                intent="compare_categories",
+                chart_type="bar",
+                roles={
+                    "category": {"field": "Region"},
+                    "measure": {"field": "Amount", "aggregation": "sum"},
+                },
+                style={"title": "Bollocks Chart"},
+                renderer="plotly",
+            ),
+        )
+    ).refine_plan(
+        current_plan,
+        'make the Title "Bollocks Chart" and make it 2x bigger',
+        _state(),
+    )
+
+    assert result.used_fallback is False
+    assert result.visual_plan is not None
+    assert result.visual_plan.style.title == "Bollocks Chart"
+    assert result.visual_plan.style.title_size == 32
+    assert any("deterministic style refinement" in message for message in result.messages)
+
+
 def test_llm_structured_background_refinement_is_normalised() -> None:
     current_plan = VisualPlan(
         visual_kind="chart",

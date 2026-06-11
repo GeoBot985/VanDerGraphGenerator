@@ -365,6 +365,12 @@ class RefinementOrchestrator:
         ):
             style_patch.style.colour_scheme = fallback_patch.style.colour_scheme
             has_changes = True
+        if (
+            fallback_patch.style.title_size is not None
+            and refined.style.title_size == current_plan.style.title_size
+        ):
+            style_patch.style.title_size = fallback_patch.style.title_size
+            has_changes = True
         if fallback_patch.style.palette:
             merged_palette = dict(refined.style.palette or {})
             for key, value in fallback_patch.style.palette.items():

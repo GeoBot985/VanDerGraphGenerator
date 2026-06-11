@@ -27,6 +27,10 @@ class MermaidRenderer(BaseRenderer):
         return visual_plan.visual_kind == "diagram" and visual_plan.diagram_type in {
             "flowchart",
             "sequence_diagram",
+            "erd",
+            "network_diagram",
+            "timeline",
+            "swimlane",
         }
 
     def render(
@@ -36,7 +40,7 @@ class MermaidRenderer(BaseRenderer):
     ) -> RendererOutput:
         if not self.can_render(visual_plan):
             raise ValueError(
-                "MermaidRenderer can only render flowchart or sequence diagram plans."
+                "MermaidRenderer can only render supported Mermaid diagram plans."
             )
         code = self._build_mermaid(visual_plan)
         code = self.style_adapter.apply_style_to_mermaid(code, visual_plan)
@@ -59,17 +63,32 @@ class MermaidRenderer(BaseRenderer):
         if not (
             output.content.lstrip().startswith("flowchart")
             or output.content.lstrip().startswith("sequenceDiagram")
+            or output.content.lstrip().startswith("erDiagram")
+            or output.content.lstrip().startswith("timeline")
         ):
             result.add_error(
-                "Mermaid output must start with flowchart or sequenceDiagram."
+                "Mermaid output must start with a supported Mermaid diagram header."
             )
-        if "-->" not in output.content and "->>" not in output.content:
+        if (
+            "-->" not in output.content
+            and "->>" not in output.content
+            and "||--" not in output.content
+            and " : " not in output.content
+        ):
             result.add_error("Mermaid output must contain at least one edge arrow.")
         return result
 
     def _build_mermaid(self, visual_plan: VisualPlan) -> str:
         if visual_plan.diagram_type == "sequence_diagram":
             return self._build_sequence_diagram(visual_plan)
+        if visual_plan.diagram_type == "erd":
+            return self._build_erd(visual_plan)
+        if visual_plan.diagram_type == "timeline":
+            return self._build_timeline(visual_plan)
+        if visual_plan.diagram_type == "swimlane":
+            return self._build_swimlane(visual_plan)
+        if visual_plan.diagram_type == "network_diagram":
+            return self._build_network_diagram(visual_plan)
         nodes = visual_plan.diagram_nodes or self._fallback_nodes()
         edges = visual_plan.diagram_edges or self._fallback_edges(nodes)
         direction = visual_plan.style.diagram_direction or (
@@ -109,6 +128,76 @@ class MermaidRenderer(BaseRenderer):
             source = self._safe_node_id(edge.source)
             target = self._safe_node_id(edge.target)
             lines.append(f"    {source}->>{target}: {label}")
+        return "\n".join(lines)
+
+    def _build_erd(self, visual_plan: VisualPlan) -> str:
+        nodes = visual_plan.diagram_nodes or self._fallback_nodes()
+        edges = visual_plan.diagram_edges or self._fallback_edges(nodes)
+        lines = ["erDiagram"]
+        for node in nodes:
+            node_id = self._safe_node_id(node.id)
+            node_label = sanitize_label(node.label)
+            lines.append(f"    {node_id} {{")
+            lines.append(f"        string {node_label}")
+            lines.append("    }")
+        for edge in edges:
+            source = self._safe_node_id(edge.source)
+            target = self._safe_node_id(edge.target)
+            label = sanitize_label(edge.label) if edge.label else "relates_to"
+            lines.append(f"    {source} ||--o{{ {target} : {label}")
+        return "\n".join(lines)
+
+    def _build_timeline(self, visual_plan: VisualPlan) -> str:
+        nodes = visual_plan.diagram_nodes or self._fallback_nodes()
+        lines = ["timeline"]
+        title = sanitize_label(visual_plan.style.title) if visual_plan.style.title else "Timeline"
+        lines.append(f"    title {title}")
+        for node in nodes:
+            marker = sanitize_label(node.id)
+            label = sanitize_label(node.label)
+            lines.append(f"    {marker} : {label}")
+        return "\n".join(lines)
+
+    def _build_swimlane(self, visual_plan: VisualPlan) -> str:
+        nodes = visual_plan.diagram_nodes or self._fallback_nodes()
+        edges = visual_plan.diagram_edges or self._fallback_edges(nodes)
+        lines = ["flowchart LR"]
+        lanes: dict[str, list[DiagramNode]] = {}
+        for node in nodes:
+            parts = node.label.split(":", 1)
+            lane = sanitize_label(parts[0].strip()) if len(parts) > 1 else "Lane"
+            lanes.setdefault(lane, []).append(node)
+        for lane, lane_nodes in lanes.items():
+            lines.append(f"    subgraph {self._safe_node_id(lane)}[{lane}]")
+            for node in lane_nodes:
+                lines.append(
+                    f"        {self._safe_node_id(node.id)}{self._node_brackets(node)}"
+                )
+            lines.append("    end")
+        for edge in edges:
+            source = self._safe_node_id(edge.source)
+            target = self._safe_node_id(edge.target)
+            if edge.label:
+                lines.append(f"    {source} -->|{sanitize_label(edge.label)}| {target}")
+            else:
+                lines.append(f"    {source} --> {target}")
+        return "\n".join(lines)
+
+    def _build_network_diagram(self, visual_plan: VisualPlan) -> str:
+        nodes = visual_plan.diagram_nodes or self._fallback_nodes()
+        edges = visual_plan.diagram_edges or self._fallback_edges(nodes)
+        lines = ["flowchart LR"]
+        for node in nodes:
+            lines.append(
+                f"    {self._safe_node_id(node.id)}(({sanitize_label(node.label)}))"
+            )
+        for edge in edges:
+            source = self._safe_node_id(edge.source)
+            target = self._safe_node_id(edge.target)
+            if edge.label:
+                lines.append(f"    {source} ---|{sanitize_label(edge.label)}| {target}")
+            else:
+                lines.append(f"    {source} --- {target}")
         return "\n".join(lines)
 
     def _node_brackets(self, node: DiagramNode) -> str:

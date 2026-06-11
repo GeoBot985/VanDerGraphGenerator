@@ -91,3 +91,20 @@ def test_structured_background_object_is_normalised_to_hex_string() -> None:
 
     assert plan.style.background == "#e6ffe6"
     assert plan.style.plot_background == "#e6ffe6"
+
+
+def test_llm_title_size_converts_to_visual_plan() -> None:
+    draft = LlmVisualPlanDraft(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="bar",
+        roles={"category": {"field": "Region"}, "measure": {"field": "Amount", "aggregation": "sum"}},
+        style={"title": "Bollocks Chart", "title_size": 32},
+        renderer="plotly",
+    )
+
+    plan = visual_plan_from_llm_draft(draft)
+
+    assert plan.style.title == "Bollocks Chart"
+    assert plan.style.title_size == 32
+    assert "Title size: 32" in summarize_visual_plan(plan)

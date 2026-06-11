@@ -83,7 +83,7 @@ from semantic_visual_builder.ui.status_panel import StatusPanel
 from semantic_visual_builder.ui.style_extraction_panel import StyleExtractionPanel
 from semantic_visual_builder.ui.style_panel import StylePanel
 from semantic_visual_builder.ui.validation_panel import ValidationPanel
-from semantic_visual_builder.ui.widgets import make_readonly_text, set_text
+from semantic_visual_builder.ui.widgets import HoverTooltip, make_readonly_text, set_text
 from semantic_visual_builder.utils.paths import (
     get_builtin_styles_dir,
     get_previews_dir,
@@ -244,6 +244,17 @@ class SemanticVisualBuilderApp:
             command=self._on_toggle_llm_mapping,
         ).pack(side="left", padx=6)
         ttk.Label(top, textvariable=self._mapping_method_var).pack(side="left", padx=6)
+        self.editable_elements_badge = ttk.Label(
+            top,
+            text="Editable Elements",
+            cursor="hand2",
+            foreground="#0b5cab",
+        )
+        self.editable_elements_badge.pack(side="left", padx=(6, 10))
+        self._editable_elements_tooltip = HoverTooltip(
+            self.editable_elements_badge,
+            self._editable_elements_tooltip_text,
+        )
         ttk.Button(top, text="Refresh Models", command=self.refresh_ollama).pack(
             side="left", padx=6
         )
@@ -1174,6 +1185,129 @@ class SemanticVisualBuilderApp:
         self._update_workflow_view()
         set_text(self.status_summary, self.status_panel.status_text(self.app_state))
         self._refresh_debug()
+
+    def _editable_elements_tooltip_text(self) -> str:
+        plan = self.app_state.current_visual_plan
+        lines = [
+            "Editable graph elements",
+            "",
+            "Chart type: " + (plan.chart_type if plan is not None and plan.chart_type else "not set"),
+            "Renderer: "
+            + (
+                plan.render_target.renderer
+                if plan is not None and plan.render_target.renderer
+                else "not set"
+            ),
+            "Title: " + (plan.style.title if plan is not None and plan.style.title else "not set"),
+            "Subtitle: "
+            + (
+                plan.style.subtitle
+                if plan is not None and plan.style.subtitle
+                else "not set"
+            ),
+            "Title size: "
+            + (
+                str(plan.style.title_size)
+                if plan is not None and plan.style.title_size
+                else "not set"
+            ),
+            "Colour scheme: "
+            + (
+                plan.style.colour_scheme
+                if plan is not None and plan.style.colour_scheme
+                else "not set"
+            ),
+            "Primary series colour: "
+            + (
+                str(plan.style.palette.get("primary"))
+                if plan is not None and isinstance(plan.style.palette, dict) and plan.style.palette.get("primary")
+                else "not set"
+            ),
+            "Background: "
+            + (
+                plan.style.background
+                if plan is not None and plan.style.background
+                else "not set"
+            ),
+            "Plot background: "
+            + (
+                plan.style.plot_background
+                if plan is not None and plan.style.plot_background
+                else "not set"
+            ),
+            "Font family: "
+            + (
+                plan.style.font_family
+                if plan is not None and plan.style.font_family
+                else "not set"
+            ),
+            "Grid: " + (plan.style.grid if plan is not None and plan.style.grid else "not set"),
+            "Legend position: "
+            + (
+                plan.style.legend_position
+                if plan is not None and plan.style.legend_position
+                else "not set"
+            ),
+            "Orientation: "
+            + (
+                plan.style.orientation
+                if plan is not None and plan.style.orientation
+                else "not set"
+            ),
+            "Highlight: "
+            + (
+                str(plan.style.highlights)
+                if plan is not None and plan.style.highlights
+                else "not set"
+            ),
+        ]
+        if plan is not None:
+            role_map = {role.role: role for role in plan.data_roles}
+            lines.extend(
+                [
+                    "Category field: "
+                    + (
+                        role_map["category"].field
+                        if "category" in role_map and role_map["category"].field
+                        else "not set"
+                    ),
+                    "Measure field: "
+                    + (
+                        role_map["measure"].field
+                        if "measure" in role_map and role_map["measure"].field
+                        else "not set"
+                    ),
+                    "Measure aggregation: "
+                    + (
+                        role_map["measure"].aggregation
+                        if "measure" in role_map and role_map["measure"].aggregation
+                        else "not set"
+                    ),
+                    "X label: "
+                    + (
+                        plan.style.labels.get("x")
+                        if plan.style.labels and plan.style.labels.get("x")
+                        else "not set"
+                    ),
+                    "Y label: "
+                    + (
+                        plan.style.labels.get("y")
+                        if plan.style.labels and plan.style.labels.get("y")
+                        else "not set"
+                    ),
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "Category field: not set",
+                    "Measure field: not set",
+                    "Measure aggregation: not set",
+                    "X label: not set",
+                    "Y label: not set",
+                ]
+            )
+        return "\n".join(lines)
 
     def _refresh_available_recipes(self) -> None:
         try:

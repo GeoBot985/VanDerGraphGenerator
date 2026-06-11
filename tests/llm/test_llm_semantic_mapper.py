@@ -102,7 +102,7 @@ def test_malformed_json_triggers_repair() -> None:
 def test_invalid_output_returns_errors() -> None:
     client = FakeClient(
         [
-            '{"action":"create_plan","visual_kind":"chart","intent":"compare_categories","chart_type":"donut","roles":{"category":{"field":"Region"},"measure":{"field":"Amount","aggregation":"sum"}},"renderer":"plotly"}'
+            '{"action":"create_plan","visual_kind":"chart","intent":"compare_categories","chart_type":"sunburst","roles":{"category":{"field":"Region"},"measure":{"field":"Amount","aggregation":"sum"}},"renderer":"plotly"}'
         ]
     )
     result = _mapper(client).map_to_draft(

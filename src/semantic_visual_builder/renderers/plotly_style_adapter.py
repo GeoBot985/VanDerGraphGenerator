@@ -29,14 +29,20 @@ class PlotlyStyleAdapter:
         layout = dict(plotly_config.get("layout", {}))
         style = visual_plan.style
 
+        title_text = None
         if style.title:
-            layout["title"] = (
+            title_text = (
                 style.title
                 if not style.subtitle
                 else f"{style.title}<br><sup>{style.subtitle}</sup>"
             )
         elif style.subtitle:
-            layout["title"] = style.subtitle
+            title_text = style.subtitle
+        if title_text is not None:
+            if style.title_size:
+                layout["title"] = {"text": title_text, "font": {"size": style.title_size}}
+            else:
+                layout["title"] = title_text
 
         background = style.background
         plot_background = style.plot_background or background

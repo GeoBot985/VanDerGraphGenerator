@@ -27,11 +27,76 @@ class DeterministicFallbackMapper:
         diagram_type: str | None = None
         renderer: str | None = None
 
-        if any(marker in text for marker in ("flowchart", "process")):
+        if "swimlane" in text:
+            intent = "show_process"
+            visual_kind = "diagram"
+            diagram_type = "swimlane"
+            renderer = "mermaid"
+        elif "timeline" in text:
+            intent = "show_process"
+            visual_kind = "diagram"
+            diagram_type = "timeline"
+            renderer = "mermaid"
+        elif "network diagram" in text or "network graph" in text:
+            intent = "show_process"
+            visual_kind = "diagram"
+            diagram_type = "network_diagram"
+            renderer = "mermaid"
+        elif "erd" in text or "entity relationship" in text:
+            intent = "show_process"
+            visual_kind = "diagram"
+            diagram_type = "erd"
+            renderer = "mermaid"
+        elif "sequence diagram" in text:
+            intent = "show_process"
+            visual_kind = "diagram"
+            diagram_type = "sequence_diagram"
+            renderer = "mermaid"
+        elif any(marker in text for marker in ("flowchart", "process")):
             intent = "show_process"
             visual_kind = "diagram"
             diagram_type = "flowchart"
             renderer = "mermaid"
+        elif "gauge" in text:
+            intent = "show_single_value"
+            chart_type = "gauge"
+            renderer = "plotly"
+        elif "kpi card" in text or "kpi" in text:
+            intent = "show_single_value"
+            chart_type = "kpi_card"
+            renderer = "plotly"
+        elif "treemap" in text:
+            intent = "show_matrix"
+            chart_type = "treemap"
+            renderer = "plotly"
+        elif "waterfall" in text:
+            intent = "compare_categories"
+            chart_type = "waterfall"
+            renderer = "plotly"
+        elif "funnel" in text:
+            intent = "compare_categories"
+            chart_type = "funnel"
+            renderer = "plotly"
+        elif "bubble" in text:
+            intent = "show_relationship"
+            chart_type = "bubble"
+            renderer = "plotly"
+        elif "stacked area" in text:
+            intent = "show_trend"
+            chart_type = "stacked_area"
+            renderer = "plotly"
+        elif "area" in text:
+            intent = "show_trend"
+            chart_type = "area"
+            renderer = "plotly"
+        elif "donut" in text:
+            intent = "compare_categories"
+            chart_type = "donut"
+            renderer = "plotly"
+        elif "radar" in text:
+            intent = "compare_categories"
+            chart_type = "radar"
+            renderer = "plotly"
         elif "heatmap" in text or (
             "by" in text and "and" in text and "heatmap" in text
         ):
@@ -76,6 +141,8 @@ class DeterministicFallbackMapper:
 
         if intent == "show_process":
             plan = DiagramPlanBuilder().build_basic_flowchart(message)
+            if diagram_type is not None:
+                plan.diagram_type = diagram_type
             plan.render_target.renderer = "mermaid"
 
         if dataset_profile is not None:

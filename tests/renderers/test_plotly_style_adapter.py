@@ -27,3 +27,14 @@ def test_plotly_style_adapter_updates_layout_fields() -> None:
     assert config["layout"]["plot_bgcolor"] == "#f7f7f7"
     assert config["layout"]["legend"]["orientation"] == "h"
     assert config["layout"]["colorway"] == ["#1f4e79", "#5b9bd5", "#70ad47"]
+
+
+def test_plotly_style_adapter_applies_title_size_when_present() -> None:
+    plan = VisualPlan(visual_kind="chart", intent="compare")
+    plan.style.title = "Sales"
+    plan.style.title_size = 32
+
+    config = PlotlyStyleAdapter().apply_style_to_config({"layout": {}}, plan)
+
+    assert config["layout"]["title"]["text"] == "Sales"
+    assert config["layout"]["title"]["font"]["size"] == 32

@@ -48,6 +48,8 @@ class VisualPlanPatchApplier:
                 updated.style.title = patch.style.title
             if patch.style.subtitle is not None:
                 updated.style.subtitle = patch.style.subtitle
+            if patch.style.title_size is not None:
+                updated.style.title_size = patch.style.title_size
             if patch.style.colour_scheme is not None:
                 updated.style.colour_scheme = patch.style.colour_scheme
             if patch.style.palette:

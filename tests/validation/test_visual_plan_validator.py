@@ -158,7 +158,7 @@ def test_sequence_diagram_passes_when_graph_contract_roles_present() -> None:
     assert result.is_valid is True
 
 
-def test_donut_is_rejected_by_graph_matrix() -> None:
+def test_donut_is_accepted_by_graph_matrix() -> None:
     profile = _sample_profile()
     plan = _chart_plan(
         "donut",
@@ -168,4 +168,29 @@ def test_donut_is_rejected_by_graph_matrix() -> None:
         ],
     )
     result = VisualPlanValidator().validate(plan, profile, _matrix())
+    assert result.is_valid is True
+
+
+def test_bubble_requires_size_role() -> None:
+    profile = _sample_profile()
+    plan = _chart_plan(
+        "bubble",
+        [
+            DataRole(role="x", field="Amount"),
+            DataRole(role="y", field="Amount"),
+        ],
+        intent="show_relationship",
+    )
+    result = VisualPlanValidator().validate(plan, profile, _matrix())
     assert result.is_valid is False
+
+
+def test_gauge_requires_numeric_measure() -> None:
+    profile = _sample_profile()
+    plan = _chart_plan(
+        "gauge",
+        [DataRole(role="measure", field="Amount", aggregation="sum")],
+        intent="show_single_value",
+    )
+    result = VisualPlanValidator().validate(plan, profile, _matrix())
+    assert result.is_valid is True

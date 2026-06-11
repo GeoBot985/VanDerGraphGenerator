@@ -93,6 +93,7 @@ class VisualIntentPromptBuilder:
                     '"measure":{"field":"Amount","aggregation":"sum"}},'
                     '"filters":[],"grouping":[],'
                     '"style":{"title":null,"subtitle":null,'
+                    '"title_size":null,'
                     '"colour_scheme":null,"palette":{"primary":null,"secondary":null,"accent":null,"sequence":[]},'
                     '"background":null,"plot_background":null,"highlights":{},'
                     '"labels":{},"orientation":null},"renderer":"plotly",'
@@ -108,6 +109,7 @@ class VisualIntentPromptBuilder:
                     "For trace, bar, line, or slice colours, use "
                     "style.palette.primary or style.palette.sequence."
                 ),
+                "For title text size changes, use style.title_size as an integer.",
                 "",
                 "Return JSON only. Do not include code fences or commentary.",
             ]

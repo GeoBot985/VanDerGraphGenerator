@@ -33,6 +33,11 @@ class DeterministicFallbackPatchPlanner:
             patch.style.title = title
             notes.append(f"Refinement: title set to {title}.")
 
+        title_size = self._extract_title_size(current_plan, text, title is not None)
+        if title_size is not None:
+            patch.style.title_size = title_size
+            notes.append(f"Refinement: title size set to {title_size}.")
+
         if "highlight" in text:
             value = self._extract_after(message, text, "highlight")
             if value:
@@ -68,6 +73,9 @@ class DeterministicFallbackPatchPlanner:
             "stacked_bar": [
                 r"\bstacked\s+bar\b",
             ],
+            "stacked_area": [
+                r"\bstacked\s+area\b",
+            ],
             "box_plot": [
                 r"\bbox\s+plot\b",
                 r"\bboxplot\b",
@@ -78,8 +86,34 @@ class DeterministicFallbackPatchPlanner:
             "histogram": [
                 r"\bhistogram\b",
             ],
+            "treemap": [
+                r"\btreemap\b",
+            ],
+            "waterfall": [
+                r"\bwaterfall\b",
+            ],
+            "funnel": [
+                r"\bfunnel\b",
+            ],
+            "radar": [
+                r"\bradar\b",
+            ],
+            "bubble": [
+                r"\bbubble\b",
+            ],
+            "gauge": [
+                r"\bgauge\b",
+            ],
+            "kpi_card": [
+                r"\bkpi\s+card\b",
+                r"\bkpi\b",
+            ],
             "scatter": [
                 r"\bscatter\b",
+            ],
+            "area": [
+                r"\barea\s+chart\b",
+                r"\barea\b",
             ],
             "line": [
                 r"\bline\s+chart\b",
@@ -88,6 +122,8 @@ class DeterministicFallbackPatchPlanner:
             "pie": [
                 r"\bpie\s+chart\b",
                 r"\bpie\b",
+            ],
+            "donut": [
                 r"\bdonut\b",
             ],
             "bar": [
@@ -172,4 +208,27 @@ class DeterministicFallbackPatchPlanner:
                 return value
         if re.fullmatch(r"#[0-9a-f]{6}", requested):
             return requested
+        return None
+
+    def _extract_title_size(
+        self,
+        current_plan: VisualPlan,
+        text: str,
+        title_changed: bool,
+    ) -> int | None:
+        if "title" not in text and not title_changed:
+            return None
+        current_size = current_plan.style.title_size or 16
+
+        factor_match = re.search(r"\b(\d+(?:\.\d+)?)x\s+bigger\b", text)
+        if factor_match:
+            factor = float(factor_match.group(1))
+            return max(1, int(round(current_size * factor)))
+
+        if "double" in text and "title" in text:
+            return current_size * 2
+        if re.search(r"\btitle\b.*\b(bigger|larger)\b", text):
+            return int(round(current_size * 1.5))
+        if re.search(r"\btitle\b.*\b(smaller)\b", text):
+            return max(1, int(round(current_size / 1.5)))
         return None

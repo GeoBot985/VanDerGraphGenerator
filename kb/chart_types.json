@@ -1,50 +1,24 @@
 {
   "supported_mvp": [
-    {
-      "name": "bar",
-      "purpose": "Compare values across categories.",
-      "limits": ["Requires a category and measure."]
-    },
-    {
-      "name": "horizontal_bar",
-      "purpose": "Compare ranked categories, especially when labels are long.",
-      "limits": ["Requires a category and measure."]
-    },
-    {
-      "name": "line",
-      "purpose": "Show trends over time or ordered sequences.",
-      "limits": ["Requires date/order field and measure."]
-    },
-    {
-      "name": "scatter",
-      "purpose": "Show relationship between two numeric fields.",
-      "limits": ["Requires numeric x and numeric y."]
-    },
-    {
-      "name": "pie",
-      "purpose": "Show simple part-to-whole composition.",
-      "limits": ["Avoid more than 6 categories.", "Avoid time series.", "Avoid when precise ranking matters."]
-    },
-    {
-      "name": "histogram",
-      "purpose": "Show the distribution of a single numeric field.",
-      "limits": ["Requires exactly one numeric field.", "Bin count is automatic; manual binning not supported."]
-    },
-    {
-      "name": "box_plot",
-      "purpose": "Show spread and outliers of a numeric field, optionally grouped by a category.",
-      "limits": ["Requires at least one numeric field.", "Optional grouping category."]
-    },
-    {
-      "name": "heatmap",
-      "purpose": "Show a matrix of values using colour intensity.",
-      "limits": ["Requires two categorical fields and one numeric measure.", "Large matrices may be hard to read."]
-    },
-    {
-      "name": "stacked_bar",
-      "purpose": "Show part-to-whole composition across categories over time or groups.",
-      "limits": ["Requires a category, a stack-grouping field, and a measure.", "Too many stack groups reduce readability."]
-    }
+    { "name": "bar", "purpose": "Compare values across categories.", "limits": ["Requires a category and measure."] },
+    { "name": "horizontal_bar", "purpose": "Compare ranked categories, especially when labels are long.", "limits": ["Requires a category and measure."] },
+    { "name": "line", "purpose": "Show trends over time or ordered sequences.", "limits": ["Requires date or ordered x field and measure."] },
+    { "name": "area", "purpose": "Show trend magnitude over time with filled area.", "limits": ["Requires date or ordered x field and measure."] },
+    { "name": "stacked_area", "purpose": "Show how multiple series contribute to a total trend over time.", "limits": ["Requires x field, stack grouping, and measure."] },
+    { "name": "scatter", "purpose": "Show relationship between two numeric fields.", "limits": ["Requires numeric x and numeric y."] },
+    { "name": "bubble", "purpose": "Show relationship between two numeric fields with a third value encoded as size.", "limits": ["Requires numeric x, y, and size fields."] },
+    { "name": "pie", "purpose": "Show simple part-to-whole composition.", "limits": ["Avoid more than 6 categories.", "Avoid time series.", "Avoid when precise ranking matters."] },
+    { "name": "donut", "purpose": "Show simple part-to-whole composition with a central void for cleaner presentation.", "limits": ["Avoid more than 6 categories.", "Avoid time series."] },
+    { "name": "histogram", "purpose": "Show the distribution of a single numeric field.", "limits": ["Requires exactly one numeric field.", "Bin count is automatic; manual binning not supported."] },
+    { "name": "box_plot", "purpose": "Show spread and outliers of a numeric field, optionally grouped by a category.", "limits": ["Requires at least one numeric field.", "Optional grouping category."] },
+    { "name": "heatmap", "purpose": "Show a matrix of values using colour intensity.", "limits": ["Requires two categorical fields and one numeric measure.", "Large matrices may be hard to read."] },
+    { "name": "stacked_bar", "purpose": "Show part-to-whole composition across categories over groups.", "limits": ["Requires a category, a stack-grouping field, and a measure.", "Too many stack groups reduce readability."] },
+    { "name": "treemap", "purpose": "Show hierarchical-looking composition as nested tiles.", "limits": ["Current MVP uses a flat category-to-value treemap."] },
+    { "name": "waterfall", "purpose": "Show stepwise increases and decreases across categories or stages.", "limits": ["Requires ordered categories and a numeric measure."] },
+    { "name": "funnel", "purpose": "Show stage drop-off or conversion through a pipeline.", "limits": ["Requires ordered categories and a numeric measure."] },
+    { "name": "radar", "purpose": "Compare values across multiple categories on a radial axis.", "limits": ["Works best with a small number of categories."] },
+    { "name": "gauge", "purpose": "Show a single key metric as an indicator gauge.", "limits": ["Requires one numeric measure.", "Current MVP uses an automatically derived gauge range."] },
+    { "name": "kpi_card", "purpose": "Show a single key metric as a large numeric indicator.", "limits": ["Requires one numeric measure."] }
   ],
   "future": [
     "dashboard"
