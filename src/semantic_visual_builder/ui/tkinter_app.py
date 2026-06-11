@@ -28,14 +28,14 @@ from semantic_visual_builder.planning.clarification import PendingClarification
 from semantic_visual_builder.planning.clarification_engine import ClarificationEngine
 from semantic_visual_builder.planning.field_mapper import FieldMapper
 from semantic_visual_builder.planning.intent_mapper import IntentMapper
-from semantic_visual_builder.planning.message_classifier import (
-    MessageClassifier,
-    MessageIntent,
-)
 from semantic_visual_builder.planning.planning_orchestrator import PlanningOrchestrator
 from semantic_visual_builder.planning.refinement_engine import RefinementEngine
 from semantic_visual_builder.planning.refinement_orchestrator import (
     RefinementOrchestrator,
+)
+from semantic_visual_builder.planning.semantic_input_orchestrator import (
+    SemanticInputOrchestrator,
+    SemanticInputResult,
 )
 from semantic_visual_builder.planning.visual_plan import (
     summarize_visual_plan,
@@ -100,7 +100,6 @@ class SemanticVisualBuilderApp:
         self.app_state = app_state
         self.csv_loader = CsvLoader()
         self.data_profiler = DataProfiler()
-        self.message_classifier = MessageClassifier()
         self.intent_mapper = IntentMapper()
         self.field_mapper = FieldMapper()
         self.plan_validator = VisualPlanValidator()
@@ -129,6 +128,10 @@ class SemanticVisualBuilderApp:
             visual_plan_validator=self.plan_validator,
             capability_validator=self.capability_validator,
             clarification_engine=ClarificationEngine(),
+        )
+        self.semantic_input_orchestrator = SemanticInputOrchestrator(
+            planning_orchestrator=self.planning_orchestrator,
+            refinement_orchestrator=self.refinement_orchestrator,
         )
         self.recipe_builder = RecipeBuilder()
         self.recipe_applier = RecipeApplier()
@@ -511,24 +514,76 @@ class SemanticVisualBuilderApp:
         if self.app_state.pending_clarification is not None:
             response = self._handle_clarification_answer(content)
         else:
-            intent = self.message_classifier.classify(
-                content, has_current_plan=self.app_state.current_visual_plan is not None
+            semantic_result = self.semantic_input_orchestrator.process_message(
+                content,
+                self.app_state,
+                use_llm=self._use_llm_var.get(),
             )
-            if intent == MessageIntent.CAPABILITY_QUESTION:
-                response = self._answer_capability_question(content)
-            elif intent == MessageIntent.WORKFLOW_HELP:
-                response = self._workflow_help_text()
-            elif intent == MessageIntent.VISUAL_REQUEST:
-                response = self._handle_visual_request(content)
-            elif intent == MessageIntent.REFINEMENT_REQUEST:
-                response = self._handle_refinement_request(content)
-            else:
-                response = (
-                    "Please load data, ask about capabilities, or describe the "
-                    "visual goal."
-                )
+            response = self._handle_semantic_result(content, semantic_result)
         self._append_assistant_response(response)
         self._refresh_all_views()
+
+    def _handle_semantic_result(
+        self, content: str, result: SemanticInputResult
+    ) -> str:
+        self.app_state.current_validation_result = result.validation_result
+        self.app_state.last_llm_mapping_result = result.llm_mapping_result
+        self.app_state.last_mapping_method = result.mapping_method
+        self.app_state.last_fallback_reason = (
+            "; ".join(result.messages) if result.used_fallback else None
+        )
+        for message in result.messages:
+            self.app_state.add_status(message)
+        if hasattr(self, "_status_var"):
+            self._status_var.set(
+                f"Semantic input handled: {result.action} ({result.mapping_method})"
+            )
+
+        if result.action == "capability_question":
+            return self._answer_capability_question(content)
+        if result.action == "workflow_help":
+            return self._workflow_help_text()
+        if result.action == "clarification_request":
+            if result.clarification_requests:
+                request = result.clarification_requests[0]
+                pending = PendingClarification(
+                    request=request,
+                    partial_plan_json=None
+                    if self.app_state.current_visual_plan is None
+                    else visual_plan_to_dict(self.app_state.current_visual_plan),
+                    partial_plan_id=self.app_state.current_visual_plan.metadata.plan_id
+                    if self.app_state.current_visual_plan
+                    else None,
+                )
+                self.app_state.set_pending_clarification(pending)
+                self._update_clarification_view()
+                return self._clarification_prompt_text(request)
+            return "I need one more detail before I can update the plan."
+
+        if result.visual_plan is None:
+            return "No visual plan could be created."
+
+        self.app_state.set_visual_plan(
+            result.visual_plan,
+            description=(
+                "Refined visual plan"
+                if result.action == "refinement_request"
+                else "Updated visual plan"
+            ),
+        )
+        if result.action == "refinement_request":
+            self.app_state.workflow_state.advance_to(
+                WorkflowStep.REFINEMENT_LOOP
+                if result.validation_result.is_valid
+                else WorkflowStep.FIELD_MAPPING_CONFIRMED
+            )
+        else:
+            self.app_state.workflow_state.advance_to(
+                WorkflowStep.PLAN_READY
+                if result.validation_result.is_valid
+                else WorkflowStep.FIELD_MAPPING_CONFIRMED
+            )
+        return self._visual_plan_response(result.visual_plan, result.validation_result)
 
     def _answer_capability_question(self, question: str) -> str:
         if self.capability_answerer is None:
@@ -965,8 +1020,13 @@ class SemanticVisualBuilderApp:
             )
             if self.app_state.ollama_status.version:
                 lines.append(f"Ollama version: {self.app_state.ollama_status.version}")
-        if self.app_state.ollama_status.error:
-            lines.append(f"Ollama error: {self.app_state.ollama_status.error}")
+            if self.app_state.ollama_status.error:
+                lines.append(f"Ollama error: {self.app_state.ollama_status.error}")
+        elif self.app_state.ollama_status is None:
+            lines.append("Ollama status: unavailable")
+        else:
+            if self.app_state.ollama_status.error:
+                lines.append(f"Ollama error: {self.app_state.ollama_status.error}")
         mapping_state = "Enabled" if self.app_state.llm_mapping_enabled else "Disabled"
         lines.append(f"LLM semantic mapping: {mapping_state}")
         lines.append(
