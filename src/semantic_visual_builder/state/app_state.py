@@ -6,7 +6,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from semantic_visual_builder.data.dataset_context import DatasetContext
+from semantic_visual_builder.export.export_manager import ExportRequest
 from semantic_visual_builder.export.export_result import ExportResult
+from semantic_visual_builder.gallery.gallery_schema import GalleryItem
 from semantic_visual_builder.image_style.style_extraction_result import (
     StyleExtractionResult,
 )
@@ -16,6 +18,7 @@ from semantic_visual_builder.llm.llm_mapping_result import LlmMappingResult
 from semantic_visual_builder.llm.model_registry import ModelRegistry
 from semantic_visual_builder.llm.ollama_client import OllamaStatus
 from semantic_visual_builder.planning.clarification import PendingClarification
+from semantic_visual_builder.planning.semantic_trace import SemanticTrace
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 from semantic_visual_builder.planning.workflow_state import WorkflowState
 from semantic_visual_builder.recipes.recipe_applier import RecipeApplicationResult
@@ -25,12 +28,10 @@ from semantic_visual_builder.recipes.recipe_compatibility import (
 from semantic_visual_builder.recipes.recipe_schema import VisualRecipe
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.runtime.runtime_paths import RuntimePaths
+from semantic_visual_builder.settings.settings_schema import AppSettings
 from semantic_visual_builder.state.conversation_state import ConversationState
 from semantic_visual_builder.state.revision_history import RevisionHistory
 from semantic_visual_builder.styles.style_applier import StyleApplicationResult
-from semantic_visual_builder.export.export_manager import ExportRequest
-from semantic_visual_builder.gallery.gallery_schema import GalleryItem
-from semantic_visual_builder.settings.settings_schema import AppSettings
 from semantic_visual_builder.styles.style_comparison import StyleComparisonResult
 from semantic_visual_builder.styles.style_review_model import EditableStyleDraft
 from semantic_visual_builder.styles.style_schema import StyleProfile
@@ -58,6 +59,7 @@ class AppState:
     last_llm_mapping_result: LlmMappingResult | None = None
     last_mapping_method: str | None = None
     last_fallback_reason: str | None = None
+    last_semantic_trace: SemanticTrace | None = None
     pending_clarification: PendingClarification | None = None
     active_recipe_path: Path | None = None
     active_recipe_name: str | None = None
@@ -120,6 +122,9 @@ class AppState:
 
     def set_pending_clarification(self, pending: PendingClarification | None) -> None:
         self.pending_clarification = pending
+
+    def set_semantic_trace(self, trace: SemanticTrace | None) -> None:
+        self.last_semantic_trace = trace
 
     def mark_preview_stale(self) -> None:
         self.last_renderer_output = None

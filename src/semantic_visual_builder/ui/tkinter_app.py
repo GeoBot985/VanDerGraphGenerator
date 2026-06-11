@@ -26,10 +26,14 @@ from semantic_visual_builder.llm.ollama_client import OllamaClient
 from semantic_visual_builder.llm.prompt_builder import VisualIntentPromptBuilder
 from semantic_visual_builder.planning.clarification import PendingClarification
 from semantic_visual_builder.planning.clarification_engine import ClarificationEngine
+from semantic_visual_builder.planning.deterministic_fallback_mapper import (
+    DeterministicFallbackMapper,
+)
+from semantic_visual_builder.planning.deterministic_fallback_patch_planner import (
+    DeterministicFallbackPatchPlanner,
+)
 from semantic_visual_builder.planning.field_mapper import FieldMapper
-from semantic_visual_builder.planning.intent_mapper import IntentMapper
 from semantic_visual_builder.planning.planning_orchestrator import PlanningOrchestrator
-from semantic_visual_builder.planning.refinement_engine import RefinementEngine
 from semantic_visual_builder.planning.refinement_orchestrator import (
     RefinementOrchestrator,
 )
@@ -40,6 +44,9 @@ from semantic_visual_builder.planning.semantic_input_orchestrator import (
 from semantic_visual_builder.planning.visual_plan import (
     summarize_visual_plan,
     visual_plan_to_dict,
+)
+from semantic_visual_builder.planning.visual_plan_patch_applier import (
+    VisualPlanPatchApplier,
 )
 from semantic_visual_builder.planning.workflow_state import WorkflowStep
 from semantic_visual_builder.recipes.recipe_applier import RecipeApplier
@@ -100,7 +107,7 @@ class SemanticVisualBuilderApp:
         self.app_state = app_state
         self.csv_loader = CsvLoader()
         self.data_profiler = DataProfiler()
-        self.intent_mapper = IntentMapper()
+        self.deterministic_fallback_mapper = DeterministicFallbackMapper()
         self.field_mapper = FieldMapper()
         self.plan_validator = VisualPlanValidator()
         self.capability_validator = CapabilityValidator()
@@ -117,14 +124,15 @@ class SemanticVisualBuilderApp:
         )
         self.planning_orchestrator = PlanningOrchestrator(
             llm_mapper=self.llm_mapper,
-            deterministic_mapper=self.intent_mapper,
+            deterministic_mapper=self.deterministic_fallback_mapper,
             field_mapper=self.field_mapper,
             visual_plan_validator=self.plan_validator,
             capability_validator=self.capability_validator,
         )
         self.refinement_orchestrator = RefinementOrchestrator(
             llm_mapper=self.llm_mapper,
-            deterministic_refinement_engine=RefinementEngine(),
+            deterministic_fallback_patch_planner=DeterministicFallbackPatchPlanner(),
+            patch_applier=VisualPlanPatchApplier(),
             visual_plan_validator=self.plan_validator,
             capability_validator=self.capability_validator,
             clarification_engine=ClarificationEngine(),
@@ -193,7 +201,9 @@ class SemanticVisualBuilderApp:
         self._use_llm_var = tk.BooleanVar(value=self.app_state.llm_mapping_enabled)
         self._workflow_var = tk.StringVar(value="")
         self._revision_var = tk.StringVar(value="")
-        self._mapping_method_var = tk.StringVar(value="Mapping method: deterministic")
+        self._mapping_method_var = tk.StringVar(
+            value="Mapping method: deterministic_fallback"
+        )
         self._fallback_reason_var = tk.StringVar(value="Fallback reason: none")
         self._clarification_var = tk.StringVar(value="No pending clarification.")
         self._clarification_answer_var = tk.StringVar(value="")
@@ -514,7 +524,7 @@ class SemanticVisualBuilderApp:
         if self.app_state.pending_clarification is not None:
             response = self._handle_clarification_answer(content)
         else:
-            semantic_result = self.semantic_input_orchestrator.process_message(
+            semantic_result = self.semantic_input_orchestrator.handle_message(
                 content,
                 self.app_state,
                 use_llm=self._use_llm_var.get(),
@@ -523,9 +533,7 @@ class SemanticVisualBuilderApp:
         self._append_assistant_response(response)
         self._refresh_all_views()
 
-    def _handle_semantic_result(
-        self, content: str, result: SemanticInputResult
-    ) -> str:
+    def _handle_semantic_result(self, content: str, result: SemanticInputResult) -> str:
         self.app_state.current_validation_result = result.validation_result
         self.app_state.last_llm_mapping_result = result.llm_mapping_result
         self.app_state.last_mapping_method = result.mapping_method
@@ -559,6 +567,8 @@ class SemanticVisualBuilderApp:
                 self._update_clarification_view()
                 return self._clarification_prompt_text(request)
             return "I need one more detail before I can update the plan."
+        if result.action == "unsupported":
+            return "The requested visual is not supported by the graph matrix contract."
 
         if result.visual_plan is None:
             return "No visual plan could be created."
@@ -628,13 +638,15 @@ class SemanticVisualBuilderApp:
         )
         if not self._use_llm_var.get():
             self.app_state.add_status(
-                "LLM semantic mapping disabled. Deterministic mapper used."
+                "I could not use LLM semantic mapping because it is disabled. "
+                "I used the limited deterministic fallback instead."
             )
         elif (
             self._use_llm_var.get() and not self.app_state.model_registry.selected_model
         ):
             self.app_state.add_status(
-                "No Ollama model selected. Deterministic mapper used."
+                "I could not use LLM semantic mapping because no model is "
+                "selected. I used the limited deterministic fallback instead."
             )
         result = self.planning_orchestrator.create_or_update_plan(
             user_message=content,
@@ -660,7 +672,7 @@ class SemanticVisualBuilderApp:
         )
         if result.used_fallback:
             self.app_state.add_status(
-                "LLM mapping failed. Falling back to deterministic rule-based mapping."
+                "LLM mapping failed. Falling back to deterministic fallback mapping."
             )
         for message in result.messages:
             self.app_state.add_status(message)
@@ -679,13 +691,17 @@ class SemanticVisualBuilderApp:
         )
         if not self._use_llm_var.get():
             self.app_state.add_status(
-                "LLM semantic mapping disabled. Deterministic refinement used."
+                "I could not use LLM semantic refinement because it is "
+                "disabled. I used deterministic fallback patch planning where "
+                "possible."
             )
         elif (
             self._use_llm_var.get() and not self.app_state.model_registry.selected_model
         ):
             self.app_state.add_status(
-                "No Ollama model selected. Deterministic refinement used."
+                "I could not use LLM semantic refinement because no model is "
+                "selected. I used deterministic fallback patch planning where "
+                "possible."
             )
         result = self.refinement_orchestrator.refine_plan(
             current_plan=current_plan,
@@ -1007,13 +1023,16 @@ class SemanticVisualBuilderApp:
         self._revision_var.set(
             f"Revision count: {self.app_state.revision_history.count()}"
         )
-        mapping_method = self.app_state.last_mapping_method or "deterministic"
+        mapping_method = self.app_state.last_mapping_method or "deterministic_fallback"
         self._mapping_method_var.set(f"Mapping method: {mapping_method}")
         fallback_reason = self.app_state.last_fallback_reason or "none"
         self._fallback_reason_var.set(f"Fallback reason: {fallback_reason}")
 
     def _refresh_debug(self) -> None:
         lines = list(self.app_state.status_messages)
+        if self.app_state.last_semantic_trace is not None:
+            lines.append("Latest semantic trace:")
+            lines.extend(self.app_state.last_semantic_trace.to_lines())
         if self.app_state.ollama_status:
             lines.append(
                 f"Ollama connected: {self.app_state.ollama_status.is_connected}"

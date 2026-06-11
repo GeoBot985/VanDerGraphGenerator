@@ -8,9 +8,15 @@ from semantic_visual_builder.data.data_profiler import DatasetProfile
 from semantic_visual_builder.knowledge.product_kb import ProductKnowledgeBase
 from semantic_visual_builder.llm.llm_mapping_result import LlmMappingResult
 from semantic_visual_builder.llm.llm_semantic_mapper import LlmSemanticMapper
+from semantic_visual_builder.planning.clarification import ClarificationRequest
+from semantic_visual_builder.planning.deterministic_fallback_mapper import (
+    DeterministicFallbackMapper,
+)
 from semantic_visual_builder.planning.field_mapper import FieldMapper
-from semantic_visual_builder.planning.intent_mapper import IntentMapper
-from semantic_visual_builder.planning.visual_plan import summarize_visual_plan, visual_plan_from_llm_draft
+from semantic_visual_builder.planning.visual_plan import (
+    summarize_visual_plan,
+    visual_plan_from_llm_draft,
+)
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.validation.capability_validator import CapabilityValidator
@@ -26,6 +32,7 @@ class PlanningResult:
     llm_mapping_result: LlmMappingResult | None = None
     used_fallback: bool = False
     messages: list[str] = field(default_factory=list)
+    clarification_requests: list[ClarificationRequest] = field(default_factory=list)
 
 
 class PlanningOrchestrator:
@@ -34,7 +41,7 @@ class PlanningOrchestrator:
     def __init__(
         self,
         llm_mapper: LlmSemanticMapper,
-        deterministic_mapper: IntentMapper,
+        deterministic_mapper: DeterministicFallbackMapper,
         field_mapper: FieldMapper,
         visual_plan_validator: VisualPlanValidator,
         capability_validator: CapabilityValidator,
@@ -54,12 +61,18 @@ class PlanningOrchestrator:
         dataset_profile = app_state.dataset_context.profile
         product_kb = app_state.product_kb
         graph_matrix = app_state.graph_matrix
-        current_plan_summary = summarize_visual_plan(app_state.current_visual_plan) if app_state.current_visual_plan else None
+        current_plan_summary = (
+            summarize_visual_plan(app_state.current_visual_plan)
+            if app_state.current_visual_plan
+            else None
+        )
 
         selected_model = app_state.model_registry.selected_model
         llm_result: LlmMappingResult | None = None
         messages: list[str] = []
-        attempted_llm = bool(use_llm and app_state.llm_mapping_enabled and selected_model)
+        attempted_llm = bool(
+            use_llm and app_state.llm_mapping_enabled and selected_model
+        )
 
         if attempted_llm:
             llm_result = self.llm_mapper.map_to_draft(
@@ -72,42 +85,84 @@ class PlanningOrchestrator:
             )
             if llm_result.draft is not None:
                 plan = visual_plan_from_llm_draft(llm_result.draft)
-                plan.metadata.mapping_method = "llm_with_repair" if llm_result.used_repair else "llm"
-                validation = self._validate(plan, dataset_profile, product_kb)
+                plan.metadata.mapping_method = (
+                    "llm_with_repair" if llm_result.used_repair else "llm"
+                )
+                validation = self._validate(
+                    plan, dataset_profile, product_kb, graph_matrix
+                )
                 if validation.is_valid:
                     return PlanningResult(
                         visual_plan=plan,
                         validation_result=validation,
-                        mapping_method="llm_with_repair" if llm_result.used_repair else "llm",
+                        mapping_method="llm_with_repair"
+                        if llm_result.used_repair
+                        else "llm",
                         llm_mapping_result=llm_result,
                         used_fallback=False,
                         messages=messages,
+                        clarification_requests=[],
+                    )
+                unsupported_visual = any(
+                    message.message.startswith("Unsupported chart_type")
+                    or message.message.startswith("Unsupported diagram_type")
+                    for message in validation.messages
+                )
+                if unsupported_visual:
+                    messages.extend(message.message for message in validation.messages)
+                    messages.append(
+                        "The suggested visual type is not supported by the graph "
+                        "matrix contract."
+                    )
+                    return PlanningResult(
+                        visual_plan=None,
+                        validation_result=validation,
+                        mapping_method="llm_rejected",
+                        llm_mapping_result=llm_result,
+                        used_fallback=False,
+                        messages=messages,
+                        clarification_requests=[],
                     )
                 messages.extend(message.message for message in validation.messages)
-                messages.append("LLM JSON draft was valid but plan validation failed.")
-                messages.append("LLM mapping failed. Falling back to deterministic rule-based mapping.")
+                messages.append(
+                    "The LLM response did not pass the graph matrix contract."
+                )
+                messages.append("I used the limited deterministic fallback instead.")
             else:
                 messages.extend(llm_result.errors or ["LLM mapping failed."])
-                messages.append("LLM mapping failed. Falling back to deterministic rule-based mapping.")
+                messages.append("I used the limited deterministic fallback instead.")
         else:
             if use_llm and not app_state.llm_mapping_enabled:
-                messages.append("LLM semantic mapping disabled. Deterministic mapper used.")
+                messages.append(
+                    "I could not use LLM semantic mapping because it is "
+                    "disabled. I used the limited deterministic fallback instead."
+                )
             elif use_llm and not selected_model:
-                messages.append("No Ollama model selected. Deterministic mapper used.")
+                messages.append(
+                    "I could not use LLM semantic mapping because no model is "
+                    "selected. I used the limited deterministic fallback instead."
+                )
             llm_result = None
 
-        deterministic_plan = self.deterministic_mapper.map_request_to_plan(user_message, dataset_profile, graph_matrix)
+        deterministic_plan = self.deterministic_mapper.map_request_to_plan(
+            user_message, dataset_profile, graph_matrix
+        )
         if dataset_profile is not None:
-            deterministic_plan = self.field_mapper.propose_roles(user_message, dataset_profile, deterministic_plan)
-        deterministic_plan.metadata.mapping_method = "deterministic_fallback" if attempted_llm else "deterministic"
-        validation = self._validate(deterministic_plan, dataset_profile, product_kb)
+            deterministic_plan = self.field_mapper.propose_roles(
+                user_message, dataset_profile, deterministic_plan
+            )
+        deterministic_plan.metadata.mapping_method = "deterministic_fallback"
+        validation = self._validate(
+            deterministic_plan, dataset_profile, product_kb, graph_matrix
+        )
         return PlanningResult(
             visual_plan=deterministic_plan,
             validation_result=validation,
-            mapping_method="deterministic_fallback" if attempted_llm else "deterministic",
+            mapping_method="deterministic_fallback",
             llm_mapping_result=llm_result,
-            used_fallback=attempted_llm,
+            used_fallback=True,
             messages=messages,
+            clarification_requests=[],
         )
 
     def _validate(
@@ -115,9 +170,14 @@ class PlanningOrchestrator:
         plan,
         dataset_profile: DatasetProfile | None,
         product_kb: ProductKnowledgeBase | None,
+        graph_matrix,
     ) -> ValidationResult:
-        validation = self.visual_plan_validator.validate(plan, dataset_profile, None)
+        validation = self.visual_plan_validator.validate(
+            plan, dataset_profile, graph_matrix
+        )
         if product_kb is not None:
-            capability_result = self.capability_validator.validate_against_capabilities(plan, product_kb)
+            capability_result = self.capability_validator.validate_against_capabilities(
+                plan, product_kb
+            )
             validation.messages.extend(capability_result.messages)
         return validation

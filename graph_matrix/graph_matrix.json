@@ -1,22 +1,282 @@
 {
+  "schema_version": "1.0",
+  "visual_kinds": ["chart", "diagram"],
+  "actions": [
+    "create_plan",
+    "refine_plan",
+    "answer_capability",
+    "workflow_help",
+    "clarification_needed",
+    "unsupported"
+  ],
+  "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
+  "allowed_transforms": ["identity", "day", "week", "month", "year"],
+  "allowed_filter_operators": [
+    "equals",
+    "not_equals",
+    "in",
+    "not_in",
+    "contains",
+    "starts_with",
+    "ends_with",
+    "gt",
+    "gte",
+    "lt",
+    "lte",
+    "between",
+    "before",
+    "after"
+  ],
+  "roles": {
+    "category": {
+      "description": "Categorical grouping role for comparisons.",
+      "semantic_types": ["categorical"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["bar", "horizontal_bar", "pie", "stacked_bar", "box_plot"],
+      "allowed_aggregations": ["count"],
+      "allowed_transforms": ["identity"]
+    },
+    "measure": {
+      "description": "Numeric metric role.",
+      "semantic_types": ["numeric"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["bar", "horizontal_bar", "line", "scatter", "pie", "histogram", "box_plot", "heatmap", "stacked_bar"],
+      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"]
+    },
+    "x": {
+      "description": "Horizontal axis role.",
+      "semantic_types": ["categorical", "numeric", "datetime"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["line", "scatter", "heatmap", "stacked_bar"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity", "day", "week", "month", "year"]
+    },
+    "y": {
+      "description": "Vertical axis role.",
+      "semantic_types": ["numeric", "categorical"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["line", "scatter"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"]
+    },
+    "time_or_order": {
+      "description": "Time or ordinal grouping role.",
+      "semantic_types": ["datetime", "categorical"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["line"],
+      "allowed_aggregations": ["count"],
+      "allowed_transforms": ["identity", "day", "week", "month", "year"]
+    },
+    "series": {
+      "description": "Series split for grouped bars.",
+      "semantic_types": ["categorical"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["stacked_bar"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"]
+    },
+    "stack": {
+      "description": "Stack grouping role.",
+      "semantic_types": ["categorical"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["stacked_bar"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"]
+    },
+    "x_category": {
+      "description": "Heatmap x-axis category role.",
+      "semantic_types": ["categorical"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["heatmap"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"]
+    },
+    "y_category": {
+      "description": "Heatmap y-axis category role.",
+      "semantic_types": ["categorical"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["heatmap"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"]
+    },
+    "value": {
+      "description": "Single-value distribution role.",
+      "semantic_types": ["numeric"],
+      "allowed_visual_kinds": ["chart"],
+      "allowed_chart_types": ["histogram", "box_plot"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"]
+    },
+    "nodes": {
+      "description": "Diagram nodes or participants.",
+      "semantic_types": ["categorical"],
+      "allowed_visual_kinds": ["diagram"],
+      "allowed_diagram_types": ["flowchart", "sequence_diagram"],
+      "allowed_aggregations": ["count"],
+      "allowed_transforms": ["identity"]
+    },
+    "edges": {
+      "description": "Diagram edges or messages.",
+      "semantic_types": ["categorical"],
+      "allowed_visual_kinds": ["diagram"],
+      "allowed_diagram_types": ["flowchart", "sequence_diagram"],
+      "allowed_aggregations": ["count"],
+      "allowed_transforms": ["identity"]
+    }
+  },
+  "chart_types": {
+    "bar": {
+      "visual_kind": "chart",
+      "intent": "compare_categories",
+      "required_roles": ["category", "measure"],
+      "optional_roles": ["series"],
+      "allowed_renderers": ["plotly"],
+      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    },
+    "horizontal_bar": {
+      "visual_kind": "chart",
+      "intent": "compare_categories",
+      "required_roles": ["category", "measure"],
+      "optional_roles": ["series"],
+      "allowed_renderers": ["plotly"],
+      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    },
+    "line": {
+      "visual_kind": "chart",
+      "intent": "show_trend",
+      "required_roles": ["x", "y"],
+      "optional_roles": ["series"],
+      "allowed_renderers": ["plotly"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity", "day", "week", "month", "year"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    },
+    "scatter": {
+      "visual_kind": "chart",
+      "intent": "show_relationship",
+      "required_roles": ["x", "y"],
+      "optional_roles": ["series"],
+      "allowed_renderers": ["plotly"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    },
+    "pie": {
+      "visual_kind": "chart",
+      "intent": "compare_categories",
+      "required_roles": ["category", "measure"],
+      "optional_roles": [],
+      "allowed_renderers": ["plotly"],
+      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    },
+    "histogram": {
+      "visual_kind": "chart",
+      "intent": "show_distribution",
+      "required_roles": ["value"],
+      "optional_roles": [],
+      "allowed_renderers": ["plotly"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    },
+    "box_plot": {
+      "visual_kind": "chart",
+      "intent": "show_distribution",
+      "required_roles": ["value"],
+      "optional_roles": ["category"],
+      "allowed_renderers": ["plotly"],
+      "allowed_aggregations": ["count", "sum", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    },
+    "heatmap": {
+      "visual_kind": "chart",
+      "intent": "show_matrix",
+      "required_roles": ["x_category", "y_category", "measure"],
+      "optional_roles": [],
+      "allowed_renderers": ["plotly"],
+      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    },
+    "stacked_bar": {
+      "visual_kind": "chart",
+      "intent": "compare_stacked_categories",
+      "required_roles": ["category", "stack", "measure"],
+      "optional_roles": [],
+      "allowed_renderers": ["plotly"],
+      "allowed_aggregations": ["sum", "count", "avg", "mean", "min", "max", "median"],
+      "allowed_transforms": ["identity"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    }
+  },
+  "diagram_types": {
+    "flowchart": {
+      "visual_kind": "diagram",
+      "intent": "show_process",
+      "required_roles": ["nodes", "edges"],
+      "optional_roles": [],
+      "allowed_renderers": ["mermaid"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    },
+    "sequence_diagram": {
+      "visual_kind": "diagram",
+      "intent": "show_process",
+      "required_roles": ["nodes", "edges"],
+      "optional_roles": [],
+      "allowed_renderers": ["mermaid"],
+      "allowed_filter_operators": ["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "gt", "gte", "lt", "lte", "between", "before", "after"]
+    }
+  },
   "intents": [
     {
       "intent": "compare_categories",
-      "preferred_visuals": ["bar", "horizontal_bar"],
+      "preferred_visuals": ["bar", "horizontal_bar", "pie"],
       "required_roles": ["category", "measure"],
-      "renderer_targets": ["plotly", "chartjs"]
+      "renderer_targets": ["plotly"]
     },
     {
       "intent": "show_trend",
       "preferred_visuals": ["line", "bar"],
-      "required_roles": ["time_or_order", "measure"],
-      "renderer_targets": ["plotly", "chartjs"]
+      "required_roles": ["x", "y"],
+      "renderer_targets": ["plotly"]
     },
     {
       "intent": "show_process",
-      "preferred_visuals": ["flowchart"],
+      "preferred_visuals": ["flowchart", "sequence_diagram"],
       "required_roles": ["nodes", "edges"],
       "renderer_targets": ["mermaid"]
+    },
+    {
+      "intent": "show_distribution",
+      "preferred_visuals": ["histogram", "box_plot"],
+      "required_roles": ["value"],
+      "renderer_targets": ["plotly"]
+    },
+    {
+      "intent": "show_matrix",
+      "preferred_visuals": ["heatmap"],
+      "required_roles": ["x_category", "y_category", "measure"],
+      "renderer_targets": ["plotly"]
+    },
+    {
+      "intent": "compare_stacked_categories",
+      "preferred_visuals": ["stacked_bar"],
+      "required_roles": ["category", "stack", "measure"],
+      "renderer_targets": ["plotly"]
+    },
+    {
+      "intent": "show_relationship",
+      "preferred_visuals": ["scatter"],
+      "required_roles": ["x", "y"],
+      "renderer_targets": ["plotly"]
     }
   ]
 }

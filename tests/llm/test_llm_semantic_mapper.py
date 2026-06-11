@@ -18,7 +18,14 @@ class FakeClient:
         self.calls = []
 
     def generate(self, model, prompt, system=None, temperature=0.0):
-        self.calls.append({"model": model, "prompt": prompt, "system": system, "temperature": temperature})
+        self.calls.append(
+            {
+                "model": model,
+                "prompt": prompt,
+                "system": system,
+                "temperature": temperature,
+            }
+        )
         response = self.responses.pop(0)
         if isinstance(response, Exception):
             raise response
@@ -42,37 +49,81 @@ def _mapper(client):
 
 
 def test_valid_llm_json_returns_draft() -> None:
-    client = FakeClient(['{"visual_kind":"chart","intent":"compare_categories","chart_type":"bar","roles":{"category":{"field":"Region"},"measure":{"field":"Amount","aggregation":"sum"}},"renderer":"plotly"}'])
-    result = _mapper(client).map_to_draft("model", "Show total amount by region", _profile(), ProductKnowledgeLoader(get_kb_dir()).load(), GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load())
+    client = FakeClient(
+        [
+            '{"action":"create_plan","visual_kind":"chart","intent":"compare_categories","chart_type":"bar","roles":{"category":{"field":"Region"},"measure":{"field":"Amount","aggregation":"sum"}},"renderer":"plotly"}'
+        ]
+    )
+    result = _mapper(client).map_to_draft(
+        "model",
+        "Show total amount by region",
+        _profile(),
+        ProductKnowledgeLoader(get_kb_dir()).load(),
+        GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load(),
+    )
     assert result.draft is not None
     assert result.used_repair is False
 
 
 def test_fenced_json_is_accepted() -> None:
-    client = FakeClient(['```json\n{"visual_kind":"diagram","intent":"show_process","diagram_type":"flowchart","roles":{},"renderer":"mermaid"}\n```'])
-    result = _mapper(client).map_to_draft("model", "Create a flowchart", _profile(), ProductKnowledgeLoader(get_kb_dir()).load(), GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load())
+    client = FakeClient(
+        [
+            '```json\n{"action":"create_plan","visual_kind":"diagram","intent":"show_process","diagram_type":"flowchart","roles":{"nodes":{},"edges":{}},"diagram_nodes":[{"id":"A","label":"User"},{"id":"B","label":"App"}],"diagram_edges":[{"source":"A","target":"B"}],"renderer":"mermaid"}\n```'
+        ]
+    )
+    result = _mapper(client).map_to_draft(
+        "model",
+        "Create a flowchart",
+        _profile(),
+        ProductKnowledgeLoader(get_kb_dir()).load(),
+        GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load(),
+    )
     assert result.draft is not None
 
 
 def test_malformed_json_triggers_repair() -> None:
-    client = FakeClient([
-        "not json",
-        '{"visual_kind":"chart","intent":"compare_categories","chart_type":"bar","roles":{"category":{"field":"Region"},"measure":{"field":"Amount","aggregation":"sum"}},"renderer":"plotly"}',
-    ])
-    result = _mapper(client).map_to_draft("model", "Show total amount by region", _profile(), ProductKnowledgeLoader(get_kb_dir()).load(), GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load())
+    client = FakeClient(
+        [
+            "not json",
+            '{"action":"create_plan","visual_kind":"chart","intent":"compare_categories","chart_type":"bar","roles":{"category":{"field":"Region"},"measure":{"field":"Amount","aggregation":"sum"}},"renderer":"plotly"}',
+        ]
+    )
+    result = _mapper(client).map_to_draft(
+        "model",
+        "Show total amount by region",
+        _profile(),
+        ProductKnowledgeLoader(get_kb_dir()).load(),
+        GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load(),
+    )
     assert result.used_repair is True
     assert result.draft is not None
 
 
 def test_invalid_output_returns_errors() -> None:
-    client = FakeClient(['{"visual_kind":"chart","intent":"compare_categories","chart_type":"donut","roles":{"category":{"field":"Region"},"measure":{"field":"Amount","aggregation":"sum"}},"renderer":"plotly"}'])
-    result = _mapper(client).map_to_draft("model", "Show total amount by region", _profile(), ProductKnowledgeLoader(get_kb_dir()).load(), GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load())
+    client = FakeClient(
+        [
+            '{"action":"create_plan","visual_kind":"chart","intent":"compare_categories","chart_type":"donut","roles":{"category":{"field":"Region"},"measure":{"field":"Amount","aggregation":"sum"}},"renderer":"plotly"}'
+        ]
+    )
+    result = _mapper(client).map_to_draft(
+        "model",
+        "Show total amount by region",
+        _profile(),
+        ProductKnowledgeLoader(get_kb_dir()).load(),
+        GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load(),
+    )
     assert result.draft is None
     assert result.errors
 
 
 def test_generation_failure_returns_mapping_result_with_errors() -> None:
     client = FakeClient([RuntimeError("offline")])
-    result = _mapper(client).map_to_draft("model", "Show total amount by region", _profile(), ProductKnowledgeLoader(get_kb_dir()).load(), GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load())
+    result = _mapper(client).map_to_draft(
+        "model",
+        "Show total amount by region",
+        _profile(),
+        ProductKnowledgeLoader(get_kb_dir()).load(),
+        GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load(),
+    )
     assert result.draft is None
     assert result.errors

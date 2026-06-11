@@ -1,11 +1,16 @@
 """Refinement orchestrator tests."""
 
 from semantic_visual_builder.data.data_profiler import ColumnProfile, DatasetProfile
-from semantic_visual_builder.llm.llm_mapping_result import LlmMappingResult, LlmVisualPlanDraft
+from semantic_visual_builder.llm.llm_mapping_result import (
+    LlmMappingResult,
+    LlmVisualPlanDraft,
+)
 from semantic_visual_builder.llm.ollama_client import OllamaModel
 from semantic_visual_builder.planning.clarification_engine import ClarificationEngine
 from semantic_visual_builder.planning.refinement_engine import RefinementEngine
-from semantic_visual_builder.planning.refinement_orchestrator import RefinementOrchestrator
+from semantic_visual_builder.planning.refinement_orchestrator import (
+    RefinementOrchestrator,
+)
 from semantic_visual_builder.planning.visual_plan_schema import DataRole, VisualPlan
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.validation.capability_validator import CapabilityValidator
@@ -59,6 +64,7 @@ def test_llm_refinement_preserves_existing_roles_when_only_chart_type_changes() 
             DataRole(role="measure", field="Amount", aggregation="sum"),
         ],
     )
+    current_plan.render_target.renderer = "plotly"
     result = _orchestrator(
         LlmMappingResult(
             raw_response="{}",
@@ -74,7 +80,10 @@ def test_llm_refinement_preserves_existing_roles_when_only_chart_type_changes() 
     ).refine_plan(current_plan, "Make it horizontal", _state())
     assert result.visual_plan is not None
     assert result.visual_plan.chart_type == "horizontal_bar"
-    assert {role.role: role.field for role in result.visual_plan.data_roles} == {"category": "Region", "measure": "Amount"}
+    assert {role.role: role.field for role in result.visual_plan.data_roles} == {
+        "category": "Region",
+        "measure": "Amount",
+    }
 
 
 def test_failed_llm_refinement_falls_back_to_deterministic_refinement() -> None:
@@ -87,6 +96,7 @@ def test_failed_llm_refinement_falls_back_to_deterministic_refinement() -> None:
             DataRole(role="measure", field="Amount", aggregation="sum"),
         ],
     )
+    current_plan.render_target.renderer = "plotly"
     result = _orchestrator(
         LlmMappingResult(raw_response="", parsed_json=None, draft=None, errors=["boom"])
     ).refine_plan(current_plan, "Make it horizontal", _state())
@@ -132,6 +142,7 @@ def test_accepted_refinement_marks_preview_stale() -> None:
             DataRole(role="measure", field="Amount", aggregation="sum"),
         ],
     )
+    current_plan.render_target.renderer = "plotly"
     result = _orchestrator(
         LlmMappingResult(
             raw_response="{}",

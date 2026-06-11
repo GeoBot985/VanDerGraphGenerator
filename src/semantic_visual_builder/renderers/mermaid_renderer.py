@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from semantic_visual_builder.utils.text_sanitize import sanitize_label
 from semantic_visual_builder.data.dataset_context import DatasetContext
-from semantic_visual_builder.planning.visual_plan_schema import DiagramEdge, DiagramNode, VisualPlan
+from semantic_visual_builder.planning.visual_plan_schema import (
+    DiagramEdge,
+    DiagramNode,
+    VisualPlan,
+)
 from semantic_visual_builder.renderers.base_renderer import BaseRenderer
 from semantic_visual_builder.renderers.mermaid_style_adapter import MermaidStyleAdapter
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
+from semantic_visual_builder.utils.text_sanitize import sanitize_label
 from semantic_visual_builder.validation.validation_result import ValidationResult
 
 
@@ -20,7 +24,10 @@ class MermaidRenderer(BaseRenderer):
         self.style_adapter = MermaidStyleAdapter()
 
     def can_render(self, visual_plan: VisualPlan) -> bool:
-        return visual_plan.visual_kind == "diagram" and visual_plan.diagram_type == "flowchart"
+        return visual_plan.visual_kind == "diagram" and visual_plan.diagram_type in {
+            "flowchart",
+            "sequence_diagram",
+        }
 
     def render(
         self,
@@ -28,7 +35,9 @@ class MermaidRenderer(BaseRenderer):
         dataset_context: DatasetContext | None = None,
     ) -> RendererOutput:
         if not self.can_render(visual_plan):
-            raise ValueError("MermaidRenderer can only render flowchart diagram plans.")
+            raise ValueError(
+                "MermaidRenderer can only render flowchart or sequence diagram plans."
+            )
         code = self._build_mermaid(visual_plan)
         code = self.style_adapter.apply_style_to_mermaid(code, visual_plan)
         return RendererOutput(
@@ -47,13 +56,20 @@ class MermaidRenderer(BaseRenderer):
             result.add_error("output_type must be mermaid.")
         if not output.content.strip():
             result.add_error("Mermaid output must not be blank.")
-        if not output.content.lstrip().startswith("flowchart"):
-            result.add_error("Mermaid flowchart output must start with flowchart.")
-        if "-->" not in output.content:
+        if not (
+            output.content.lstrip().startswith("flowchart")
+            or output.content.lstrip().startswith("sequenceDiagram")
+        ):
+            result.add_error(
+                "Mermaid output must start with flowchart or sequenceDiagram."
+            )
+        if "-->" not in output.content and "->>" not in output.content:
             result.add_error("Mermaid output must contain at least one edge arrow.")
         return result
 
     def _build_mermaid(self, visual_plan: VisualPlan) -> str:
+        if visual_plan.diagram_type == "sequence_diagram":
+            return self._build_sequence_diagram(visual_plan)
         nodes = visual_plan.diagram_nodes or self._fallback_nodes()
         edges = visual_plan.diagram_edges or self._fallback_edges(nodes)
         direction = visual_plan.style.diagram_direction or (
@@ -61,12 +77,38 @@ class MermaidRenderer(BaseRenderer):
         )
         lines = [f"flowchart {direction}"]
         for node in nodes:
-            lines.append(f"    {self._safe_node_id(node.id)}{self._node_brackets(node)}")
+            lines.append(
+                f"    {self._safe_node_id(node.id)}{self._node_brackets(node)}"
+            )
         for edge in edges:
             if edge.label:
-                lines.append(f"    {self._safe_node_id(edge.source)} -->|{sanitize_label(edge.label)}| {self._safe_node_id(edge.target)}")
+                source = self._safe_node_id(edge.source)
+                target = self._safe_node_id(edge.target)
+                label = sanitize_label(edge.label)
+                lines.append(
+                    f"    {source} -->|{label}| {target}"
+                )
             else:
-                lines.append(f"    {self._safe_node_id(edge.source)} --> {self._safe_node_id(edge.target)}")
+                source = self._safe_node_id(edge.source)
+                target = self._safe_node_id(edge.target)
+                lines.append(
+                    f"    {source} --> {target}"
+                )
+        return "\n".join(lines)
+
+    def _build_sequence_diagram(self, visual_plan: VisualPlan) -> str:
+        nodes = visual_plan.diagram_nodes or self._fallback_nodes()
+        edges = visual_plan.diagram_edges or self._fallback_edges(nodes)
+        lines = ["sequenceDiagram"]
+        for node in nodes:
+            node_id = self._safe_node_id(node.id)
+            node_label = sanitize_label(node.label)
+            lines.append(f"    participant {node_id} as {node_label}")
+        for edge in edges:
+            label = sanitize_label(edge.label) if edge.label else "message"
+            source = self._safe_node_id(edge.source)
+            target = self._safe_node_id(edge.target)
+            lines.append(f"    {source}->>{target}: {label}")
         return "\n".join(lines)
 
     def _node_brackets(self, node: DiagramNode) -> str:
@@ -83,7 +125,9 @@ class MermaidRenderer(BaseRenderer):
     def _fallback_nodes(self) -> list[DiagramNode]:
         return [
             DiagramNode(id="A", label="Diagram plan created"),
-            DiagramNode(id="B", label="Detailed node extraction starts in a later sprint"),
+            DiagramNode(
+                id="B", label="Detailed node extraction starts in a later sprint"
+            ),
         ]
 
     def _fallback_edges(self, nodes: list[DiagramNode]) -> list[DiagramEdge]:

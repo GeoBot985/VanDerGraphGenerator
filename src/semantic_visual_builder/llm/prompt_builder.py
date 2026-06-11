@@ -7,7 +7,10 @@ import json
 from semantic_visual_builder.data.data_profiler import DatasetProfile
 from semantic_visual_builder.knowledge.graph_matrix import GraphMatrix
 from semantic_visual_builder.knowledge.product_kb import ProductKnowledgeBase
-from semantic_visual_builder.planning.visual_plan import summarize_visual_plan, visual_plan_to_dict
+from semantic_visual_builder.planning.visual_plan import (
+    summarize_visual_plan,
+    visual_plan_to_dict,
+)
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 
 
@@ -35,44 +38,63 @@ class VisualIntentPromptBuilder:
             lines.append(f"Rows: {dataset_profile.row_count}")
             for column in dataset_profile.columns:
                 samples = ", ".join(column.sample_values[:2])
-                lines.append(
-                    f"- {column.name}: semantic_type={column.semantic_type}, null_percent={column.null_percent:.2f}, samples=[{samples}]"
+                column_line = (
+                    f"- {column.name}: semantic_type={column.semantic_type}, "
+                    f"null_percent={column.null_percent:.2f}, samples=[{samples}]"
                 )
+                lines.append(column_line)
 
-        lines.extend(["", "Supported chart types:"])
-        if product_kb is not None:
-            for item in product_kb.chart_types.get("supported_mvp", []):
-                if isinstance(item, dict):
-                    lines.append(f"- {item.get('name')}: {item.get('purpose')}")
-
-            lines.extend(["", "Supported diagram types:"])
-            for item in product_kb.diagram_types.get("supported_mvp", []):
-                if isinstance(item, dict):
-                    lines.append(f"- {item.get('name')}: {item.get('purpose')}")
-
-            lines.extend(["", "Supported renderers:"])
-            lines.append("- plotly")
-            lines.append("- chartjs")
-            lines.append("- mermaid")
-            lines.extend(["", "MVP limitations:"])
-            for item in product_kb.limitations.get("mvp_limitations", []):
-                lines.append(f"- {item}")
-
+        contract_note = (
+            "Use only chart_types, diagram_types, roles, renderers, "
+            "aggregations, transforms, and filter operators defined below."
+        )
+        lines.extend(
+            [
+                "",
+                "Graph matrix authoritative contract:",
+                contract_note,
+                "Do not invent unsupported visuals or renderers.",
+            ]
+        )
         if graph_matrix is not None:
-            lines.extend(["", "Supported intents:"])
-            for intent in graph_matrix.list_intents():
-                lines.append(f"- {intent}")
+            lines.extend(
+                [
+                    "",
+                    "Graph matrix JSON:",
+                    json.dumps(graph_matrix.raw, ensure_ascii=False, indent=2),
+                ]
+            )
 
         if current_plan_summary:
             lines.extend(["", "Current visual plan summary:", current_plan_summary])
         if current_plan is not None:
-            lines.extend(["", "Current visual plan JSON:", json.dumps(visual_plan_to_dict(current_plan), ensure_ascii=False)])
+            lines.extend(
+                [
+                    "",
+                    "Current visual plan JSON:",
+                    json.dumps(visual_plan_to_dict(current_plan), ensure_ascii=False),
+                ]
+            )
 
         lines.extend(
             [
                 "",
                 "Required JSON output contract:",
-                '{"visual_kind":"chart","intent":"compare_categories","chart_type":"bar","diagram_type":null,"roles":{},"filters":[],"grouping":[],"style":{"title":null,"subtitle":null,"colour_scheme":null,"highlights":{},"labels":{},"orientation":null},"renderer":"plotly","confidence":0.0,"assumptions":[],"questions":[],"diagram_nodes":[],"diagram_edges":[]}',
+                (
+                    '{"action":"create_plan","visual_kind":"chart",'
+                    '"intent":"compare_categories","chart_type":"bar",'
+                    '"diagram_type":null,"roles":{},"filters":[],"grouping":[],'
+                    '"style":{"title":null,"subtitle":null,'
+                    '"colour_scheme":null,"highlights":{},'
+                    '"labels":{},"orientation":null},"renderer":"plotly",'
+                    '"confidence":0.0,"assumptions":[],"questions":[],'
+                    '"diagram_nodes":[],"diagram_edges":[]}'
+                ),
+                (
+                    "Action must be one of: create_plan, refine_plan, "
+                    "answer_capability, workflow_help, clarification_needed, "
+                    "unsupported."
+                ),
                 "",
                 "Return JSON only. Do not include code fences or commentary.",
             ]
@@ -101,12 +123,14 @@ class VisualIntentPromptBuilder:
             "Return JSON only.",
             "",
         ]
-        lines.append(self.build_prompt(
-            user_message=user_message,
-            dataset_profile=dataset_profile,
-            product_kb=product_kb,
-            graph_matrix=graph_matrix,
-            current_plan_summary=current_plan_summary,
-            current_plan=current_plan,
-        ))
+        lines.append(
+            self.build_prompt(
+                user_message=user_message,
+                dataset_profile=dataset_profile,
+                product_kb=product_kb,
+                graph_matrix=graph_matrix,
+                current_plan_summary=current_plan_summary,
+                current_plan=current_plan,
+            )
+        )
         return "\n".join(lines)

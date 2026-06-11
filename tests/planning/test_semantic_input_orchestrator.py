@@ -8,7 +8,6 @@ from semantic_visual_builder.llm.llm_mapping_result import (
 from semantic_visual_builder.planning.clarification_engine import ClarificationEngine
 from semantic_visual_builder.planning.field_mapper import FieldMapper
 from semantic_visual_builder.planning.intent_mapper import IntentMapper
-from semantic_visual_builder.planning.message_classifier import MessageIntent
 from semantic_visual_builder.planning.planning_orchestrator import PlanningOrchestrator
 from semantic_visual_builder.planning.refinement_engine import RefinementEngine
 from semantic_visual_builder.planning.refinement_orchestrator import (
@@ -31,16 +30,6 @@ class FakeMapper:
     def map_to_draft(self, **kwargs):
         self.calls += 1
         return self.result
-
-
-class FakeClassifier:
-    def __init__(self, intent=MessageIntent.UNKNOWN):
-        self.intent = intent
-        self.calls = 0
-
-    def classify(self, message: str, has_current_plan: bool = False):
-        self.calls += 1
-        return self.intent
 
 
 def _profile() -> DatasetProfile:
@@ -67,12 +56,11 @@ def _state(selected_model: str | None = "gemma4:12b") -> AppState:
             DataRole(role="measure", field="Amount", aggregation="sum"),
         ],
     )
+    state.current_visual_plan.render_target.renderer = "plotly"
     return state
 
 
-def _semantic_orchestrator(
-    fake_result, classifier=None
-) -> tuple[SemanticInputOrchestrator, FakeMapper]:
+def _semantic_orchestrator(fake_result) -> tuple[SemanticInputOrchestrator, FakeMapper]:
     mapper = FakeMapper(fake_result)
     planning_orchestrator = PlanningOrchestrator(
         llm_mapper=mapper,
@@ -92,7 +80,6 @@ def _semantic_orchestrator(
         SemanticInputOrchestrator(
             planning_orchestrator=planning_orchestrator,
             refinement_orchestrator=refinement_orchestrator,
-            message_classifier=classifier or FakeClassifier(),
         ),
         mapper,
     )
@@ -117,11 +104,14 @@ def test_natural_refinement_phrase_reaches_llm_first() -> None:
         )
     )
 
-    result = orchestrator.process_message("turn this into a pie", state, use_llm=True)
+    result = orchestrator.handle_message("turn this into a pie", state, use_llm=True)
 
     assert mapper.calls == 1
     assert result.action == "refinement_request"
     assert result.mapping_method == "llm"
+    assert result.trace is not None
+    assert result.trace.llm_attempted is True
+    assert result.trace.llm_success is True
     assert any(line == "LLM attempted: yes" for line in result.messages)
     assert any(line == "LLM success: yes" for line in result.messages)
 
@@ -137,12 +127,14 @@ def test_deterministic_fallback_still_works_without_selected_model() -> None:
         )
     )
 
-    result = orchestrator.process_message("turn this into a pie", state, use_llm=True)
+    result = orchestrator.handle_message("turn this into a pie", state, use_llm=True)
 
     assert mapper.calls == 0
     assert result.action == "refinement_request"
-    assert result.mapping_method == "deterministic"
-    assert result.used_fallback is False
+    assert result.mapping_method == "deterministic_fallback"
+    assert result.used_fallback is True
+    assert result.trace is not None
+    assert result.trace.used_fallback is True
     assert any(line == "LLM attempted: no" for line in result.messages)
 
 
@@ -152,11 +144,13 @@ def test_failed_llm_output_falls_back_to_deterministic_mapping() -> None:
         LlmMappingResult(raw_response="", parsed_json=None, draft=None, errors=["boom"])
     )
 
-    result = orchestrator.process_message("turn this into a pie", state, use_llm=True)
+    result = orchestrator.handle_message("turn this into a pie", state, use_llm=True)
 
     assert mapper.calls == 1
     assert result.action == "refinement_request"
     assert result.mapping_method == "deterministic_fallback"
     assert result.used_fallback is True
+    assert result.trace is not None
+    assert result.trace.llm_success is False
     assert any(line == "LLM attempted: yes" for line in result.messages)
     assert any(line == "LLM success: no" for line in result.messages)

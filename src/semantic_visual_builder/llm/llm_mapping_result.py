@@ -10,6 +10,7 @@ from typing import Any
 class LlmVisualPlanDraft:
     visual_kind: str
     intent: str
+    action: str | None = None
     chart_type: str | None = None
     diagram_type: str | None = None
     roles: dict[str, Any] = field(default_factory=dict)

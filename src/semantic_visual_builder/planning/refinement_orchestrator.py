@@ -5,10 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from semantic_visual_builder.llm.llm_semantic_mapper import LlmSemanticMapper
-from semantic_visual_builder.planning.clarification import ClarificationRequest, PendingClarification
+from semantic_visual_builder.planning.clarification import ClarificationRequest
 from semantic_visual_builder.planning.clarification_engine import ClarificationEngine
-from semantic_visual_builder.planning.refinement_engine import RefinementEngine
-from semantic_visual_builder.planning.visual_plan import merge_visual_plans, summarize_visual_plan, visual_plan_from_llm_draft
+from semantic_visual_builder.planning.deterministic_fallback_patch_planner import (
+    DeterministicFallbackPatchPlanner,
+)
+from semantic_visual_builder.planning.visual_plan import summarize_visual_plan
+from semantic_visual_builder.planning.visual_plan_patch import VisualPlanPatch
+from semantic_visual_builder.planning.visual_plan_patch_applier import (
+    VisualPlanPatchApplier,
+)
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.validation.capability_validator import CapabilityValidator
@@ -32,16 +38,23 @@ class RefinementOrchestrator:
     def __init__(
         self,
         llm_mapper: LlmSemanticMapper,
-        deterministic_refinement_engine: RefinementEngine,
-        visual_plan_validator: VisualPlanValidator,
-        capability_validator: CapabilityValidator,
-        clarification_engine: ClarificationEngine,
+        deterministic_refinement_engine: object | None = None,
+        visual_plan_validator: VisualPlanValidator | None = None,
+        capability_validator: CapabilityValidator | None = None,
+        clarification_engine: ClarificationEngine | None = None,
+        deterministic_fallback_patch_planner: DeterministicFallbackPatchPlanner
+        | None = None,
+        patch_applier: VisualPlanPatchApplier | None = None,
     ):
         self.llm_mapper = llm_mapper
         self.deterministic_refinement_engine = deterministic_refinement_engine
-        self.visual_plan_validator = visual_plan_validator
-        self.capability_validator = capability_validator
-        self.clarification_engine = clarification_engine
+        self.deterministic_fallback_patch_planner = (
+            deterministic_fallback_patch_planner or DeterministicFallbackPatchPlanner()
+        )
+        self.patch_applier = patch_applier or VisualPlanPatchApplier()
+        self.visual_plan_validator = visual_plan_validator or VisualPlanValidator()
+        self.capability_validator = capability_validator or CapabilityValidator()
+        self.clarification_engine = clarification_engine or ClarificationEngine()
 
     def refine_plan(
         self,
@@ -56,7 +69,9 @@ class RefinementOrchestrator:
         selected_model = app_state.model_registry.selected_model
         messages: list[str] = []
         llm_result = None
-        attempted_llm = bool(use_llm and app_state.llm_mapping_enabled and selected_model)
+        attempted_llm = bool(
+            use_llm and app_state.llm_mapping_enabled and selected_model
+        )
 
         if attempted_llm:
             llm_result = self.llm_mapper.map_to_draft(
@@ -69,10 +84,20 @@ class RefinementOrchestrator:
                 current_plan=current_plan,
             )
             if llm_result.draft is not None:
-                refined = merge_visual_plans(current_plan, visual_plan_from_llm_draft(llm_result.draft))
-                refined.metadata.mapping_method = "llm_with_repair" if llm_result.used_repair else "llm"
-                validation = self._validate(refined, dataset_profile, product_kb)
-                clarification_requests = self.clarification_engine.detect_needed_clarification(refined, dataset_profile)
+                refined = self.patch_applier.apply_patch(
+                    current_plan, VisualPlanPatch.from_llm_draft(llm_result.draft)
+                )
+                refined.metadata.mapping_method = (
+                    "llm_with_repair" if llm_result.used_repair else "llm"
+                )
+                validation = self._validate(
+                    refined, dataset_profile, product_kb, graph_matrix
+                )
+                clarification_requests = (
+                    self.clarification_engine.detect_needed_clarification(
+                        refined, dataset_profile
+                    )
+                )
                 if validation.is_valid and not clarification_requests:
                     refined.metadata.is_preview_stale = True
                     return RefinementResult(
@@ -83,9 +108,32 @@ class RefinementOrchestrator:
                         messages=messages,
                     )
                 if not clarification_requests:
-                    clarification_requests = self._clarification_from_validation(refined, validation, dataset_profile)
+                    clarification_requests = self._clarification_from_validation(
+                        refined, validation, dataset_profile
+                    )
+                unsupported_visual = any(
+                    message.message.startswith("Unsupported chart_type")
+                    or message.message.startswith("Unsupported diagram_type")
+                    for message in validation.messages
+                )
+                if unsupported_visual:
+                    messages.extend(message.message for message in validation.messages)
+                    messages.append(
+                        "The suggested visual type is not supported by the graph "
+                        "matrix contract."
+                    )
+                    return RefinementResult(
+                        visual_plan=None,
+                        validation_result=validation,
+                        mapping_method="llm_rejected",
+                        used_fallback=False,
+                        messages=messages,
+                    )
                 messages.extend(message.message for message in validation.messages)
-                messages.append("Refined plan requires clarification before it can replace the current plan.")
+                messages.append(
+                    "Refined plan requires clarification before it can replace "
+                    "the current plan."
+                )
                 return RefinementResult(
                     visual_plan=None,
                     validation_result=validation,
@@ -95,43 +143,79 @@ class RefinementOrchestrator:
                     messages=messages,
                 )
             messages.extend(llm_result.errors or ["LLM refinement failed."])
-            messages.append("LLM refinement failed. Falling back to deterministic refinement.")
+            messages.append("The LLM response did not pass the graph matrix contract.")
+            messages.append(
+                "I used deterministic fallback patch planning where possible."
+            )
         else:
             if use_llm and not app_state.llm_mapping_enabled:
-                messages.append("LLM semantic mapping disabled. Deterministic refinement used.")
+                messages.append(
+                    "I could not use LLM semantic refinement because it is "
+                    "disabled. I used deterministic fallback patch planning "
+                    "where possible."
+                )
             elif use_llm and not selected_model:
-                messages.append("No Ollama model selected. Deterministic refinement used.")
+                messages.append(
+                    "I could not use LLM semantic refinement because no model "
+                    "is selected. I used deterministic fallback patch planning "
+                    "where possible."
+                )
 
-        refined = self.deterministic_refinement_engine.apply_refinement(current_plan, user_message)
-        refined.metadata.mapping_method = "deterministic_fallback" if attempted_llm else "deterministic"
-        validation = self._validate(refined, dataset_profile, product_kb)
-        clarification_requests = self.clarification_engine.detect_needed_clarification(refined, dataset_profile)
+        if hasattr(self.deterministic_fallback_patch_planner, "build_patch"):
+            patch = self.deterministic_fallback_patch_planner.build_patch(
+                current_plan, user_message
+            )
+        elif hasattr(self.deterministic_refinement_engine, "apply_refinement"):
+            refined_plan = self.deterministic_refinement_engine.apply_refinement(
+                current_plan, user_message
+            )
+            patch = self._patch_from_plan(current_plan, refined_plan)
+        else:
+            patch = VisualPlanPatch()
+        refined = self.patch_applier.apply_patch(current_plan, patch)
+        refined.metadata.mapping_method = "deterministic_fallback"
+        validation = self._validate(refined, dataset_profile, product_kb, graph_matrix)
+        clarification_requests = self.clarification_engine.detect_needed_clarification(
+            refined, dataset_profile
+        )
         if validation.is_valid and not clarification_requests:
             refined.metadata.is_preview_stale = True
             return RefinementResult(
                 visual_plan=refined,
                 validation_result=validation,
-                mapping_method=refined.metadata.mapping_method or "deterministic",
-                used_fallback=attempted_llm,
+                mapping_method=refined.metadata.mapping_method
+                or "deterministic_fallback",
+                used_fallback=True,
                 messages=messages,
             )
         if not clarification_requests:
-            clarification_requests = self._clarification_from_validation(refined, validation, dataset_profile)
+            clarification_requests = self._clarification_from_validation(
+                refined, validation, dataset_profile
+            )
         messages.extend(message.message for message in validation.messages)
-        messages.append("Deterministic refinement requires clarification before it can replace the current plan.")
+        messages.append(
+            "Deterministic refinement requires clarification before it can "
+            "replace the current plan."
+        )
         return RefinementResult(
             visual_plan=None,
             validation_result=validation,
-            mapping_method=refined.metadata.mapping_method or "deterministic",
+            mapping_method=refined.metadata.mapping_method or "deterministic_fallback",
             clarification_requests=clarification_requests,
-            used_fallback=attempted_llm,
+            used_fallback=True,
             messages=messages,
         )
 
-    def _validate(self, plan: VisualPlan, dataset_profile, product_kb) -> ValidationResult:
-        validation = self.visual_plan_validator.validate(plan, dataset_profile, None)
+    def _validate(
+        self, plan: VisualPlan, dataset_profile, product_kb, graph_matrix
+    ) -> ValidationResult:
+        validation = self.visual_plan_validator.validate(
+            plan, dataset_profile, graph_matrix
+        )
         if product_kb is not None:
-            capability_result = self.capability_validator.validate_against_capabilities(plan, product_kb)
+            capability_result = self.capability_validator.validate_against_capabilities(
+                plan, product_kb
+            )
             validation.messages.extend(capability_result.messages)
         return validation
 
@@ -151,3 +235,49 @@ class RefinementOrchestrator:
                 field_name="category" if plan.visual_kind == "chart" else None,
             )
         ]
+
+    def _patch_from_plan(
+        self, base: VisualPlan, updated: VisualPlan
+    ) -> VisualPlanPatch:
+        style = None
+        if updated.style != base.style:
+            style = updated.style
+        render_target = None
+        if updated.render_target != base.render_target:
+            render_target = updated.render_target
+        notes = updated.notes if updated.notes != base.notes else None
+        data_roles = (
+            updated.data_roles if updated.data_roles != base.data_roles else None
+        )
+        filters = updated.filters if updated.filters != base.filters else None
+        grouping = updated.grouping if updated.grouping != base.grouping else None
+        diagram_nodes = (
+            updated.diagram_nodes
+            if updated.diagram_nodes != base.diagram_nodes
+            else None
+        )
+        diagram_edges = (
+            updated.diagram_edges
+            if updated.diagram_edges != base.diagram_edges
+            else None
+        )
+        return VisualPlanPatch(
+            visual_kind=updated.visual_kind
+            if updated.visual_kind != base.visual_kind
+            else None,
+            intent=updated.intent if updated.intent != base.intent else None,
+            chart_type=updated.chart_type
+            if updated.chart_type != base.chart_type
+            else None,
+            diagram_type=updated.diagram_type
+            if updated.diagram_type != base.diagram_type
+            else None,
+            data_roles=data_roles,
+            filters=filters,
+            grouping=grouping,
+            diagram_nodes=diagram_nodes,
+            diagram_edges=diagram_edges,
+            style=style,
+            render_target=render_target,
+            notes=notes,
+        )

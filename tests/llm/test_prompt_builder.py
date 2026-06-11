@@ -15,7 +15,9 @@ def test_prompt_includes_user_request_columns_and_contract() -> None:
     loaded = CsvLoader().load(root / "assets" / "samples" / "sample_transactions.csv")
     profile = DataProfiler().profile(loaded.dataframe)
     kb = ProductKnowledgeLoader(get_kb_dir()).load()
-    graph_matrix = GraphMatrixLoader(get_graph_matrix_dir() / "graph_matrix.json").load()
+    graph_matrix = GraphMatrixLoader(
+        get_graph_matrix_dir() / "graph_matrix.json"
+    ).load()
     prompt = VisualIntentPromptBuilder().build_prompt(
         user_message="Show transactions per week",
         dataset_profile=profile,
@@ -25,7 +27,9 @@ def test_prompt_includes_user_request_columns_and_contract() -> None:
 
     assert "Show transactions per week" in prompt
     assert "TransactionDate" in prompt
-    assert "supported chart types" in prompt.lower()
-    assert "plotly" in prompt.lower()
+    assert "graph matrix authoritative contract" in prompt.lower()
+    assert '"action"' in prompt
+    assert "create_plan" in prompt
+    assert "schema_version" in prompt
     assert "required json output contract" in prompt.lower()
     assert "TransactionDate,Region,Status,Amount" not in prompt
