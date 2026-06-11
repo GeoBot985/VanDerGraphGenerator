@@ -19,8 +19,13 @@ def _chart_plan() -> VisualPlan:
 def _style() -> StyleProfile:
     style = StyleProfile(
         metadata=StyleMetadata(style_id="corporate_blue", style_name="Corporate Blue"),
-        palette=ColourPalette(primary="#1f4e79", secondary="#5b9bd5", accent="#70ad47"),
-        typography=TypographyStyle(font_family="Arial"),
+        palette=ColourPalette(
+            primary="#1f4e79",
+            secondary="#5b9bd5",
+            accent="#70ad47",
+            sequence=["#1f4e79", "#5b9bd5", "#70ad47"],
+        ),
+        typography=TypographyStyle(font_family="Arial", title_size=18),
         chart=ChartStyle(
             background="#ffffff",
             plot_background="#f7f7f7",
@@ -47,8 +52,10 @@ def test_style_applier_updates_visual_plan_in_place() -> None:
     assert plan.metadata.style_profile_id == "corporate_blue"
     assert plan.metadata.style_profile_name == "Corporate Blue"
     assert plan.style.font_family == "Arial"
+    assert plan.style.title_size == 18
     assert plan.style.background == "#ffffff"
     assert plan.style.legend_position == "bottom"
+    assert plan.style.palette["sequence"] == ["#1f4e79", "#5b9bd5", "#70ad47"]
     assert plan.style.palette["class_defs"]["process"]["fill"] == "#d9eaf7"
     assert plan.metadata.is_preview_stale is True
 
