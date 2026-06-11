@@ -1063,6 +1063,8 @@ class SemanticVisualBuilderApp:
                 [
                     self.style_panel.active_style_text(self.app_state),
                     "",
+                    self.style_panel.summary_text(self.app_state),
+                    "",
                     self.style_panel.available_styles_text(self.app_state),
                 ]
             ),

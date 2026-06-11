@@ -46,11 +46,10 @@ class StyleApplier:
             visual_plan.style.diagram_direction = style_profile.diagram.direction
         if style_profile.typography.font_family is not None:
             visual_plan.style.font_family = style_profile.typography.font_family
+        if style_profile.typography.title_size is not None:
+            visual_plan.style.title_size = style_profile.typography.title_size
         if style_profile.palette.sequence:
-            visual_plan.style.palette = {
-                f"sequence_{index}": colour
-                for index, colour in enumerate(style_profile.palette.sequence)
-            }
+            visual_plan.style.palette["sequence"] = list(style_profile.palette.sequence)
         if style_profile.palette.primary is not None:
             visual_plan.style.palette["primary"] = style_profile.palette.primary
         if style_profile.palette.secondary is not None:
