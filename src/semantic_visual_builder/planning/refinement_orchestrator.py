@@ -91,6 +91,9 @@ class RefinementOrchestrator:
                 refined = self.patch_applier.apply_patch(
                     current_plan, VisualPlanPatch.from_llm_draft(llm_result.draft)
                 )
+                refined = self._preserve_visual_structure_for_style_only_refinement(
+                    current_plan, refined, user_message, llm_result.draft, messages
+                )
                 refined = self._apply_deterministic_style_patch_if_needed(
                     current_plan, refined, user_message, messages
                 )
@@ -386,6 +389,109 @@ class RefinementOrchestrator:
         if has_changes:
             updated = self.patch_applier.apply_patch(updated, style_patch)
         return updated
+
+    def _preserve_visual_structure_for_style_only_refinement(
+        self,
+        current_plan: VisualPlan,
+        refined: VisualPlan,
+        user_message: str,
+        llm_draft,
+        messages: list[str],
+    ) -> VisualPlan:
+        fallback_patch = self.deterministic_fallback_patch_planner.build_patch(
+            current_plan, user_message
+        )
+        if fallback_patch.chart_type is not None:
+            return refined
+        if llm_draft.chart_type is None:
+            return refined
+        if refined.chart_type == current_plan.chart_type:
+            return refined
+        style_requested = self._looks_like_style_only_request(user_message, fallback_patch)
+        if not style_requested:
+            return refined
+
+        patched = self.patch_applier.apply_patch(
+            refined,
+            VisualPlanPatch(
+                chart_type=current_plan.chart_type,
+                diagram_type=current_plan.diagram_type,
+            ),
+        )
+        if patched != refined:
+            messages.append(
+                "Preserved the existing chart type because the refinement request "
+                "only asked for style changes."
+            )
+        return patched
+
+    def _looks_like_style_only_request(
+        self,
+        user_message: str,
+        fallback_patch: VisualPlanPatch,
+    ) -> bool:
+        if fallback_patch.style is not None and any(
+            (
+                fallback_patch.style.background is not None,
+                fallback_patch.style.plot_background is not None,
+                fallback_patch.style.colour_scheme is not None,
+                fallback_patch.style.title is not None,
+                fallback_patch.style.title_size is not None,
+                bool(fallback_patch.style.palette),
+                fallback_patch.style.font_family is not None,
+                fallback_patch.style.grid is not None,
+                fallback_patch.style.legend_position is not None,
+                bool(fallback_patch.style.highlights),
+                bool(fallback_patch.style.labels),
+            )
+        ):
+            return True
+
+        lowered = user_message.lower()
+        style_keywords = (
+            "colour",
+            "color",
+            "background",
+            "font",
+            "title",
+            "subtitle",
+            "grid",
+            "legend",
+            "label",
+            "labels",
+            "size",
+            "bigger",
+            "smaller",
+            "darker",
+            "lighter",
+            "highlight",
+        )
+        structure_keywords = (
+            "bar",
+            "pie",
+            "line",
+            "area",
+            "scatter",
+            "bubble",
+            "treemap",
+            "waterfall",
+            "funnel",
+            "radar",
+            "gauge",
+            "kpi",
+            "donut",
+            "diagram",
+            "flowchart",
+            "sequence",
+            "network",
+            "timeline",
+            "swimlane",
+            "chart type",
+            "graph type",
+        )
+        has_style_keyword = any(keyword in lowered for keyword in style_keywords)
+        has_structure_keyword = any(keyword in lowered for keyword in structure_keywords)
+        return has_style_keyword and not has_structure_keyword
 
     def _needs_field_completion(self, plan: VisualPlan) -> bool:
         return not plan.data_roles or any(role.field is None for role in plan.data_roles) or (

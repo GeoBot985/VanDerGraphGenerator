@@ -46,16 +46,6 @@ class VlmStyleAnalyzer:
         deterministic_analysis: DeterministicImageStyleAnalysis,
         skip_vision_check: bool = False,
     ) -> VlmStyleAnalysis:
-        if not skip_vision_check and not self.vision_detector.is_likely_vision_model(model):
-            return VlmStyleAnalysis(
-                raw_response="",
-                parsed_json=None,
-                warnings=[
-                    f"Model '{model}' does not appear to support image input. "
-                    "Deterministic palette extraction was used."
-                ],
-            )
-
         generate_vision = getattr(self.ollama_client, "generate_vision", None)
         if not callable(generate_vision):
             return VlmStyleAnalysis(
@@ -76,6 +66,15 @@ class VlmStyleAnalyzer:
             f"- grid: {deterministic_analysis.grid_hint}\n"
             f"- label density: {deterministic_analysis.label_density_hint}\n"
         )
+        warnings: list[str] = []
+        if (
+            not skip_vision_check
+            and not self.vision_detector.is_likely_vision_model(model)
+        ):
+            warnings.append(
+                f"Model '{model}' is not tagged as vision-capable by the local "
+                "heuristic. Attempting image input anyway."
+            )
         try:
             raw_response = generate_vision(
                 model=model,
@@ -83,16 +82,11 @@ class VlmStyleAnalyzer:
                 prompt=prompt,
                 system=IMAGE_STYLE_ANALYSIS_SYSTEM_PROMPT,
             )
-        except NotImplementedError as exc:
-            return VlmStyleAnalysis(
-                raw_response="",
-                parsed_json=None,
-                warnings=[str(exc)],
-            )
         except Exception as exc:
             return VlmStyleAnalysis(
                 raw_response="",
                 parsed_json=None,
+                warnings=warnings,
                 errors=[str(exc)],
             )
 
@@ -102,13 +96,12 @@ class VlmStyleAnalyzer:
             return VlmStyleAnalysis(
                 raw_response=raw_response,
                 parsed_json=None,
-                warnings=["Vision output could not be parsed as JSON."],
+                warnings=warnings + ["Vision output could not be parsed as JSON."],
                 errors=[str(exc)],
             )
 
         raw_tone = parsed.get("inferred_tone")
         inferred_tone: str | None = None
-        warnings: list[str] = []
         if isinstance(raw_tone, str):
             cleaned = raw_tone.strip().lower()
             if cleaned in _ALLOWED_TONES:

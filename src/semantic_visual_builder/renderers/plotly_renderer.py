@@ -21,6 +21,19 @@ _SUPPORTED_CHART_TYPES = {
     "kpi_card",
 }
 
+_DEFAULT_CATEGORICAL_SEQUENCE = [
+    "#4C78A8",
+    "#F58518",
+    "#E45756",
+    "#72B7B2",
+    "#54A24B",
+    "#EECA3B",
+    "#B279A2",
+    "#FF9DA6",
+    "#9D755D",
+    "#BAB0AC",
+]
+
 
 class PlotlyRenderer(BaseRenderer):
     """Render chart plans to Plotly JSON."""
@@ -196,7 +209,7 @@ class PlotlyRenderer(BaseRenderer):
         trace = {"type": "pie", "labels": grouped["label"].tolist(), "values": grouped["value"].tolist(), "name": self._measure_name(measure)}
         if hole > 0:
             trace["hole"] = hole
-        colors = self._bar_colors(plan, grouped["label"].tolist())
+        colors = self._categorical_colors(plan, grouped["label"].tolist())
         if colors:
             trace["marker"] = {"colors": colors}
         layout = self._layout(plan, x_title=category.field or "Category", y_title=self._measure_name(measure))
@@ -247,6 +260,29 @@ class PlotlyRenderer(BaseRenderer):
             else:
                 colors.append(base_color)
         return colors
+
+    def _categorical_colors(self, plan: VisualPlan, labels: list[str]) -> list[str] | None:
+        palette = plan.style.palette if isinstance(plan.style.palette, dict) else {}
+        sequence = palette.get("sequence")
+        if isinstance(sequence, list):
+            cleaned = [
+                str(colour)
+                for colour in sequence
+                if isinstance(colour, str) and colour
+            ]
+            if cleaned:
+                return [cleaned[index % len(cleaned)] for index, _ in enumerate(labels)]
+
+        primary = self._primary_palette_colour(plan) or self._colour_for_scheme(
+            plan.style.colour_scheme
+        )
+        if primary:
+            base_sequence = [primary] + [
+                colour for colour in _DEFAULT_CATEGORICAL_SEQUENCE if colour != primary
+            ]
+        else:
+            base_sequence = list(_DEFAULT_CATEGORICAL_SEQUENCE)
+        return [base_sequence[index % len(base_sequence)] for index, _ in enumerate(labels)]
 
     def _primary_palette_colour(self, plan: VisualPlan) -> str | None:
         palette = plan.style.palette if isinstance(plan.style.palette, dict) else {}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -97,9 +98,42 @@ class OllamaClient:
         prompt: str,
         system: str | None = None,
     ) -> str:
-        raise NotImplementedError(
-            "Vision generation is not implemented in this client yet."
-        )
+        if not model.strip():
+            raise ValueError("model must not be blank")
+        resolved_path = Path(image_path)
+        if not resolved_path.is_file():
+            raise ValueError(f"image_path does not exist: {resolved_path}")
+        image_bytes = resolved_path.read_bytes()
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "system": system,
+            "format": "json",
+            "images": [base64.b64encode(image_bytes).decode("ascii")],
+            "options": {
+                "temperature": 0.0,
+                "num_predict": 256,
+            },
+            "stream": False,
+            "keep_alive": "5m",
+        }
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                json=payload,
+                timeout=self.generation_timeout_seconds,
+            )
+            response.raise_for_status()
+            data = response.json()
+        except Exception as exc:
+            raise OllamaGenerationError(str(exc)) from exc
+        if (
+            not isinstance(data, dict)
+            or "response" not in data
+            or not isinstance(data["response"], str)
+        ):
+            raise OllamaGenerationError("Unexpected Ollama response format.")
+        return data["response"]
 
     def generate(
         self,

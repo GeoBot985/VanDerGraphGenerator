@@ -65,3 +65,12 @@ def test_unsupported_highlight_creates_warning_metadata() -> None:
     output = PlotlyRenderer().render(plan, context)
     assert "warnings" in output.metadata
     assert output.metadata["warnings"]
+
+
+def test_pie_uses_distinct_colours_from_palette_sequence() -> None:
+    context = _sample_context()
+    plan = FieldMapper().propose_roles("Show amount by region", context.profile, IntentMapper().map_request_to_plan("Show amount by region", context.profile))
+    plan.chart_type = "pie"
+    plan.style.palette = {"sequence": ["#111111", "#222222", "#333333"]}
+    output = PlotlyRenderer().render(plan, context)
+    assert '"colors": ["#111111", "#222222", "#333333"' in output.content

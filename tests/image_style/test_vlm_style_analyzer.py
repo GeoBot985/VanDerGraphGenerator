@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from semantic_visual_builder.llm.ollama_client import OllamaGenerationError
 from semantic_visual_builder.image_style.image_style_analyzer import (
     DeterministicImageStyleAnalysis,
 )
@@ -17,6 +18,11 @@ class FakeVisionClient:
 
     def generate_vision(self, model, image_path, prompt, system=None):  # noqa: ANN001
         return self.response
+
+
+class RaisingVisionClient:
+    def generate_vision(self, model, image_path, prompt, system=None):  # noqa: ANN001
+        raise OllamaGenerationError("vision unsupported")
 
 
 def _analysis() -> DeterministicImageStyleAnalysis:
@@ -70,3 +76,33 @@ def test_vlm_analyzer_warns_when_vision_is_unavailable(tmp_path: Path) -> None:
 
     assert result.parsed_json is None
     assert result.warnings
+
+
+def test_vlm_analyzer_attempts_unknown_model_anyway(tmp_path: Path) -> None:
+    client = FakeVisionClient(
+        (
+            '{"suggested_name":"Corporate Blue Report",'
+            '"style_words":["corporate","blue"],'
+            '"inferred_tone":"corporate"}'
+        )
+    )
+    analyzer = VlmStyleAnalyzer(client)
+
+    result = analyzer.analyze_image_style(
+        "gemma4:12b-it-qat", tmp_path / "sample.png", _analysis()
+    )
+
+    assert result.parsed_json is not None
+    assert any("Attempting image input anyway" in warning for warning in result.warnings)
+
+
+def test_vlm_analyzer_reports_runtime_vision_error_for_unknown_model(tmp_path: Path) -> None:
+    analyzer = VlmStyleAnalyzer(RaisingVisionClient())
+
+    result = analyzer.analyze_image_style(
+        "gemma4:12b-it-qat", tmp_path / "sample.png", _analysis()
+    )
+
+    assert result.parsed_json is None
+    assert any("Attempting image input anyway" in warning for warning in result.warnings)
+    assert result.errors == ["vision unsupported"]

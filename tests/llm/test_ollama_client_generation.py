@@ -1,5 +1,6 @@
 """Ollama generation tests."""
 
+import base64
 from types import SimpleNamespace
 
 import pytest
@@ -55,3 +56,37 @@ def test_generate_raises_on_malformed_response(monkeypatch: pytest.MonkeyPatch) 
     client = OllamaClient()
     with pytest.raises(OllamaGenerationError):
         client.generate(model="gemma4:12b", prompt="prompt text")
+
+
+def test_generate_vision_sends_image_payload(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+    image_path = tmp_path / "sample.png"
+    image_path.write_bytes(b"fake-image-bytes")
+
+    def fake_post(url, json, timeout):
+        captured["url"] = url
+        captured["json"] = json
+        captured["timeout"] = timeout
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {"response": '{"ok":true}'},
+        )
+
+    monkeypatch.setattr("semantic_visual_builder.llm.ollama_client.requests.post", fake_post)
+    client = OllamaClient(base_url="http://localhost:11434")
+    response = client.generate_vision(
+        model="gemma4:12b-it-qat",
+        image_path=image_path,
+        prompt="describe this image",
+    )
+
+    assert response == '{"ok":true}'
+    assert captured["url"].endswith("/api/generate")
+    assert captured["json"]["model"] == "gemma4:12b-it-qat"
+    assert captured["json"]["prompt"] == "describe this image"
+    assert captured["json"]["images"] == [
+        base64.b64encode(b"fake-image-bytes").decode("ascii")
+    ]
+    assert captured["json"]["format"] == "json"
+    assert captured["json"]["stream"] is False
+    assert captured["timeout"] == client.generation_timeout_seconds

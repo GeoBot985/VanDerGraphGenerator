@@ -360,6 +360,46 @@ def test_llm_structured_background_refinement_is_normalised() -> None:
     assert result.visual_plan.style.plot_background == "#e6ffe6"
 
 
+def test_style_only_refinement_preserves_existing_chart_type_when_llm_drifted() -> None:
+    current_plan = VisualPlan(
+        visual_kind="chart",
+        intent="compare_categories",
+        chart_type="pie",
+        data_roles=[
+            DataRole(role="category", field="Region"),
+            DataRole(role="measure", field="Amount", aggregation="sum"),
+        ],
+    )
+    current_plan.render_target.renderer = "plotly"
+    current_plan.style.background = "#192249"
+
+    result = _orchestrator(
+        LlmMappingResult(
+            raw_response="{}",
+            parsed_json={},
+            draft=LlmVisualPlanDraft(
+                visual_kind="chart",
+                intent="compare_categories",
+                chart_type="bar",
+                roles={},
+                style={"background": "#192249"},
+                renderer="plotly",
+            ),
+        )
+    ).refine_plan(
+        current_plan,
+        "i want different colours for different regions",
+        _state(),
+    )
+
+    assert result.used_fallback is False
+    assert result.visual_plan is not None
+    assert result.visual_plan.chart_type == "pie"
+    assert any(
+        "Preserved the existing chart type" in message for message in result.messages
+    )
+
+
 def test_invalid_refined_plan_triggers_clarification() -> None:
     current_plan = VisualPlan(
         visual_kind="chart",
