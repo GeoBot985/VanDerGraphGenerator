@@ -196,7 +196,10 @@ class SemanticVisualBuilderApp:
         if self.root is None:
             return
         self.root.title(f"{APP_NAME} ({APP_VERSION})")
-        self.root.geometry("1100x760")
+        # Fit within a 1280x720 (720p) desktop, accounting for title bar and
+        # taskbar; keep a minimum that still shows the panes without clipping.
+        self.root.geometry("1280x700")
+        self.root.minsize(1024, 600)
         self._model_var = tk.StringVar(value="")
         self._status_var = tk.StringVar(value="")
         self._chat_var = tk.StringVar(value="")
@@ -221,9 +224,9 @@ class SemanticVisualBuilderApp:
 
     def _build_ui(self) -> None:
         header = ttk.Label(
-            self.root, text="Van Der Graph Generator", font=("Segoe UI", 18, "bold")
+            self.root, text="Van Der Graph Generator", font=("Segoe UI", 14, "bold")
         )
-        header.pack(anchor="w", padx=12, pady=(12, 6))
+        header.pack(anchor="w", padx=12, pady=(6, 4))
 
         self._build_menu()
 
@@ -254,34 +257,43 @@ class SemanticVisualBuilderApp:
         self._editable_elements_tooltip = HoverTooltip(
             self.editable_elements_badge,
             self._editable_elements_tooltip_text,
+            wraplength=540,
         )
         ttk.Button(top, text="Refresh Models", command=self.refresh_ollama).pack(
             side="left", padx=6
         )
-        ttk.Button(top, text="Load CSV", command=self.load_csv).pack(
-            side="left", padx=6
-        )
-        ttk.Button(top, text="Generate Preview", command=self.generate_preview).pack(
-            side="left", padx=6
-        )
-        ttk.Button(top, text="Open Last Preview", command=self.open_last_preview).pack(
-            side="left", padx=6
+
+        # Action buttons live on their own row so the toolbar does not overflow
+        # (and clip the rightmost buttons) at 1280px width.
+        actions = ttk.Frame(self.root)
+        actions.pack(fill="x", padx=12, pady=(4, 0))
+        ttk.Button(actions, text="Load CSV", command=self.load_csv).pack(
+            side="left", padx=(0, 4)
         )
         ttk.Button(
-            top, text="Show Renderer Output", command=self.show_renderer_output
-        ).pack(side="left", padx=6)
-        ttk.Button(top, text="Save Recipe", command=self.save_recipe_action).pack(
-            side="left", padx=6
+            actions, text="Generate Preview", command=self.generate_preview
+        ).pack(side="left", padx=4)
+        ttk.Button(
+            actions, text="Open Last Preview", command=self.open_last_preview
+        ).pack(side="left", padx=4)
+        ttk.Button(
+            actions, text="Show Renderer Output", command=self.show_renderer_output
+        ).pack(side="left", padx=4)
+        ttk.Separator(actions, orient="vertical").pack(
+            side="left", fill="y", padx=6, pady=2
         )
-        ttk.Button(top, text="Load Recipe", command=self.load_recipe_action).pack(
-            side="left", padx=6
+        ttk.Button(actions, text="Save Recipe", command=self.save_recipe_action).pack(
+            side="left", padx=4
         )
-        ttk.Button(top, text="Apply Recipe", command=self.apply_recipe_action).pack(
-            side="left", padx=6
+        ttk.Button(actions, text="Load Recipe", command=self.load_recipe_action).pack(
+            side="left", padx=4
         )
-        ttk.Button(top, text="Clear Recipe", command=self.clear_recipe_action).pack(
-            side="left", padx=6
-        )
+        ttk.Button(
+            actions, text="Apply Recipe", command=self.apply_recipe_action
+        ).pack(side="left", padx=4)
+        ttk.Button(
+            actions, text="Clear Recipe", command=self.clear_recipe_action
+        ).pack(side="left", padx=4)
 
         style_row = ttk.Frame(self.root)
         style_row.pack(fill="x", padx=12, pady=(8, 0))
@@ -344,9 +356,9 @@ class SemanticVisualBuilderApp:
         )
 
         status_frame = ttk.LabelFrame(self.root, text="Status")
-        status_frame.pack(fill="x", padx=12, pady=(8, 0))
-        self.status_summary = make_readonly_text(status_frame, height=4)
-        self.status_summary.pack(fill="x", expand=True, padx=8, pady=6)
+        status_frame.pack(fill="x", padx=12, pady=(6, 0))
+        self.status_summary = make_readonly_text(status_frame, height=2)
+        self.status_summary.pack(fill="x", expand=True, padx=8, pady=4)
 
         middle = ttk.Frame(self.root)
         middle.pack(fill="both", expand=True, padx=12, pady=12)
@@ -399,44 +411,40 @@ class SemanticVisualBuilderApp:
         entry_row.pack(fill="x")
         self.chat_entry = ttk.Entry(entry_row, textvariable=self._chat_var)
         self.chat_entry.pack(side="left", fill="x", expand=True)
+        self.chat_entry.bind("<Return>", lambda _e: self.send_chat())
         ttk.Button(entry_row, text="Send", command=self.send_chat).pack(
             side="left", padx=6
         )
 
-        ttk.Label(right, text="Preview").pack(anchor="w")
-        self.preview_text = make_readonly_text(right, height=4)
-        self.preview_text.pack(fill="both", expand=False, pady=(4, 8))
+        # Right pane: tabbed panels share one vertical region instead of
+        # stacking, so the full set stays usable at 720p without scrolling.
+        ttk.Label(right, text="Details").pack(anchor="w")
+        info_tabs = ttk.Notebook(right)
+        info_tabs.pack(fill="both", expand=True, pady=(4, 0))
 
-        ttk.Label(right, text="Recipe").pack(anchor="w")
-        self.recipe_text = make_readonly_text(right, height=5)
-        self.recipe_text.pack(fill="both", expand=False, pady=(4, 8))
+        def _add_text_tab(label: str) -> tk.Widget:
+            tab = ttk.Frame(info_tabs)
+            info_tabs.add(tab, text=label)
+            widget = make_readonly_text(tab, height=8)
+            widget.pack(fill="both", expand=True, padx=4, pady=4)
+            return widget
 
-        ttk.Label(right, text="Style").pack(anchor="w")
-        self.style_text = make_readonly_text(right, height=5)
-        self.style_text.pack(fill="both", expand=False, pady=(4, 8))
+        self.preview_text = _add_text_tab("Preview")
+        self.plan_text = _add_text_tab("Plan")
+        self.profile_text = _add_text_tab("Dataset")
+        self.recipe_text = _add_text_tab("Recipe")
+        self.style_text = _add_text_tab("Style")
+        self.style_extraction_text = _add_text_tab("Extraction")
+        self.validation_text = _add_text_tab("Validation")
+        self.debug_text = _add_text_tab("Debug")
 
-        ttk.Label(right, text="Style Extraction").pack(anchor="w")
-        self.style_extraction_text = make_readonly_text(right, height=7)
-        self.style_extraction_text.pack(fill="both", expand=False, pady=(4, 8))
-
-        ttk.Label(right, text="Dataset Profile").pack(anchor="w")
-        self.profile_text = make_readonly_text(right, height=8)
-        self.profile_text.pack(fill="both", expand=True, pady=(4, 8))
-
-        ttk.Label(right, text="Current Visual Plan").pack(anchor="w")
-        self.plan_text = make_readonly_text(right, height=8)
-        self.plan_text.pack(fill="both", expand=True, pady=(4, 8))
-
-        ttk.Label(right, text="Validation Result").pack(anchor="w")
-        self.validation_text = make_readonly_text(right, height=6)
-        self.validation_text.pack(fill="both", expand=True, pady=(4, 0))
-
+        # Compact single-line status strip replaces the old multi-line footer.
         bottom = ttk.Frame(self.root)
-        bottom.pack(fill="x", padx=12, pady=(0, 12))
-        ttk.Label(bottom, textvariable=self._workflow_var).pack(anchor="w")
-        ttk.Label(bottom, textvariable=self._revision_var).pack(anchor="w", pady=(0, 4))
-        self.debug_text = make_readonly_text(bottom, height=6)
-        self.debug_text.pack(fill="both", expand=False)
+        bottom.pack(fill="x", padx=12, pady=(4, 8))
+        ttk.Label(bottom, textvariable=self._workflow_var).pack(side="left")
+        ttk.Label(bottom, textvariable=self._revision_var).pack(
+            side="right"
+        )
 
         self._append_preview("Preview placeholder")
         self._set_status("Startup complete.")
@@ -635,9 +643,6 @@ class SemanticVisualBuilderApp:
                     ),
                 )
                 self.app_state.set_pending_clarification(pending)
-                self._append_system_message(
-                    "Waiting for the missing detail. Reply in chat with one of the options or a direct answer."
-                )
                 return self._clarification_prompt_text(request)
             return "I need one more detail before I can update the plan."
         if result.action == "unsupported":
@@ -809,9 +814,6 @@ class SemanticVisualBuilderApp:
                 else None,
             )
             self.app_state.set_pending_clarification(pending)
-            self._append_system_message(
-                "Waiting for the missing detail. Reply in chat with one of the options or a direct answer."
-            )
             return self._clarification_prompt_text(request)
         if result.visual_plan is None:
             return "No refined visual plan could be accepted."
@@ -849,16 +851,10 @@ class SemanticVisualBuilderApp:
         )
 
     def _clarification_prompt_text(self, request) -> str:
-        lines = [
-            "Clarification needed:",
-            request.question,
-            "",
-            "Options:",
-        ]
+        lines = [request.question, ""]
         if request.options:
-            lines.extend([f"- {option.label}" for option in request.options])
-        else:
-            lines.append("- Free text answer")
+            lines.append("Options:")
+            lines.extend([f"  {option.label}" for option in request.options])
         return "\n".join(lines)
 
     def generate_preview(self) -> str:
@@ -1190,127 +1186,89 @@ class SemanticVisualBuilderApp:
         set_text(self.status_summary, self.status_panel.status_text(self.app_state))
         self._refresh_debug()
 
-    def _editable_elements_tooltip_text(self) -> str:
+    def _editable_elements_tooltip_text(self) -> str:  # noqa: PLR0912
         plan = self.app_state.current_visual_plan
-        lines = [
-            "Editable graph elements",
-            "",
-            "Chart type: " + (plan.chart_type if plan is not None and plan.chart_type else "not set"),
-            "Renderer: "
-            + (
-                plan.render_target.renderer
-                if plan is not None and plan.render_target.renderer
-                else "not set"
-            ),
-            "Title: " + (plan.style.title if plan is not None and plan.style.title else "not set"),
-            "Subtitle: "
-            + (
-                plan.style.subtitle
-                if plan is not None and plan.style.subtitle
-                else "not set"
-            ),
-            "Title size: "
-            + (
-                str(plan.style.title_size)
-                if plan is not None and plan.style.title_size
-                else "not set"
-            ),
-            "Colour scheme: "
-            + (
-                plan.style.colour_scheme
-                if plan is not None and plan.style.colour_scheme
-                else "not set"
-            ),
-            "Primary series colour: "
-            + (
-                str(plan.style.palette.get("primary"))
-                if plan is not None and isinstance(plan.style.palette, dict) and plan.style.palette.get("primary")
-                else "not set"
-            ),
-            "Background: "
-            + (
-                plan.style.background
-                if plan is not None and plan.style.background
-                else "not set"
-            ),
-            "Plot background: "
-            + (
-                plan.style.plot_background
-                if plan is not None and plan.style.plot_background
-                else "not set"
-            ),
-            "Font family: "
-            + (
-                plan.style.font_family
-                if plan is not None and plan.style.font_family
-                else "not set"
-            ),
-            "Grid: " + (plan.style.grid if plan is not None and plan.style.grid else "not set"),
-            "Legend position: "
-            + (
-                plan.style.legend_position
-                if plan is not None and plan.style.legend_position
-                else "not set"
-            ),
-            "Orientation: "
-            + (
-                plan.style.orientation
-                if plan is not None and plan.style.orientation
-                else "not set"
-            ),
-            "Highlight: "
-            + (
-                str(plan.style.highlights)
-                if plan is not None and plan.style.highlights
-                else "not set"
-            ),
-        ]
+
+        def v(value: object) -> str:
+            s = str(value) if value is not None else ""
+            return s if s else "not set"
+
+        def with_opts(current: str, opts: str) -> str:
+            return f"{current}  [{opts}]"
+
+        is_diagram = plan is not None and plan.visual_kind == "diagram"
+        style = plan.style if plan is not None else None
+
+        # ── Visual section ──
+        if is_diagram:
+            vis_line = "Diagram type: " + v(plan.diagram_type if plan else None)
+            vis_opts = [
+                "  flowchart · sequence_diagram · erd · network_diagram",
+            ]
+        else:
+            vis_line = "Chart type: " + v(plan.chart_type if plan else None)
+            vis_opts = [
+                "  bar · line · scatter · pie · donut · horizontal_bar",
+                "  histogram · box_plot · area · stacked_area · stacked_bar",
+                "  bubble · treemap · waterfall · funnel · radar",
+                "  gauge · kpi_card · heatmap",
+            ]
+
+        renderer_val = v(plan.render_target.renderer if plan else None)
+
+        # ── Style section ──
+        grid_val = v(style.grid if style else None)
+        legend_val = v(style.legend_position if style else None)
+        orientation_val = v(style.orientation if style else None)
+        primary_colour = (
+            str(style.palette.get("primary"))
+            if style and isinstance(style.palette, dict) and style.palette.get("primary")
+            else "not set"
+        )
+
+        # ── Data section ──
         if plan is not None:
             role_map = {role.role: role for role in plan.data_roles}
-            lines.extend(
-                [
-                    "Category field: "
-                    + (
-                        role_map["category"].field
-                        if "category" in role_map and role_map["category"].field
-                        else "not set"
-                    ),
-                    "Measure field: "
-                    + (
-                        role_map["measure"].field
-                        if "measure" in role_map and role_map["measure"].field
-                        else "not set"
-                    ),
-                    "Measure aggregation: "
-                    + (
-                        role_map["measure"].aggregation
-                        if "measure" in role_map and role_map["measure"].aggregation
-                        else "not set"
-                    ),
-                    "X label: "
-                    + (
-                        plan.style.labels.get("x")
-                        if plan.style.labels and plan.style.labels.get("x")
-                        else "not set"
-                    ),
-                    "Y label: "
-                    + (
-                        plan.style.labels.get("y")
-                        if plan.style.labels and plan.style.labels.get("y")
-                        else "not set"
-                    ),
-                ]
-            )
+            cat = role_map.get("category")
+            meas = role_map.get("measure")
+            cat_field = v(cat.field if cat else None)
+            meas_field = v(meas.field if meas else None)
+            meas_agg = v(meas.aggregation if meas else None)
+            x_label = v(style.labels.get("x") if style and style.labels else None)
+            y_label = v(style.labels.get("y") if style and style.labels else None)
         else:
-            lines.extend(
-                [
-                    "Category field: not set",
-                    "Measure field: not set",
-                    "Measure aggregation: not set",
-                    "X label: not set",
-                    "Y label: not set",
-                ]
-            )
+            cat_field = meas_field = meas_agg = x_label = y_label = "not set"
+
+        lines: list[str] = [
+            "Editable graph elements",
+            'Tip: "change the chart type to pie"  or  "use a dark background"',
+            "",
+            "── Visual ──",
+            vis_line,
+            *vis_opts,
+            "Renderer: " + with_opts(renderer_val, "plotly · mermaid"),
+            "",
+            "── Style ──",
+            "Title: " + v(style.title if style else None),
+            "Subtitle: " + v(style.subtitle if style else None),
+            "Title size: " + v(style.title_size if style else None),
+            "Colour scheme: " + v(style.colour_scheme if style else None),
+            "Primary series colour: " + primary_colour,
+            "Background: " + v(style.background if style else None),
+            "Plot background: " + v(style.plot_background if style else None),
+            "Font family: " + v(style.font_family if style else None),
+            "Grid: " + with_opts(grid_val, "none · light · medium"),
+            "Legend position: " + with_opts(legend_val, "top · bottom · left · right · none"),
+            "Orientation: " + with_opts(orientation_val, "vertical · horizontal"),
+            "Highlight: " + v(style.highlights if style else None),
+            "",
+            "── Data ──",
+            "Category field: " + cat_field,
+            "Measure field: " + meas_field,
+            "Measure aggregation: " + with_opts(meas_agg, "sum · avg · count · min · max"),
+            "X label: " + x_label,
+            "Y label: " + y_label,
+        ]
         return "\n".join(lines)
 
     def _refresh_available_recipes(self) -> None:

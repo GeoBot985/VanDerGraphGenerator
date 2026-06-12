@@ -46,10 +46,10 @@ def test_style_profile_round_trip_serializes_cleanly() -> None:
 def test_builtin_style_profiles_have_expected_shape() -> None:
     styles = list_builtin_style_profiles()
 
-    assert len(styles) == 4
-    assert {style.style_id for style in styles} == {
+    assert len(styles) >= 4
+    assert {
         "corporate_blue",
         "minimal_grey",
         "presentation_green",
         "process_blue",
-    }
+    }.issubset({style.style_id for style in styles})

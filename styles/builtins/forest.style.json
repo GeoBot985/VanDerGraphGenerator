@@ -1,28 +1,31 @@
 {
   "metadata": {
-    "style_id": "presentation_green",
-    "style_name": "Presentation Green",
-    "description": "Presentation-friendly green highlights.",
+    "style_id": "forest",
+    "style_name": "Forest",
+    "description": "Earthy greens for natural, organic themes.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "presentation",
-      "green"
+      "green",
+      "earth",
+      "natural"
     ]
   },
   "palette": {
-    "primary": "#2f7d32",
-    "secondary": "#81c784",
-    "accent": "#66bb6a",
-    "neutral": "#bdbdbd",
+    "primary": "#283618",
+    "secondary": "#606c38",
+    "accent": "#588157",
+    "neutral": "#888888",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#2f7d32",
-      "#66bb6a",
-      "#a5d6a7",
-      "#c8e6c9"
+      "#283618",
+      "#606c38",
+      "#588157",
+      "#3a5a40",
+      "#a3b18a",
+      "#dad7cd"
     ]
   },
   "typography": {
@@ -35,7 +38,7 @@
     "background": "#ffffff",
     "plot_background": "#ffffff",
     "grid": "light",
-    "legend_position": "bottom",
+    "legend_position": "right",
     "label_density": "medium",
     "title_alignment": "left",
     "bar_gap": null,
@@ -43,10 +46,10 @@
   },
   "diagram": {
     "direction": "TD",
-    "node_fill": "#e8f5e9",
-    "node_stroke": "#2f7d32",
-    "decision_fill": "#fffde7",
-    "edge_colour": "#2f7d32",
+    "node_fill": "#eeeeee",
+    "node_stroke": "#283618",
+    "decision_fill": "#588157",
+    "edge_colour": "#283618",
     "class_defs": {}
   },
   "renderer_hints": {

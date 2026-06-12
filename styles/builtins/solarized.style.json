@@ -1,28 +1,31 @@
 {
   "metadata": {
-    "style_id": "presentation_green",
-    "style_name": "Presentation Green",
-    "description": "Presentation-friendly green highlights.",
+    "style_id": "solarized",
+    "style_name": "Solarized",
+    "description": "Solarized accent palette on a warm cream background.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "presentation",
-      "green"
+      "solarized",
+      "muted",
+      "developer"
     ]
   },
   "palette": {
-    "primary": "#2f7d32",
-    "secondary": "#81c784",
-    "accent": "#66bb6a",
-    "neutral": "#bdbdbd",
+    "primary": "#268bd2",
+    "secondary": "#2aa198",
+    "accent": "#859900",
+    "neutral": "#93a1a1",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#2f7d32",
-      "#66bb6a",
-      "#a5d6a7",
-      "#c8e6c9"
+      "#268bd2",
+      "#2aa198",
+      "#859900",
+      "#b58900",
+      "#cb4b16",
+      "#d33682"
     ]
   },
   "typography": {
@@ -32,10 +35,10 @@
     "tick_size": 10
   },
   "chart": {
-    "background": "#ffffff",
-    "plot_background": "#ffffff",
+    "background": "#fdf6e3",
+    "plot_background": "#fdf6e3",
     "grid": "light",
-    "legend_position": "bottom",
+    "legend_position": "right",
     "label_density": "medium",
     "title_alignment": "left",
     "bar_gap": null,
@@ -43,10 +46,10 @@
   },
   "diagram": {
     "direction": "TD",
-    "node_fill": "#e8f5e9",
-    "node_stroke": "#2f7d32",
-    "decision_fill": "#fffde7",
-    "edge_colour": "#2f7d32",
+    "node_fill": "#eeeeee",
+    "node_stroke": "#268bd2",
+    "decision_fill": "#859900",
+    "edge_colour": "#268bd2",
     "class_defs": {}
   },
   "renderer_hints": {

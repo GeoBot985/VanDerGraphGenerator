@@ -15,8 +15,8 @@ class TestAppSettingsDefaults:
     def test_debug_mode_default_false(self) -> None:
         assert AppSettings().debug_mode is False
 
-    def test_default_model_is_gemma4_3b(self) -> None:
-        assert AppSettings().default_ollama_model == "gemma4:3b"
+    def test_default_model_is_granite4_3b(self) -> None:
+        assert AppSettings().default_ollama_model == "granite4:3b"
 
 
 class TestAppSettingsRoundtrip:

@@ -4,13 +4,26 @@
     "style_name": "Process Blue",
     "description": "Flowchart and process diagram styling.",
     "schema_version": "1.0",
-    "tags": ["diagram", "process", "blue"]
+    "author": null,
+    "tags": [
+      "diagram",
+      "process",
+      "blue"
+    ]
   },
   "palette": {
     "primary": "#1f4e79",
     "secondary": "#5b9bd5",
     "accent": "#70ad47",
-    "sequence": ["#d9eaf7", "#fff2cc", "#e2f0d9"]
+    "neutral": null,
+    "warning": null,
+    "success": null,
+    "danger": null,
+    "sequence": [
+      "#d9eaf7",
+      "#fff2cc",
+      "#e2f0d9"
+    ]
   },
   "typography": {
     "font_family": "Arial",
@@ -24,7 +37,9 @@
     "grid": "none",
     "legend_position": "none",
     "label_density": "low",
-    "title_alignment": "left"
+    "title_alignment": "left",
+    "bar_gap": null,
+    "line_shape": null
   },
   "diagram": {
     "direction": "TD",
@@ -57,8 +72,15 @@
   },
   "renderer_hints": {
     "plotly_template": "plotly_white",
-    "mermaid_theme": "base"
+    "mermaid_theme": "base",
+    "chartjs_options": {}
   },
-  "supported_visual_kinds": ["diagram", "chart"],
-  "supported_renderers": ["mermaid", "plotly"]
+  "supported_visual_kinds": [
+    "diagram",
+    "chart"
+  ],
+  "supported_renderers": [
+    "mermaid",
+    "plotly"
+  ]
 }

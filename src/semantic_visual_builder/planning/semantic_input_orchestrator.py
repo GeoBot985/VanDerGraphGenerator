@@ -35,6 +35,25 @@ class SemanticInputResult:
     trace: SemanticTrace | None = None
 
 
+_NEW_REQUEST_PREFIXES = (
+    "i want", "i'd like", "i need",
+    "show me", "give me",
+    "create a", "generate a", "build a",
+    "make a", "make me",
+)
+_RESET_PHRASES = frozenset((
+    "start again", "start over", "start fresh",
+    "start from scratch", "begin again",
+))
+_CHART_KEYWORDS = frozenset((
+    "chart", "graph", "diagram", "plot",
+    "bar", "line", "pie", "scatter", "area",
+    "histogram", "heatmap", "treemap", "waterfall",
+    "funnel", "radar", "gauge", "kpi", "donut", "bubble",
+))
+_REFERENTIAL_PRONOUNS = frozenset(("it", "this", "that"))
+
+
 class SemanticInputOrchestrator:
     """Choose the correct semantic route without blocking LLM interpretation."""
 
@@ -61,7 +80,12 @@ class SemanticInputOrchestrator:
             f"LLM attempted: {'yes' if attempted_llm else 'no'}",
         ]
 
-        if app_state.current_visual_plan is not None:
+        is_refinement = (
+            app_state.current_visual_plan is not None
+            and not self._looks_like_new_visual_request(user_message)
+        )
+
+        if is_refinement:
             refinement_result = self.refinement_orchestrator.refine_plan(
                 current_plan=app_state.current_visual_plan,
                 user_message=user_message,
@@ -152,6 +176,20 @@ class SemanticInputOrchestrator:
             clarification_requests=result.clarification_requests,
             trace=trace,
         )
+
+    def _looks_like_new_visual_request(self, message: str) -> bool:
+        """Return True if the message reads as a fresh visual request, not a refinement."""
+        text = message.lower().strip()
+        # "start again / start over / start fresh" always means a new request
+        if any(phrase in text for phrase in _RESET_PHRASES):
+            return True
+        # Prefix + chart keyword + no back-reference pronoun
+        if not any(text.startswith(p) for p in _NEW_REQUEST_PREFIXES):
+            return False
+        if not any(kw in text for kw in _CHART_KEYWORDS):
+            return False
+        padded = f" {text} "
+        return not any(f" {p} " in padded for p in _REFERENTIAL_PRONOUNS)
 
     def _result_action(
         self,

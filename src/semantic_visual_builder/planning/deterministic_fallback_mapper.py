@@ -14,6 +14,11 @@ from .visual_plan_schema import VisualPlan
 class DeterministicFallbackMapper:
     """Convert user text into a neutral visual plan draft as fallback."""
 
+    def extract_explicit_chart_type(self, message: str) -> str | None:
+        """Return chart_type only if the user message contains an explicit keyword, else None."""
+        result = self.map_request_to_plan(message)
+        return result.chart_type
+
     def map_request_to_plan(
         self,
         message: str,

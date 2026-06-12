@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from semantic_visual_builder.llm.llm_semantic_mapper import LlmSemanticMapper
-from semantic_visual_builder.planning.clarification import ClarificationRequest
+from semantic_visual_builder.planning.clarification import ClarificationOption, ClarificationRequest
 from semantic_visual_builder.planning.clarification_engine import ClarificationEngine
 from semantic_visual_builder.planning.deterministic_fallback_patch_planner import (
     DeterministicFallbackPatchPlanner,
@@ -91,6 +91,12 @@ class RefinementOrchestrator:
                 refined = self.patch_applier.apply_patch(
                     current_plan, VisualPlanPatch.from_llm_draft(llm_result.draft)
                 )
+                keyword_chart_type = self.deterministic_fallback_patch_planner.extract_chart_type_from_message(user_message)
+                if keyword_chart_type and keyword_chart_type != refined.chart_type:
+                    refined.chart_type = keyword_chart_type
+                    messages.append(
+                        f"Chart type overridden to '{keyword_chart_type}' from explicit keyword in refinement request."
+                    )
                 refined = self._preserve_visual_structure_for_style_only_refinement(
                     current_plan, refined, user_message, llm_result.draft, messages
                 )
@@ -245,6 +251,18 @@ class RefinementOrchestrator:
             validation.messages.extend(capability_result.messages)
         return validation
 
+    _ROLE_QUESTIONS: dict[tuple[str, str], str] = {
+        ("stacked_bar", "stack"): "A stacked bar chart needs a column to split the bars into groups. Which column should be used for grouping?",
+        ("stacked_area", "stack"): "A stacked area chart needs a column to split the areas into series. Which column should be used?",
+        ("heatmap", "x_category"): "A heatmap needs a column for the horizontal axis. Which column should I use?",
+        ("heatmap", "y_category"): "A heatmap needs a column for the vertical axis. Which column should I use?",
+        ("scatter", "x"): "A scatter chart needs a numeric column for the X axis. Which column should I use?",
+        ("scatter", "y"): "A scatter chart needs a numeric column for the Y axis. Which column should I use?",
+        ("bubble", "size"): "A bubble chart needs a column to set the bubble size. Which column should I use?",
+        ("line", "x"): "A line chart needs a column for the horizontal axis (time or order). Which column should I use?",
+        ("radar", "category"): "A radar chart needs a column for the axis labels. Which column should I use?",
+    }
+
     def _clarification_from_validation(
         self,
         plan: VisualPlan,
@@ -253,13 +271,38 @@ class RefinementOrchestrator:
     ) -> list[ClarificationRequest]:
         if not validation.messages:
             return []
-        message = validation.messages[0].message
+        raw = validation.messages[0].message
+        question = self._humanize_role_question(raw, plan)
+        options = self._column_options(dataset_profile)
         return [
             ClarificationRequest(
-                question=message,
-                reason=message,
+                question=question,
+                reason=raw,
                 field_name="category" if plan.visual_kind == "chart" else None,
+                options=options,
             )
+        ]
+
+    def _humanize_role_question(self, raw_message: str, plan: VisualPlan) -> str:
+        import re
+        m = re.match(r"(\w+) plans? must include role: (\w+)", raw_message)
+        if m:
+            chart_type, role = m.group(1), m.group(2)
+            key = (chart_type, role)
+            if key in self._ROLE_QUESTIONS:
+                return self._ROLE_QUESTIONS[key]
+            return (
+                f"To build a {chart_type.replace('_', ' ')} chart I need to know "
+                f"which column to use for {role.replace('_', ' ')}. Which column should I use?"
+            )
+        return raw_message
+
+    def _column_options(self, dataset_profile) -> list[ClarificationOption]:
+        if dataset_profile is None:
+            return []
+        return [
+            ClarificationOption(label=col.name, value=col.name)
+            for col in dataset_profile.columns
         ]
 
     def _patch_from_plan(

@@ -1,0 +1,68 @@
+{
+  "metadata": {
+    "style_id": "dark_slate",
+    "style_name": "Dark Slate",
+    "description": "Dark slate background with cool blue-teal accents.",
+    "schema_version": "1.0",
+    "author": null,
+    "tags": [
+      "dark",
+      "cool",
+      "presentation"
+    ]
+  },
+  "palette": {
+    "primary": "#38bdf8",
+    "secondary": "#34d399",
+    "accent": "#fbbf24",
+    "neutral": "#94a3b8",
+    "warning": null,
+    "success": null,
+    "danger": null,
+    "sequence": [
+      "#38bdf8",
+      "#34d399",
+      "#fbbf24",
+      "#f472b6",
+      "#a78bfa",
+      "#fb7185"
+    ]
+  },
+  "typography": {
+    "font_family": "Arial",
+    "title_size": 18,
+    "label_size": 12,
+    "tick_size": 10
+  },
+  "chart": {
+    "background": "#1e293b",
+    "plot_background": "#1e293b",
+    "grid": "none",
+    "legend_position": "right",
+    "label_density": "medium",
+    "title_alignment": "left",
+    "bar_gap": null,
+    "line_shape": null
+  },
+  "diagram": {
+    "direction": "TD",
+    "node_fill": "#38bdf8",
+    "node_stroke": "#38bdf8",
+    "decision_fill": "#fbbf24",
+    "edge_colour": "#38bdf8",
+    "class_defs": {}
+  },
+  "renderer_hints": {
+    "plotly_template": "plotly_dark",
+    "mermaid_theme": "dark",
+    "chartjs_options": {}
+  },
+  "supported_visual_kinds": [
+    "chart",
+    "diagram"
+  ],
+  "supported_renderers": [
+    "plotly",
+    "mermaid"
+  ]
+}

@@ -1,28 +1,31 @@
 {
   "metadata": {
-    "style_id": "presentation_green",
-    "style_name": "Presentation Green",
-    "description": "Presentation-friendly green highlights.",
+    "style_id": "ocean",
+    "style_name": "Ocean",
+    "description": "Sequential ocean blues and teals.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "presentation",
-      "green"
+      "sequential",
+      "blue",
+      "cool"
     ]
   },
   "palette": {
-    "primary": "#2f7d32",
-    "secondary": "#81c784",
-    "accent": "#66bb6a",
-    "neutral": "#bdbdbd",
+    "primary": "#023e8a",
+    "secondary": "#0077b6",
+    "accent": "#0096c7",
+    "neutral": "#888888",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#2f7d32",
-      "#66bb6a",
-      "#a5d6a7",
-      "#c8e6c9"
+      "#023e8a",
+      "#0077b6",
+      "#0096c7",
+      "#00b4d8",
+      "#48cae4",
+      "#90e0ef"
     ]
   },
   "typography": {
@@ -35,7 +38,7 @@
     "background": "#ffffff",
     "plot_background": "#ffffff",
     "grid": "light",
-    "legend_position": "bottom",
+    "legend_position": "right",
     "label_density": "medium",
     "title_alignment": "left",
     "bar_gap": null,
@@ -43,10 +46,10 @@
   },
   "diagram": {
     "direction": "TD",
-    "node_fill": "#e8f5e9",
-    "node_stroke": "#2f7d32",
-    "decision_fill": "#fffde7",
-    "edge_colour": "#2f7d32",
+    "node_fill": "#eeeeee",
+    "node_stroke": "#023e8a",
+    "decision_fill": "#0096c7",
+    "edge_colour": "#023e8a",
     "class_defs": {}
   },
   "renderer_hints": {

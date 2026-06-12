@@ -4,7 +4,12 @@
     "style_name": "Corporate Blue",
     "description": "Clean corporate style with blue accents.",
     "schema_version": "1.0",
-    "tags": ["corporate", "blue", "presentation"]
+    "author": null,
+    "tags": [
+      "corporate",
+      "blue",
+      "presentation"
+    ]
   },
   "palette": {
     "primary": "#1f4e79",
@@ -14,7 +19,12 @@
     "warning": "#ffc000",
     "success": "#70ad47",
     "danger": "#c00000",
-    "sequence": ["#1f4e79", "#5b9bd5", "#70ad47", "#a5a5a5"]
+    "sequence": [
+      "#1f4e79",
+      "#5b9bd5",
+      "#70ad47",
+      "#a5a5a5"
+    ]
   },
   "typography": {
     "font_family": "Arial",
@@ -28,19 +38,29 @@
     "grid": "light",
     "legend_position": "right",
     "label_density": "medium",
-    "title_alignment": "left"
+    "title_alignment": "left",
+    "bar_gap": null,
+    "line_shape": null
   },
   "diagram": {
     "direction": "TD",
     "node_fill": "#d9eaf7",
     "node_stroke": "#1f4e79",
     "decision_fill": "#fff2cc",
-    "edge_colour": "#1f4e79"
+    "edge_colour": "#1f4e79",
+    "class_defs": {}
   },
   "renderer_hints": {
     "plotly_template": "plotly_white",
-    "mermaid_theme": "base"
+    "mermaid_theme": "base",
+    "chartjs_options": {}
   },
-  "supported_visual_kinds": ["chart", "diagram"],
-  "supported_renderers": ["plotly", "mermaid"]
+  "supported_visual_kinds": [
+    "chart",
+    "diagram"
+  ],
+  "supported_renderers": [
+    "plotly",
+    "mermaid"
+  ]
 }

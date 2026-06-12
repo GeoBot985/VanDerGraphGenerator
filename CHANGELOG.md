@@ -3,6 +3,7 @@
 ## 0.12.0 — 2026-06-12
 
 ### New features
+- **12 new built-in colour schemes** — Dark Slate, Midnight Neon, Vibrant, Colorblind Safe (Okabe-Ito), Ocean, Sunset, Forest, Pastel, Monochrome Blue, High Contrast, Solarized, and Warm Earth, on top of the original four. Selectable from the style panel and applied to charts and diagrams.
 - **Image style extraction** — pick a reference image to extract a matching colour palette and style profile; optional VLM (llava, moondream, qwen-vl, etc.) enriches it with font, grid, and tone hints
 - **More chart types** — histogram, box plot, heatmap, stacked bar, treemap, waterfall, funnel, radar, gauge, KPI card, rendered through Plotly
 - **Mermaid diagram styles** — dark/light theme, node fill/stroke, and edge colour applied from the active style profile
@@ -14,7 +15,7 @@
 - Background colour estimation uses corner consensus before falling back to edge sampling
 - VLM prompt now specifies a structured JSON schema; `font_category`, `grid_style`, and `label_density` are extracted and applied
 - Plotly template (`plotly_dark` / `plotly_white`) now derived from background colour and applied consistently
-- Default Ollama model set to `gemma4:3b`
+- Default Ollama model set to `granite4:3b`
 - Label density computed from edge density rather than hardcoded
 - Sequence colours sorted by saturation so data-series colours appear first
 - Gallery example datasets (`sales_monthly`, `height_weight`, `customers`, `regional_sales`) added under `assets/samples/`

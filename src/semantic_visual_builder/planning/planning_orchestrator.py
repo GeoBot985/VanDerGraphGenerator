@@ -89,6 +89,12 @@ class PlanningOrchestrator:
             )
             if llm_result.draft is not None:
                 plan = visual_plan_from_llm_draft(llm_result.draft)
+                keyword_chart_type = self.deterministic_mapper.extract_explicit_chart_type(user_message)
+                if keyword_chart_type and keyword_chart_type != plan.chart_type:
+                    plan.chart_type = keyword_chart_type
+                    messages.append(
+                        f"Chart type overridden to '{keyword_chart_type}' from explicit keyword in request."
+                    )
                 if dataset_profile is not None and self._needs_field_completion(plan):
                     completed_plan = self.field_mapper.complete_missing_roles(
                         user_message, dataset_profile, plan

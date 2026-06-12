@@ -64,17 +64,23 @@ class DeterministicFallbackPatchPlanner:
         patch.notes = notes or None
         return patch
 
+    def extract_chart_type_from_message(self, message: str) -> str | None:
+        """Return the chart type the user explicitly named, or None."""
+        return self._extract_requested_chart_type(message.lower().strip())
+
     def _extract_requested_chart_type(self, text: str) -> str | None:
         chart_type_patterns = {
             "horizontal_bar": [
                 r"\bhorizontal\s+bar\b",
                 r"\bhorizontal\b",
             ],
-            "stacked_bar": [
-                r"\bstacked\s+bar\b",
-            ],
             "stacked_area": [
                 r"\bstacked\s+area\b",
+            ],
+            "stacked_bar": [
+                r"\bstacked\s+bar\b",
+                r"\bstacked\s+graph\b",
+                r"\bstacked\b(?!\s+area)",
             ],
             "box_plot": [
                 r"\bbox\s+plot\b",
@@ -131,7 +137,7 @@ class DeterministicFallbackPatchPlanner:
                 r"\bbar\b",
             ],
         }
-        change_verbs = r"(?:make|change|convert|switch|turn|use|set)"
+        change_verbs = r"(?:make|change|convert|switch|turn|use|set|want|need|show|give|create|generate|build)"
         for chart_type, patterns in chart_type_patterns.items():
             for pattern in patterns:
                 if re.search(rf"{change_verbs}.*{pattern}", text):
