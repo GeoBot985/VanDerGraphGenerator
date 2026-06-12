@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from semantic_visual_builder.renderers.mermaid_style_adapter import MermaidStyleAdapter
 
@@ -68,7 +67,7 @@ class TestMermaidExtractedStyleMapping:
     def test_no_invalid_hex_in_output(self) -> None:
         plan = _make_plan()
         result = self.adapter.apply_style_to_mermaid(SIMPLE_FLOWCHART, plan)
-        lines_with_fill = [l for l in result.splitlines() if "fill:" in l]
+        lines_with_fill = [line for line in result.splitlines() if "fill:" in line]
         for line in lines_with_fill:
             assert "fill:#" in line or "fill:rgba" in line
 

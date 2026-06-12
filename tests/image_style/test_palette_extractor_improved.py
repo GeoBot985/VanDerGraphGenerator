@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from PIL import Image
 
 from semantic_visual_builder.image_style.image_loader import LoadedImage

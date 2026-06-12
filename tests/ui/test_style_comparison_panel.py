@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
 
-import pytest
 
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.styles.style_comparison import StyleComparisonResult

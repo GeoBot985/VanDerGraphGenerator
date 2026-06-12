@@ -1,6 +1,6 @@
 """Visual plan schema tests."""
 
-from semantic_visual_builder.planning.visual_plan_schema import DataRole, DiagramEdge, DiagramNode, VisualPlan
+from semantic_visual_builder.planning.visual_plan_schema import DiagramEdge, DiagramNode, VisualPlan
 from semantic_visual_builder.planning.visual_plan import summarize_visual_plan
 
 

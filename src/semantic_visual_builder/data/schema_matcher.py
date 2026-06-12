@@ -129,7 +129,6 @@ class SchemaMatcher:
 
         # 5. Semantic type fallback
         if expected_semantic_type:
-            from .data_profiler import ColumnProfile
             for name in candidates:
                 col = available.get(name)
                 if hasattr(col, "semantic_type") and col.semantic_type == expected_semantic_type:  # type: ignore[union-attr]

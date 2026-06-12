@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from semantic_visual_builder.gallery.gallery_schema import GalleryItem
 from semantic_visual_builder.ui.gallery_panel import GalleryPanelController

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from semantic_visual_builder.export.export_manager import ExportManager, ExportRequest
 from semantic_visual_builder.export.export_result import ExportResult

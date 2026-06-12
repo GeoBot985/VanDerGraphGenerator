@@ -72,9 +72,6 @@ class StyleDraftBuilder:
         if vlm_analysis and vlm_analysis.font_category:
             font_family = _FONT_FAMILY_MAP.get(vlm_analysis.font_category, "Arial")
 
-        text_hint = deterministic_analysis.text_colour_hint or (
-            "#ffffff" if is_dark else "#000000"
-        )
         # Sequence: saturation-sorted so data series colours come first
         non_bg = [c for c in palette_result.colours if c.role_hint != "background"]
         non_bg.sort(key=lambda c: saturation_approx(c.rgb), reverse=True)

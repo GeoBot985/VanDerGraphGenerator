@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import io
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
-from semantic_visual_builder.data.excel_loader import ExcelLoader, ExcelWorkbookInfo, LoadedExcelDataset
+from semantic_visual_builder.data.excel_loader import ExcelLoader, LoadedExcelDataset
 
 
 def _make_excel_bytes(sheets: dict[str, pd.DataFrame]) -> bytes:

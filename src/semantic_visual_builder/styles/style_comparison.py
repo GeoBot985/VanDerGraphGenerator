@@ -105,7 +105,7 @@ class StyleComparator:
         rgb_b = self._hex_to_rgb(hex_b)
         if rgb_a is None or rgb_b is None:
             return 0.5
-        distance = math.sqrt(sum((a - b) ** 2 for a, b in zip(rgb_a, rgb_b)))
+        distance = math.sqrt(sum((a - b) ** 2 for a, b in zip(rgb_a, rgb_b, strict=True)))
         max_distance = math.sqrt(3 * 255 ** 2)
         return 1.0 - (distance / max_distance)
 

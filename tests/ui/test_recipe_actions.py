@@ -1,6 +1,5 @@
 """Recipe action tests."""
 
-from pathlib import Path
 
 from semantic_visual_builder.data.data_profiler import ColumnProfile, DatasetProfile
 from semantic_visual_builder.planning.clarification import ClarificationOption, ClarificationRequest, PendingClarification

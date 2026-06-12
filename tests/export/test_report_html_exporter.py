@@ -62,9 +62,8 @@ class TestReportHtmlExporter:
         # Use a filename with null bytes which is always invalid on any OS
         bad_path = tmp_path / "ok"
         exporter = ReportHtmlExporter(bad_path)
-        # Monkey-patch write_text to force a failure
-        original_write = Path.write_text
 
+        # Monkey-patch write_text to force a failure
         def _raise(*args, **kwargs):
             raise OSError("forced failure")
 

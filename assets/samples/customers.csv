@@ -1,0 +1,61 @@
+CustomerID,Name,Age,City,Segment
+C001,Alice Botha,34,Johannesburg,Retail
+C002,Brian Coetzee,27,Cape Town,Online
+C003,Carol Dlamini,45,Durban,Retail
+C004,David Erasmus,52,Pretoria,Corporate
+C005,Emma Ferreira,29,Johannesburg,Online
+C006,Frank Grobler,38,Cape Town,Retail
+C007,Grace Hendricks,61,Durban,Corporate
+C008,Henry Jacobs,23,Pretoria,Online
+C009,Irene Khumalo,47,Johannesburg,Retail
+C010,James Le Roux,33,Cape Town,Online
+C011,Karen Mahlangu,55,Durban,Corporate
+C012,Liam Naidoo,41,Pretoria,Retail
+C013,Maria Olivier,26,Johannesburg,Online
+C014,Nathan Pienaar,68,Cape Town,Corporate
+C015,Olivia Quin,31,Durban,Online
+C016,Peter Rademeyer,44,Pretoria,Retail
+C017,Quincy Sithole,57,Johannesburg,Corporate
+C018,Rachel Theron,22,Cape Town,Online
+C019,Samuel Uys,36,Durban,Retail
+C020,Tanya van Wyk,49,Pretoria,Corporate
+C021,Ursula Williams,28,Johannesburg,Online
+C022,Victor Xulu,63,Cape Town,Corporate
+C023,Wendy Young,40,Durban,Retail
+C024,Xavier Zulu,35,Pretoria,Online
+C025,Yvonne Adams,53,Johannesburg,Corporate
+C026,Zach Barnard,25,Cape Town,Online
+C027,Amelia Cronje,46,Durban,Retail
+C028,Ben Dube,32,Pretoria,Online
+C029,Claire Ellis,59,Johannesburg,Corporate
+C030,Dylan Ferreira,21,Cape Town,Online
+C031,Elsa Govender,43,Durban,Retail
+C032,Felix Hugo,37,Pretoria,Online
+C033,Gina Isaacs,50,Johannesburg,Corporate
+C034,Hans Joubert,30,Cape Town,Retail
+C035,Isla Koen,66,Durban,Corporate
+C036,Jack Louw,24,Pretoria,Online
+C037,Kate Meyer,42,Johannesburg,Retail
+C038,Leon Ndlovu,56,Cape Town,Corporate
+C039,Mia Osman,28,Durban,Online
+C040,Nico Pietersen,39,Pretoria,Retail
+C041,Olivia Roux,62,Johannesburg,Corporate
+C042,Paul Swart,33,Cape Town,Online
+C043,Queenie Tabo,48,Durban,Retail
+C044,Robert Ulrich,26,Pretoria,Online
+C045,Sara Venter,54,Johannesburg,Corporate
+C046,Tom Watson,35,Cape Town,Retail
+C047,Uma Xaba,71,Durban,Corporate
+C048,Vera Young,29,Pretoria,Online
+C049,Wayne Zuma,44,Johannesburg,Retail
+C050,Xena Botes,38,Cape Town,Online
+C051,Yoshi Cele,58,Durban,Corporate
+C052,Zara Diallo,23,Pretoria,Online
+C053,Aaron Esterhuizen,47,Johannesburg,Retail
+C054,Beth Fortuin,31,Cape Town,Online
+C055,Craig Gumede,65,Durban,Corporate
+C056,Dana Hartman,36,Pretoria,Retail
+C057,Eric Jansen,52,Johannesburg,Corporate
+C058,Fiona Kekana,27,Cape Town,Online
+C059,Glen Langa,41,Durban,Retail
+C060,Helen Mostert,34,Pretoria,Online

@@ -99,7 +99,6 @@ def style_profile_from_editable_draft(draft: EditableStyleDraft) -> StyleProfile
     )
     node_fill = draft.background or "#d9eaf7"
     node_stroke = draft.primary or "#1f4e79"
-    text_color = draft.text_colour or ("#ffffff" if _is_dark(draft.background) else "#000000")
     diagram = DiagramStyle(
         direction="TD",
         node_fill=node_fill,

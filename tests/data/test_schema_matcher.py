@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 
 from semantic_visual_builder.data.data_profiler import ColumnProfile, DatasetProfile
-from semantic_visual_builder.data.schema_matcher import SchemaFieldMatch, SchemaMatchReport, SchemaMatcher
+from semantic_visual_builder.data.schema_matcher import SchemaMatcher
 
 
 def _profile(*column_names: str, semantic_types: dict[str, str] | None = None) -> DatasetProfile:

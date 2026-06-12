@@ -22,9 +22,9 @@ class ChartJsRenderer(BaseRenderer):
         visual_plan: VisualPlan,
         dataset_context: DatasetContext | None = None,
     ) -> RendererOutput:
-        raise NotImplementedError("Chart.js rendering is not active in Sprint 3.")
+        raise NotImplementedError("Chart.js rendering is not yet active.")
 
     def validate_output(self, output: RendererOutput) -> ValidationResult:
         result = ValidationResult()
-        result.add_error("Chart.js rendering is not active in Sprint 3.")
+        result.add_error("Chart.js rendering is not yet active.")
         return result

@@ -55,7 +55,6 @@ class ReportHtmlExporter:
             self.export_dir.mkdir(parents=True, exist_ok=True)
             generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
             renderer_line = f" &bull; Renderer: {renderer_name}" if renderer_name else ""
-            dataset_line = f" &bull; Dataset: {dataset_name}" if dataset_name else ""
             notes_block = _NOTES_BLOCK.format(notes=notes) if notes else ""
 
             html = _HTML_TEMPLATE.format(

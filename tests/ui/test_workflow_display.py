@@ -1,7 +1,5 @@
 """Workflow display tests."""
 
-from semantic_visual_builder.data.dataset_context import DatasetContext
-from semantic_visual_builder.data.data_profiler import ColumnProfile, DatasetProfile
 from semantic_visual_builder.planning.visual_plan_schema import DataRole, StyleIntent, VisualPlan
 from semantic_visual_builder.planning.workflow_state import WorkflowStep
 from semantic_visual_builder.state.app_state import AppState

@@ -4,7 +4,6 @@ from pathlib import Path
 
 from semantic_visual_builder.data.csv_loader import CsvLoader
 from semantic_visual_builder.data.data_profiler import DataProfiler
-from semantic_visual_builder.knowledge.graph_matrix import GraphMatrixLoader
 from semantic_visual_builder.planning.intent_mapper import IntentMapper
 
 

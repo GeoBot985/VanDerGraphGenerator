@@ -3,7 +3,6 @@
 from semantic_visual_builder.planning.diagram_plan_builder import DiagramPlanBuilder
 from semantic_visual_builder.planning.visual_plan_schema import DiagramEdge, DiagramNode, VisualPlan
 from semantic_visual_builder.renderers.mermaid_renderer import MermaidRenderer
-from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.validation.visual_plan_validator import VisualPlanValidator
 
 

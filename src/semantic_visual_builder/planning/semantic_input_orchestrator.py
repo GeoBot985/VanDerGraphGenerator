@@ -42,11 +42,9 @@ class SemanticInputOrchestrator:
         self,
         planning_orchestrator: PlanningOrchestrator,
         refinement_orchestrator: RefinementOrchestrator,
-        message_classifier: object | None = None,
     ):
         self.planning_orchestrator = planning_orchestrator
         self.refinement_orchestrator = refinement_orchestrator
-        self._legacy_message_classifier = message_classifier
 
     def handle_message(
         self,
@@ -104,15 +102,6 @@ class SemanticInputOrchestrator:
             attempted_llm=attempted_llm,
             selected_model=selected_model,
         )
-
-    def process_message(
-        self,
-        user_message: str,
-        app_state: AppState,
-        use_llm: bool = True,
-    ) -> SemanticInputResult:
-        """Backward-compatible alias for handle_message()."""
-        return self.handle_message(user_message, app_state, use_llm=use_llm)
 
     def _to_semantic_result(
         self,

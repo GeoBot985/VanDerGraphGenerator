@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from semantic_visual_builder.image_style.vision_model_detector import VisionModelDetector
 

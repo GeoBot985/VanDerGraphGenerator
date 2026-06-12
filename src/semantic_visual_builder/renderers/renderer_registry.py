@@ -5,9 +5,6 @@ from __future__ import annotations
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 
 from .base_renderer import BaseRenderer
-from .chartjs_renderer import ChartJsRenderer
-from .mermaid_renderer import MermaidRenderer
-from .plotly_renderer import PlotlyRenderer
 from .python_renderer_future import PythonRendererFuture
 
 

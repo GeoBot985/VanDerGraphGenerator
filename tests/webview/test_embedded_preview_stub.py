@@ -1,6 +1,5 @@
 """Embedded preview surface tests."""
 
-from pathlib import Path
 
 from semantic_visual_builder.webview.embedded_preview import BrowserPreviewSurface, EmbeddedWebViewPreviewSurface
 

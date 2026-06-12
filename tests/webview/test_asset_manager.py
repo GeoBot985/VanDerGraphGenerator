@@ -1,6 +1,5 @@
 """Asset manager tests."""
 
-from pathlib import Path
 
 from semantic_visual_builder.webview.asset_manager import AssetManager
 

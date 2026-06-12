@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semantic-visual-builder"
-version = "0.10.0"
+version = "0.12.0"
 description = "Local semantic visual programming scaffold"
 requires-python = ">=3.11"
 dependencies = [

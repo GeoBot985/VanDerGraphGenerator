@@ -1,6 +1,5 @@
 """Recipe panel tests."""
 
-from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 from semantic_visual_builder.recipes.recipe_schema import RecipeFieldExpectation, VisualRecipe
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.ui.recipe_panel import RecipePanel

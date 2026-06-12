@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from semantic_visual_builder.styles.style_review_model import (
     EditableStyleDraft,
