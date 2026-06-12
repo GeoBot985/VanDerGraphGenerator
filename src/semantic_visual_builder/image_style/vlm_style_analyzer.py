@@ -15,6 +15,7 @@ from .vision_model_detector import VisionModelDetector
 _ALLOWED_TONES = {"corporate", "presentation", "minimal", "technical", "playful", "dark", "neutral", "report"}
 _ALLOWED_GRID = {"none", "light", "medium"}
 _ALLOWED_DENSITY = {"low", "medium", "high"}
+_ALLOWED_FONT_CAT = {"sans-serif", "serif", "monospace"}
 
 
 @dataclass
@@ -24,6 +25,9 @@ class VlmStyleAnalysis:
     style_words: list[str] = field(default_factory=list)
     inferred_tone: str | None = None
     suggested_name: str | None = None
+    font_category: str | None = None
+    grid_style: str | None = None
+    label_density: str | None = None
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -111,6 +115,33 @@ class VlmStyleAnalyzer:
                     f"VLM inferred_tone '{raw_tone}' is not a recognised value; ignored."
                 )
 
+        raw_font = parsed.get("font_category")
+        font_category: str | None = None
+        if isinstance(raw_font, str):
+            cleaned = raw_font.strip().lower()
+            if cleaned in _ALLOWED_FONT_CAT:
+                font_category = cleaned
+            else:
+                warnings.append(f"VLM font_category '{raw_font}' is not recognised; ignored.")
+
+        raw_grid = parsed.get("grid_style")
+        grid_style: str | None = None
+        if isinstance(raw_grid, str):
+            cleaned = raw_grid.strip().lower()
+            if cleaned in _ALLOWED_GRID:
+                grid_style = cleaned
+            else:
+                warnings.append(f"VLM grid_style '{raw_grid}' is not recognised; ignored.")
+
+        raw_density = parsed.get("label_density")
+        label_density: str | None = None
+        if isinstance(raw_density, str):
+            cleaned = raw_density.strip().lower()
+            if cleaned in _ALLOWED_DENSITY:
+                label_density = cleaned
+            else:
+                warnings.append(f"VLM label_density '{raw_density}' is not recognised; ignored.")
+
         return VlmStyleAnalysis(
             raw_response=raw_response,
             parsed_json=parsed,
@@ -123,5 +154,8 @@ class VlmStyleAnalyzer:
             suggested_name=parsed.get("suggested_name")
             if isinstance(parsed.get("suggested_name"), str)
             else None,
+            font_category=font_category,
+            grid_style=grid_style,
+            label_density=label_density,
             warnings=warnings,
         )

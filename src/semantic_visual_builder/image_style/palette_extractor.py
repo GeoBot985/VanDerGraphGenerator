@@ -49,11 +49,11 @@ class PaletteExtractor:
         result = PaletteExtractionResult()
         analysis_image = loaded_image.image.convert("RGB")
         analysis_image = analysis_image.copy()
-        analysis_image.thumbnail((200, 200))
+        analysis_image.thumbnail((400, 400))
 
         background_rgb = self._estimate_background(analysis_image)
         quantized = analysis_image.quantize(
-            colors=max(2, max_colours), method=Image.Quantize.MEDIANCUT
+            colors=max(2, max_colours), method=Image.Quantize.FASTOCTREE
         )
         palette = quantized.getpalette() or []
         counts = quantized.getcolors() or []
@@ -95,17 +95,21 @@ class PaletteExtractor:
         return result
 
     def _estimate_background(self, image: Image.Image) -> tuple[int, int, int]:
-        samples: list[tuple[int, int, int]] = []
         width, height = image.size
         if width == 0 or height == 0:
             return (255, 255, 255)
-        sample_points = {
-            (0, 0),
-            (width - 1, 0),
-            (0, height - 1),
-            (width - 1, height - 1),
-        }
+        corners: list[tuple[int, int, int]] = [
+            tuple(image.getpixel((0, 0)))[:3],  # type: ignore[misc]
+            tuple(image.getpixel((width - 1, 0)))[:3],  # type: ignore[misc]
+            tuple(image.getpixel((0, height - 1)))[:3],  # type: ignore[misc]
+            tuple(image.getpixel((width - 1, height - 1)))[:3],  # type: ignore[misc]
+        ]
+        consensus = self._corner_consensus(corners)
+        if consensus is not None:
+            return consensus
+        samples: list[tuple[int, int, int]] = list(corners)
         step = max(1, min(width, height) // 20)
+        sample_points: set[tuple[int, int]] = set()
         for x in range(0, width, step):
             sample_points.add((x, 0))
             sample_points.add((x, height - 1))
@@ -113,10 +117,16 @@ class PaletteExtractor:
             sample_points.add((0, y))
             sample_points.add((width - 1, y))
         for x, y in sample_points:
-            samples.append(tuple(image.getpixel((x, y))))
-        if not samples:
-            samples = [tuple(pixel) for pixel in image.getdata()]
+            samples.append(tuple(image.getpixel((x, y)))[:3])  # type: ignore[misc]
         return Counter(samples).most_common(1)[0][0]
+
+    def _corner_consensus(
+        self, corners: list[tuple[int, int, int]]
+    ) -> tuple[int, int, int] | None:
+        for candidate in corners:
+            if sum(colour_distance(candidate, c) <= 30 for c in corners) >= 3:
+                return candidate
+        return None
 
     def _palette_index_to_rgb(
         self, palette: list[int], index: int

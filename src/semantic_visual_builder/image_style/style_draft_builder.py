@@ -13,12 +13,19 @@ from semantic_visual_builder.styles.style_schema import (
     StyleProfile,
     TypographyStyle,
 )
+from semantic_visual_builder.image_style.colour_utils import saturation_approx
 from semantic_visual_builder.utils.text_sanitize import normalize_name
 
 from .image_metadata import ImageMetadata
 from .image_style_analyzer import DeterministicImageStyleAnalysis
 from .palette_extractor import PaletteExtractionResult
 from .vlm_style_analyzer import VlmStyleAnalysis
+
+_FONT_FAMILY_MAP = {
+    "sans-serif": "Arial",
+    "serif": "Georgia",
+    "monospace": "Courier New",
+}
 
 
 class StyleDraftBuilder:
@@ -43,11 +50,35 @@ class StyleDraftBuilder:
                 "Extracted from an image reference with optional VLM style hints."
             )
 
+        # VLM dark-tone overrides deterministic background classification
         is_dark = deterministic_analysis.background_tone == "dark"
+        if vlm_analysis and vlm_analysis.inferred_tone == "dark":
+            is_dark = True
+
+        # Grid: VLM grid_style takes priority; "minimal" tone forces none
+        grid = deterministic_analysis.grid_hint
+        if vlm_analysis and vlm_analysis.grid_style is not None:
+            grid = vlm_analysis.grid_style
+        elif vlm_analysis and vlm_analysis.inferred_tone == "minimal":
+            grid = "none"
+
+        # Label density: VLM overrides deterministic when present
+        label_density = deterministic_analysis.label_density_hint
+        if vlm_analysis and vlm_analysis.label_density is not None:
+            label_density = vlm_analysis.label_density
+
+        # Font family: VLM category overrides default
+        font_family = "Arial"
+        if vlm_analysis and vlm_analysis.font_category:
+            font_family = _FONT_FAMILY_MAP.get(vlm_analysis.font_category, "Arial")
+
         text_hint = deterministic_analysis.text_colour_hint or (
             "#ffffff" if is_dark else "#000000"
         )
-        sequence_colours = [colour.hex_value for colour in palette_result.colours[:6]]
+        # Sequence: saturation-sorted so data series colours come first
+        non_bg = [c for c in palette_result.colours if c.role_hint != "background"]
+        non_bg.sort(key=lambda c: saturation_approx(c.rgb), reverse=True)
+        sequence_colours = [c.hex_value for c in non_bg[:6]]
         palette = ColourPalette(
             primary=palette_result.primary_colour,
             secondary=palette_result.accent_colour,
@@ -65,9 +96,9 @@ class StyleDraftBuilder:
         chart = ChartStyle(
             background=background,
             plot_background=plot_background,
-            grid=deterministic_analysis.grid_hint,
+            grid=grid,
             legend_position="right",
-            label_density=deterministic_analysis.label_density_hint,
+            label_density=label_density,
             title_alignment="left",
         )
         node_stroke = palette_result.primary_colour or ("#00b0f0" if is_dark else "#1f4e79")
@@ -94,7 +125,7 @@ class StyleDraftBuilder:
         return StyleProfile(
             metadata=metadata,
             palette=palette,
-            typography=TypographyStyle(font_family="Arial"),
+            typography=TypographyStyle(font_family=font_family),
             chart=chart,
             diagram=diagram,
             renderer_hints=renderer_hints,

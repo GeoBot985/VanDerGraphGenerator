@@ -106,3 +106,34 @@ def test_vlm_analyzer_reports_runtime_vision_error_for_unknown_model(tmp_path: P
     assert result.parsed_json is None
     assert any("Attempting image input anyway" in warning for warning in result.warnings)
     assert result.errors == ["vision unsupported"]
+
+
+def test_vlm_analyzer_extracts_font_category(tmp_path: Path) -> None:
+    client = FakeVisionClient(
+        '{"inferred_tone":"technical","suggested_name":"Mono Tech",'
+        '"style_words":["technical"],"font_category":"monospace",'
+        '"grid_style":"light","label_density":"high"}'
+    )
+    analyzer = VlmStyleAnalyzer(client)
+
+    result = analyzer.analyze_image_style(
+        "vision-model", tmp_path / "sample.png", _analysis()
+    )
+
+    assert result.font_category == "monospace"
+    assert result.grid_style == "light"
+    assert result.label_density == "high"
+
+
+def test_vlm_analyzer_ignores_invalid_font_category(tmp_path: Path) -> None:
+    client = FakeVisionClient(
+        '{"inferred_tone":"corporate","style_words":[],"font_category":"comic-sans"}'
+    )
+    analyzer = VlmStyleAnalyzer(client)
+
+    result = analyzer.analyze_image_style(
+        "vision-model", tmp_path / "sample.png", _analysis()
+    )
+
+    assert result.font_category is None
+    assert any("font_category" in w for w in result.warnings)

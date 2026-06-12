@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from PIL import ImageFilter
+
 from .colour_utils import brightness, colour_distance, saturation_approx
 from .image_loader import LoadedImage
 from .palette_extractor import PaletteExtractionResult
@@ -55,7 +57,7 @@ class ImageStyleAnalyzer:
             palette_result,
         )
         grid_hint = self._grid_hint(background_tone, neutral_rgb)
-        label_density_hint = "medium"
+        label_density_hint = self._estimate_label_density(loaded_image)
         warnings = list(palette_result.warnings)
         if loaded_image.width < 320 or loaded_image.height < 240:
             warnings.append("Image is small; style inference may be approximate.")
@@ -121,6 +123,21 @@ class ImageStyleAnalyzer:
         if background_tone == "light" and neutral_rgb is not None:
             return "light"
         return "medium"
+
+    def _estimate_label_density(self, loaded_image: LoadedImage) -> str:
+        thumb = loaded_image.image.convert("L").copy()
+        thumb.thumbnail((120, 120))
+        edges = thumb.filter(ImageFilter.FIND_EDGES)
+        pixels = list(edges.getdata())
+        if not pixels:
+            return "low"
+        edge_count = sum(1 for p in pixels if p > 25)
+        ratio = edge_count / len(pixels)
+        if ratio > 0.14:
+            return "high"
+        if ratio > 0.05:
+            return "medium"
+        return "low"
 
     def _hex_to_rgb(self, hex_value: str | None) -> tuple[int, int, int] | None:
         if not hex_value:
