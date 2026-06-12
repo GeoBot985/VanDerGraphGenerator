@@ -482,7 +482,9 @@ class SemanticVisualBuilderApp:
         status = client.get_status()
         models = client.list_models() if status.is_connected else []
         self.app_state.ollama_status = status
-        self.app_state.model_registry.set_models(models)
+        self.app_state.model_registry.set_models(
+            models, preferred=self.app_state.app_settings.default_ollama_model
+        )
         self._model_var.set(self.app_state.model_registry.selected_model or "")
         model_names = self.app_state.model_registry.get_model_names()
         self.model_combo["values"] = model_names

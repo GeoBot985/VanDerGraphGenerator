@@ -6,7 +6,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Iterable
 
-from PIL import Image
+from PIL import Image, ImageEnhance
 
 from .colour_utils import (
     brightness,
@@ -81,6 +81,17 @@ class PaletteExtractor:
             result.warnings.append("No dominant colours could be extracted.")
             return result
 
+        # Second pass: re-quantize non-background pixels to surface vivid data colours.
+        # Charts with dark/busy backgrounds will otherwise return muted mid-tones.
+        data_colours = self._extract_data_colours(analysis_image, background_rgb, max_colours)
+        if data_colours:
+            seen = {c.hex_value for c in data_colours}
+            for c in ranked:
+                if c.hex_value not in seen and len(data_colours) < max_colours:
+                    data_colours.append(c)
+                    seen.add(c.hex_value)
+            ranked = data_colours
+
         result.colours = ranked
         result.background_colour = rgb_to_hex(background_rgb)
         result.primary_colour = self._pick_primary(ranked, background_rgb)
@@ -92,6 +103,56 @@ class PaletteExtractor:
             result.warnings.append(
                 "Palette is sparse; style inference may be approximate."
             )
+        return result
+
+    def _extract_data_colours(
+        self,
+        image: Image.Image,
+        background_rgb: tuple[int, int, int],
+        max_colours: int,
+    ) -> list[ExtractedColour]:
+        """Re-quantize only non-background pixels to find vivid data-series colours."""
+        data_pixels: list[tuple[int, int, int]] = [
+            tuple(p)[:3]  # type: ignore[misc]
+            for p in image.getdata()
+            if colour_distance(tuple(p)[:3], background_rgb) > 35  # type: ignore[arg-type]
+            and not is_near_white(tuple(p)[:3])  # type: ignore[arg-type]
+        ]
+        if len(data_pixels) < 30:
+            return []
+        side = max(1, int(len(data_pixels) ** 0.5) + 1)
+        tmp = Image.new("RGB", (side, side))
+        fill = data_pixels[: side * side]
+        fill += [background_rgb] * (side * side - len(fill))
+        tmp.putdata(fill)
+        # Boost saturation so JPEG-compressed or small-image colours are
+        # recovered as vivid rather than muted averaging artefacts.
+        tmp = ImageEnhance.Color(tmp).enhance(1.6)
+        quantized = tmp.quantize(
+            colors=max(2, max_colours + 2), method=Image.Quantize.FASTOCTREE
+        )
+        pal = quantized.getpalette() or []
+        counts = quantized.getcolors() or []
+        total = sum(c for c, _ in counts) or 1
+        result: list[ExtractedColour] = []
+        for count, idx in sorted(counts, reverse=True):
+            offset = idx * 3
+            rgb: tuple[int, int, int] = tuple(pal[offset : offset + 3])  # type: ignore[assignment]
+            if colour_distance(rgb, background_rgb) <= 35:
+                continue
+            if self._is_duplicate(rgb, result):
+                continue
+            pct = round(count / total * 100, 2)
+            result.append(
+                ExtractedColour(
+                    hex_value=rgb_to_hex(rgb),
+                    rgb=rgb,
+                    percentage=pct,
+                    role_hint=self._role_hint(rgb, background_rgb),
+                )
+            )
+            if len(result) >= max_colours:
+                break
         return result
 
     def _estimate_background(self, image: Image.Image) -> tuple[int, int, int]:

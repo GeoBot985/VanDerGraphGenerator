@@ -9,7 +9,7 @@ from typing import Any
 
 @dataclass
 class AppSettings:
-    default_ollama_model: str | None = None
+    default_ollama_model: str | None = "gemma4:3b"
     llm_mapping_enabled: bool = True
     default_renderer: str = "plotly"
     default_export_dir: str | None = None

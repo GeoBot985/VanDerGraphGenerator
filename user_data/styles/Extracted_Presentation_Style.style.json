@@ -1,0 +1,71 @@
+{
+  "metadata": {
+    "style_id": "Extracted_Presentation_Style",
+    "style_name": "Extracted Presentation Style",
+    "description": "Extracted from an image reference using deterministic palette analysis.",
+    "schema_version": "1.0",
+    "created_at": "2026-06-12T07:18:56.953908+00:00",
+    "updated_at": "2026-06-12T07:18:56.953908+00:00",
+    "author": "image-style-extraction",
+    "tags": [
+      "dark",
+      "image-extracted",
+      "none",
+      "presentation"
+    ]
+  },
+  "palette": {
+    "primary": "#2e56a5",
+    "secondary": "#963969",
+    "accent": "#963969",
+    "neutral": "#aaaaaa",
+    "warning": null,
+    "success": null,
+    "danger": null,
+    "sequence": [
+      "#2e56a5",
+      "#234f6b",
+      "#963969",
+      "#58366e",
+      "#595b92",
+      "#574d70"
+    ]
+  },
+  "typography": {
+    "font_family": "Arial",
+    "title_size": null,
+    "label_size": null,
+    "tick_size": null
+  },
+  "chart": {
+    "background": "#152040",
+    "plot_background": "#152040",
+    "grid": "none",
+    "legend_position": "right",
+    "label_density": "high",
+    "title_alignment": "left",
+    "bar_gap": null,
+    "line_shape": null
+  },
+  "diagram": {
+    "direction": "LR",
+    "node_fill": "#2e56a5",
+    "node_stroke": "#2e56a5",
+    "decision_fill": "#963969",
+    "edge_colour": "#2e56a5",
+    "class_defs": {}
+  },
+  "renderer_hints": {
+    "plotly_template": "plotly_dark",
+    "mermaid_theme": "dark",
+    "chartjs_options": {}
+  },
+  "supported_visual_kinds": [
+    "chart",
+    "diagram"
+  ],
+  "supported_renderers": [
+    "plotly",
+    "mermaid"
+  ]
+}

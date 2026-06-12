@@ -14,12 +14,18 @@ class ModelRegistry:
     models: list[OllamaModel] = field(default_factory=list)
     selected_model: str | None = None
 
-    def set_models(self, models: list[OllamaModel]) -> None:
+    def set_models(
+        self, models: list[OllamaModel], preferred: str | None = None
+    ) -> None:
         previous = self.selected_model
         self.models = list(models)
         names = self.get_model_names()
         if previous in names:
             self.selected_model = previous
+        elif preferred and any(n.lower() == preferred.lower() for n in names):
+            self.selected_model = next(
+                n for n in names if n.lower() == preferred.lower()
+            )
         else:
             self.selected_model = names[0] if names else None
 

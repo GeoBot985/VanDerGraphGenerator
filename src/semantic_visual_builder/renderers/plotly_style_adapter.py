@@ -52,6 +52,7 @@ class PlotlyStyleAdapter:
             layout["paper_bgcolor"] = background
         if plot_background:
             layout["plot_bgcolor"] = plot_background
+        layout["template"] = "plotly_dark" if is_dark else "plotly_white"
 
         font = layout.setdefault("font", {})
         if style.font_family:
