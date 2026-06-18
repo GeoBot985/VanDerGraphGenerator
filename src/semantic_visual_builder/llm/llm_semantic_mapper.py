@@ -80,6 +80,69 @@ class LlmSemanticMapper:
                 raw_response="", parsed_json=None, draft=None, errors=[str(exc)]
             )
 
+        return self._parse_response(
+            raw_response=raw_response,
+            model=model,
+            graph_matrix=graph_matrix,
+        )
+
+    def map_to_draft_with_history(
+        self,
+        model: str,
+        user_message: str,
+        dataset_profile: DatasetProfile | None,
+        product_kb: ProductKnowledgeBase | None,
+        graph_matrix: GraphMatrix | None,
+        current_plan: VisualPlan,
+        conversation_messages: list[dict[str, str]],
+    ) -> LlmMappingResult:
+        """Refine a plan using multi-turn chat history via Ollama /api/chat.
+
+        Prior user/assistant turns give the model conversational context for
+        refinement, while the final user message carries the structured
+        mapping prompt so the response stays parseable JSON.
+        """
+        prompt = self.prompt_builder.build_refinement_prompt(
+            user_message=user_message,
+            dataset_profile=dataset_profile,
+            product_kb=product_kb,
+            graph_matrix=graph_matrix,
+            current_plan=current_plan,
+        )
+        messages: list[dict[str, str]] = []
+        for turn in conversation_messages:
+            role = str(turn.get("role", "user"))
+            if role not in {"user", "assistant"}:
+                # System prompts are supplied via the dedicated `system` arg.
+                continue
+            content = str(turn.get("content", "")).strip()
+            if not content:
+                continue
+            messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": prompt})
+        try:
+            raw_response = self.ollama_client.chat(
+                model=model,
+                messages=messages,
+                system=VISUAL_REFINEMENT_SYSTEM_PROMPT,
+                temperature=0.0,
+            )
+        except Exception as exc:
+            return LlmMappingResult(
+                raw_response="", parsed_json=None, draft=None, errors=[str(exc)]
+            )
+        return self._parse_response(
+            raw_response=raw_response,
+            model=model,
+            graph_matrix=graph_matrix,
+        )
+
+    def _parse_response(
+        self,
+        raw_response: str,
+        model: str,
+        graph_matrix: GraphMatrix | None,
+    ) -> LlmMappingResult:
         parsed_json = None
         used_repair = False
         try:

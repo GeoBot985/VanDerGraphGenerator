@@ -8,6 +8,7 @@ Tkinter app. They also guard the Chart.js silent-trap fix.
 from __future__ import annotations
 
 from pathlib import Path
+import pathlib
 
 import pytest
 
@@ -82,3 +83,41 @@ def test_chartjs_renderer_is_rejected_at_routing_time() -> None:
     )
     with pytest.raises(ValueError):
         registry.get_renderer(plan)
+
+
+def test_ollama_client_chat_is_implemented() -> None:
+    from semantic_visual_builder.llm.ollama_client import OllamaClient
+
+    source = Path("src/semantic_visual_builder/llm/ollama_client.py").read_text(
+        encoding="utf-8"
+    )
+    assert "NotImplementedError" not in source.split("def chat(")[1].split("def ")[0]
+    # chat() must validate inputs rather than raising NotImplementedError.
+    client = OllamaClient()
+    import pytest
+
+    with pytest.raises(ValueError):
+        client.chat(model="m", messages=[])
+
+
+def test_refinement_orchestrator_supports_chat_history_routing() -> None:
+    source = Path("src/semantic_visual_builder/planning/refinement_orchestrator.py").read_text(
+        encoding="utf-8"
+    )
+    assert "map_to_draft_with_history" in source
+    assert "_conversation_history" in source
+
+
+def test_llm_semantic_mapper_exposes_chat_history_mapping() -> None:
+    source = Path("src/semantic_visual_builder/llm/llm_semantic_mapper.py").read_text(
+        encoding="utf-8"
+    )
+    assert "def map_to_draft_with_history" in source
+    assert "self.ollama_client.chat(" in source
+
+
+def test_png_and_svg_exporters_use_playwright() -> None:
+    for module_name in ("png_exporter.py", "svg_exporter.py"):
+        source = pathlib.Path("src/semantic_visual_builder/export") / module_name
+        assert "PlaywrightExporter" in source.read_text(encoding="utf-8")
+

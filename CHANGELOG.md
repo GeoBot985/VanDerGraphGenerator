@@ -1,5 +1,47 @@
 # Changelog
 
+## Unreleased (follow-up: real export + conversational refinement)
+
+### Multi-format export is now real
+- **PNG export** ? `PngExporter` now renders the generated chart HTML in
+  headless Chromium via Playwright and screenshots the `#chart` element to a
+  real PNG file. `File -> Export PNG...` produces an actual image.
+- **SVG export** ? `SvgExporter` extracts the rendered `<svg>` node (Plotly
+  chart or Mermaid diagram) from the headless render and writes a standalone
+  `.svg` file. `File -> Export SVG...` produces an actual vector image.
+- New `export/playwright_exporter.py` coordinates the headless render with a
+  graceful fallback message when Playwright or a Chromium browser binary is
+  not installed. `PngExporter`/`SvgExporter` constructors and signatures match
+  `ExportManager` so the export dialog no longer crashes.
+- New `tests/export/test_playwright_exporter.py` exercises the real browser
+  path (auto-skips when Playwright/Chromium is absent).
+
+### Conversational refinement now calls the model via chat
+- **`OllamaClient.chat()`** is implemented against Ollama `/api/chat` (was a
+  `NotImplementedError`). Supports multi-turn messages, an optional system
+  prompt, temperature, and JSON response format, with the same
+  `OllamaGenerationError` error handling as `generate()`.
+- **`LlmSemanticMapper.map_to_draft_with_history()`** refines a plan by
+  sending prior user/assistant turns as chat history plus the structured
+  refinement prompt as the final user message, so refinement is genuinely
+  multi-turn and context-aware. The shared parse/validate/repair logic was
+  extracted into `_parse_response` so both the generate and chat paths stay
+  consistent.
+- **`RefinementOrchestrator`** routes refinement through the chat path when
+  conversation history is available (`_map_refinement` /
+  `_conversation_history`), and falls back to the single-shot generate path
+  when there is no history or the mapper does not support chat.
+- New `tests/llm/test_ollama_client_chat.py`,
+  `tests/llm/test_llm_semantic_mapper_chat.py`, and
+  `tests/planning/test_refinement_chat_routing.py`.
+- New architecture guards in `tests/architecture/test_ui_wiring.py` assert
+  `chat()` no longer raises `NotImplementedError`, the refinement orchestrator
+  wires chat history, and PNG/SVG exporters delegate to Playwright.
+
+### Internal
+- 541 tests; all passing (was 519).
+
+
 ## Unreleased
 
 ### Desktop UI wiring (follow-up to 0.12.0 known limitations)

@@ -1,9 +1,4 @@
-"""PNG exporter placeholder for future work.
-
-The current implementation is a graceful stub. A future sprint can replace the
-body with a headless-browser render path (e.g. Playwright) that converts the
-generated chart HTML into a PNG image.
-"""
+"""PNG export via headless Chromium (Playwright)."""
 
 from __future__ import annotations
 
@@ -13,7 +8,11 @@ from .export_result import ExportResult
 
 
 class PngExporter:
-    """Graceful stub for browser-rendered PNG export."""
+    """Render chart HTML to a PNG via headless Chromium.
+
+    Falls back to a graceful failure message if Playwright or a Chromium
+    browser binary is unavailable.
+    """
 
     def __init__(self, export_dir: Path | None = None) -> None:
         self.export_dir = export_dir
@@ -24,12 +23,17 @@ class PngExporter:
         html: str | None = None,
         filename_prefix: str = "export",
     ) -> ExportResult:
-        return ExportResult(
-            success=False,
-            export_type="png",
-            error=(
-                "PNG export is not yet implemented. Use the browser's "
-                "save-as-image option on the preview, or wait for the "
-                "headless-renderer export path in a later sprint."
-            ),
+        if source_html_path is None:
+            return ExportResult(
+                success=False,
+                export_type="png",
+                error="A source HTML path is required for PNG export.",
+            )
+        from .playwright_exporter import PlaywrightExporter
+
+        target_dir = self.export_dir if self.export_dir is not None else Path.cwd()
+        return PlaywrightExporter().export_png(
+            source_html_path=Path(source_html_path),
+            export_dir=Path(target_dir),
+            filename_prefix=filename_prefix,
         )

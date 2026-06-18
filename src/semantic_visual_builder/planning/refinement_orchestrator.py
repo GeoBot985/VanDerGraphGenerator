@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from semantic_visual_builder.llm.llm_mapping_result import LlmMappingResult
 from semantic_visual_builder.llm.llm_semantic_mapper import LlmSemanticMapper
 from semantic_visual_builder.planning.clarification import ClarificationOption, ClarificationRequest
 from semantic_visual_builder.planning.clarification_engine import ClarificationEngine
@@ -78,14 +79,14 @@ class RefinementOrchestrator:
         )
 
         if attempted_llm:
-            llm_result = self.llm_mapper.map_to_draft(
+            llm_result = self._map_refinement(
                 model=selected_model,
                 user_message=user_message,
                 dataset_profile=dataset_profile,
                 product_kb=product_kb,
                 graph_matrix=graph_matrix,
-                current_plan_summary=summarize_visual_plan(current_plan),
                 current_plan=current_plan,
+                app_state=app_state,
             )
             if llm_result.draft is not None:
                 refined = self.patch_applier.apply_patch(
@@ -432,6 +433,59 @@ class RefinementOrchestrator:
         if has_changes:
             updated = self.patch_applier.apply_patch(updated, style_patch)
         return updated
+
+    def _map_refinement(
+        self,
+        model: str,
+        user_message: str,
+        dataset_profile,
+        product_kb,
+        graph_matrix,
+        current_plan: VisualPlan,
+        app_state: AppState,
+    ) -> LlmMappingResult:
+        """Route refinement through multi-turn chat when history is available.
+
+        Falls back to the single-shot generate-based mapper when the mapper
+        does not support chat history or there is no conversation history.
+        """
+        history = self._conversation_history(app_state)
+        chat_capable = hasattr(self.llm_mapper, "map_to_draft_with_history")
+        if chat_capable and history:
+            return self.llm_mapper.map_to_draft_with_history(  # type: ignore[attr-defined]
+                model=model,
+                user_message=user_message,
+                dataset_profile=dataset_profile,
+                product_kb=product_kb,
+                graph_matrix=graph_matrix,
+                current_plan=current_plan,
+                conversation_messages=history,
+            )
+        return self.llm_mapper.map_to_draft(
+            model=model,
+            user_message=user_message,
+            dataset_profile=dataset_profile,
+            product_kb=product_kb,
+            graph_matrix=graph_matrix,
+            current_plan_summary=summarize_visual_plan(current_plan),
+            current_plan=current_plan,
+        )
+
+    def _conversation_history(self, app_state: AppState) -> list[dict[str, str]]:
+        """Return prior conversation turns (excluding the current message)."""
+        conversation = getattr(app_state, "conversation_state", None)
+        if conversation is None:
+            return []
+        messages = getattr(conversation, "messages", None)
+        if not messages:
+            return []
+        history: list[dict[str, str]] = []
+        for turn in messages[:-1]:
+            role = getattr(turn, "role", None)
+            content = getattr(turn, "content", "")
+            if role in {"user", "assistant"} and content:
+                history.append({"role": role, "content": str(content)})
+        return history
 
     def _preserve_visual_structure_for_style_only_refinement(
         self,
