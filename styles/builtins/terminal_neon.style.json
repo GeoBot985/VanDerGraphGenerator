@@ -6,54 +6,64 @@
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "dark",
       "developer",
-      "neon"
+      "dark",
+      "neon",
+      "flat"
     ]
   },
   "palette": {
-    "primary": "#00e676",
-    "secondary": "#ffb300",
-    "accent": "#00e5ff",
-    "neutral": "#6b7280",
+    "primary": "#39ff14",
+    "secondary": "#ffbf00",
+    "accent": "#ffbf00",
+    "neutral": "#444444",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#00e676",
-      "#ffb300",
-      "#00e5ff",
-      "#d500f9",
-      "#ff1744",
-      "#ffea00"
+      "#39ff14",
+      "#ffbf00",
+      "#ff5e5e",
+      "#5cd2ff",
+      "#b380ff",
+      "#ffffff"
     ]
   },
   "typography": {
     "font_family": "Courier New",
-    "font_weight": "bold",
+    "font_weight": "normal",
     "title_size": 18,
     "label_size": 12,
-    "tick_size": 11
+    "tick_size": 10
   },
   "chart": {
     "background": "#0a0a0a",
-    "plot_background": "#0d0d0d",
+    "plot_background": "#101010",
     "grid": "none",
     "legend_position": "right",
-    "label_density": "low",
+    "label_density": "medium",
     "title_alignment": "left",
     "bar_gap": 0.2,
     "line_shape": "linear"
   },
   "diagram": {
     "direction": "TD",
-    "node_fill": "#00e676",
-    "node_stroke": "#00e676",
-    "decision_fill": "#00e5ff",
-    "edge_colour": "#00e676",
+    "node_fill": "#39ff14",
+    "node_stroke": "#39ff14",
+    "decision_fill": "#ffbf00",
+    "edge_colour": "#39ff14",
     "border_radius": 0,
-    "stroke_width": 2,
+    "stroke_width": 1,
     "class_defs": {}
+  },
+  "three_d": {
+    "chart_style": "flat",
+    "depth": null,
+    "bevel": null,
+    "perspective": null,
+    "lighting": null,
+    "shadow": null,
+    "tilt": null
   },
   "renderer_hints": {
     "plotly_template": "plotly_dark",

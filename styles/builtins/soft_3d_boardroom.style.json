@@ -1,45 +1,44 @@
 {
   "metadata": {
-    "style_id": "marketing_punch",
-    "style_name": "Marketing Punch",
-    "description": "Punchy marketing look: heavy bold sans, vivid palette, no grid, big titles and wide bars for hero charts.",
+    "style_id": "soft_3d_boardroom",
+    "style_name": "Soft 3D Boardroom",
+    "description": "Executive navy with a soft extrusion so the deck reads as 3D without losing the printability of the Boardroom palette.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "marketing",
-      "bold",
-      "vibrant",
-      "flat"
+      "soft_3d",
+      "corporate",
+      "presentation"
     ]
   },
   "palette": {
-    "primary": "#ff0054",
-    "secondary": "#ff5400",
-    "accent": "#ff8500",
-    "neutral": "#888888",
+    "primary": "#1f3b66",
+    "secondary": "#5b8def",
+    "accent": "#c9a227",
+    "neutral": "#9aa3b0",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#ff0054",
-      "#ff5400",
-      "#ff8500",
-      "#ff9e00",
-      "#9e0059",
-      "#390099"
+      "#1f3b66",
+      "#5b8def",
+      "#c9a227",
+      "#3c5a8a",
+      "#8a6d1f",
+      "#b0b8c4"
     ]
   },
   "typography": {
     "font_family": "Helvetica",
     "font_weight": "bold",
-    "title_size": 28,
-    "label_size": 14,
-    "tick_size": 12
+    "title_size": 20,
+    "label_size": 12,
+    "tick_size": 10
   },
   "chart": {
     "background": "#ffffff",
-    "plot_background": "#ffffff",
-    "grid": "none",
+    "plot_background": "#fafcff",
+    "grid": "light",
     "legend_position": "bottom",
     "label_density": "medium",
     "title_alignment": "left",
@@ -49,20 +48,20 @@
   "diagram": {
     "direction": "TD",
     "node_fill": "#eeeeee",
-    "node_stroke": "#ff0054",
-    "decision_fill": "#ff8500",
-    "edge_colour": "#ff0054",
-    "border_radius": 14,
+    "node_stroke": "#1f3b66",
+    "decision_fill": "#c9a227",
+    "edge_colour": "#1f3b66",
+    "border_radius": 6,
     "stroke_width": 2,
     "class_defs": {}
   },
   "three_d": {
-    "chart_style": "flat",
-    "depth": null,
-    "bevel": null,
+    "chart_style": "soft_3d",
+    "depth": 14,
+    "bevel": 3,
     "perspective": null,
-    "lighting": null,
-    "shadow": null,
+    "lighting": "soft",
+    "shadow": true,
     "tilt": null
   },
   "renderer_hints": {

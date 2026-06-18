@@ -1,4 +1,4 @@
-"""Validate style profiles."""
+﻿"""Validate style profiles."""
 
 from __future__ import annotations
 
@@ -17,6 +17,8 @@ class StyleValidator:
     allowed_label_density = {"low", "medium", "high"}
     allowed_legend_position = {"right", "bottom", "none"}
     allowed_direction = {"TD", "LR", "BT", "RL"}
+    allowed_chart_styles = {"flat", "soft_3d", "true_3d"}
+    allowed_lighting = {"flat", "soft", "dramatic"}
     _hex_colour = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
     _font_family = re.compile(r"^[A-Za-z0-9 ,\-']+$")
     _blocked_strings = ("javascript:", "url(", "expression(", "<script", "{", "}")
@@ -50,6 +52,7 @@ class StyleValidator:
             result.add_error(f"Unsupported legend position: {style.chart.legend_position}")
         if style.diagram.direction and style.diagram.direction not in self.allowed_direction:
             result.add_error(f"Unsupported diagram direction: {style.diagram.direction}")
+        self._validate_three_d(style, result)
         self._validate_colour_values(style.to_dict(), result)
         self._validate_font(style.typography.font_family, result)
         return result
@@ -61,6 +64,37 @@ class StyleValidator:
             result = ValidationResult()
             result.add_error(str(exc))
             return result
+
+    def _validate_three_d(self, style: StyleProfile, result: ValidationResult) -> None:
+        three_d = getattr(style, "three_d", None)
+        if three_d is None:
+            return
+        if (
+            three_d.chart_style is not None
+            and three_d.chart_style not in self.allowed_chart_styles
+        ):
+            result.add_error(
+                f"Unsupported chart_style: {three_d.chart_style!r}. "
+                "Expected one of: flat, soft_3d, true_3d."
+            )
+        if three_d.depth is not None and three_d.depth < 0:
+            result.add_error("three_d.depth must be >= 0.")
+        if three_d.depth is not None and three_d.depth > 200:
+            result.add_warning("three_d.depth above 200 produces very tall extrusions.")
+        if three_d.bevel is not None and three_d.bevel < 0:
+            result.add_error("three_d.bevel must be >= 0.")
+        if three_d.perspective is not None and not 0.0 <= three_d.perspective <= 1.0:
+            result.add_error("three_d.perspective must be between 0.0 and 1.0.")
+        if (
+            three_d.lighting is not None
+            and three_d.lighting not in self.allowed_lighting
+        ):
+            result.add_error(
+                f"Unsupported lighting: {three_d.lighting!r}. "
+                "Expected one of: flat, soft, dramatic."
+            )
+        if three_d.tilt is not None and not -180 <= three_d.tilt <= 180:
+            result.add_error("three_d.tilt must be between -180 and 180.")
 
     def _validate_colour_values(self, value: Any, result: ValidationResult) -> None:
         if isinstance(value, dict):

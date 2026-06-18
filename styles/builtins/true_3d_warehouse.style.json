@@ -1,15 +1,15 @@
 {
   "metadata": {
-    "style_id": "dashboard_dark",
-    "style_name": "Dashboard Dark",
-    "description": "Operations dashboard on dark slate: Segoe UI, bright categorical data colours and a subtle grid for at-a-glance monitoring.",
+    "style_id": "true_3d_warehouse",
+    "style_name": "True 3D Warehouse",
+    "description": "Operations palette turned into a 3D ops scene: bright categorical data colours on dark slate, dramatic lighting for at-a-glance monitoring across categories and time.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "dark",
-      "dashboard",
+      "true_3d",
       "ops",
-      "flat"
+      "dashboard",
+      "immersive"
     ]
   },
   "palette": {
@@ -39,7 +39,7 @@
   "chart": {
     "background": "#0f172a",
     "plot_background": "#111c33",
-    "grid": "light",
+    "grid": "none",
     "legend_position": "right",
     "label_density": "medium",
     "title_alignment": "left",
@@ -52,18 +52,18 @@
     "node_stroke": "#38bdf8",
     "decision_fill": "#fbbf24",
     "edge_colour": "#38bdf8",
-    "border_radius": 6,
-    "stroke_width": 1,
+    "border_radius": 8,
+    "stroke_width": 2,
     "class_defs": {}
   },
   "three_d": {
-    "chart_style": "flat",
-    "depth": null,
-    "bevel": null,
-    "perspective": null,
-    "lighting": null,
-    "shadow": null,
-    "tilt": null
+    "chart_style": "true_3d",
+    "depth": 28,
+    "bevel": 4,
+    "perspective": 0.6,
+    "lighting": "dramatic",
+    "shadow": true,
+    "tilt": 25
   },
   "renderer_hints": {
     "plotly_template": "plotly_dark",

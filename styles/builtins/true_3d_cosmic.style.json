@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "style_id": "true_3d_cosmic",
+    "style_name": "True 3D Cosmic",
+    "description": "Deep cosmic palette with full Plotly 3D scene: tilted bars with soft perspective lighting and a dark background so the geometry reads as 3D rather than extruded.",
+    "schema_version": "1.0",
+    "author": null,
+    "tags": [
+      "true_3d",
+      "cosmic",
+      "dark",
+      "immersive"
+    ]
+  },
+  "palette": {
+    "primary": "#7c3aed",
+    "secondary": "#22d3ee",
+    "accent": "#f97316",
+    "neutral": "#94a3b8",
+    "warning": null,
+    "success": null,
+    "danger": null,
+    "sequence": [
+      "#7c3aed",
+      "#22d3ee",
+      "#f97316",
+      "#22c55e",
+      "#f43f5e",
+      "#facc15"
+    ]
+  },
+  "typography": {
+    "font_family": "Segoe UI",
+    "font_weight": "normal",
+    "title_size": 20,
+    "label_size": 12,
+    "tick_size": 10
+  },
+  "chart": {
+    "background": "#0b1020",
+    "plot_background": "#101a33",
+    "grid": "none",
+    "legend_position": "right",
+    "label_density": "medium",
+    "title_alignment": "left",
+    "bar_gap": 0.25,
+    "line_shape": "linear"
+  },
+  "diagram": {
+    "direction": "TD",
+    "node_fill": "#7c3aed",
+    "node_stroke": "#7c3aed",
+    "decision_fill": "#f97316",
+    "edge_colour": "#7c3aed",
+    "border_radius": 10,
+    "stroke_width": 2,
+    "class_defs": {}
+  },
+  "three_d": {
+    "chart_style": "true_3d",
+    "depth": 24,
+    "bevel": 6,
+    "perspective": 0.7,
+    "lighting": "soft",
+    "shadow": true,
+    "tilt": 30
+  },
+  "renderer_hints": {
+    "plotly_template": "plotly_dark",
+    "mermaid_theme": "dark",
+    "chartjs_options": {}
+  },
+  "supported_visual_kinds": [
+    "chart",
+    "diagram"
+  ],
+  "supported_renderers": [
+    "plotly",
+    "mermaid"
+  ]
+}

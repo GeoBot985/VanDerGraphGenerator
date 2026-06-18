@@ -1,4 +1,4 @@
-"""Compare style profiles to detect similarity."""
+﻿"""Compare style profiles to detect similarity."""
 
 from __future__ import annotations
 
@@ -80,6 +80,13 @@ class StyleComparator:
             shared = set(candidate.metadata.tags) & set(existing.metadata.tags)
             reasons.append(f"shared tags: {', '.join(sorted(shared))}")
 
+        style_match = self._three_d_match(candidate, existing)
+        score += style_match * 0.05
+        if not style_match:
+            reasons.append(
+                f"different 3D treatment ({self._three_d_label(candidate)} vs {self._three_d_label(existing)})"
+            )
+
         return StyleComparisonResult(
             compared_style_id=existing.metadata.style_id,
             compared_style_name=existing.metadata.style_name,
@@ -95,6 +102,16 @@ class StyleComparator:
         results = [self.compare(candidate, existing) for existing in existing_styles]
         results.sort(key=lambda r: r.similarity_score, reverse=True)
         return results
+
+    def _three_d_match(self, candidate: StyleProfile, existing: StyleProfile) -> float:
+        c = getattr(candidate.three_d, "chart_style", None) or "flat"
+        e = getattr(existing.three_d, "chart_style", None) or "flat"
+        if c == e:
+            return 1.0
+        return 0.0
+
+    def _three_d_label(self, style: StyleProfile) -> str:
+        return getattr(style.three_d, "chart_style", None) or "flat"
 
     def _colour_score(self, hex_a: str | None, hex_b: str | None) -> float:
         if not hex_a and not hex_b:

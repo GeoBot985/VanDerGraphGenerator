@@ -1,9 +1,15 @@
-"""Neutral visual plan schema."""
+﻿"""Neutral visual plan schema."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
+
+
+#: Allowed values for the per-plan chart style. ``flat`` (default), ``soft_3d``
+#: (extruded bars/markers but no perspective scene), and ``true_3d`` (full
+#: Plotly 3D scene with camera tilt and lighting).
+CHART_STYLES: tuple[str, ...] = ("flat", "soft_3d", "true_3d")
 
 
 @dataclass
@@ -31,13 +37,21 @@ class StyleIntent:
     background: str | None = None
     plot_background: str | None = None
     bar_gap: float | None = None
-    line_shape: str | None = None         # "linear" | "spline" | "hv" | …
+    line_shape: str | None = None         # "linear" | "spline" | "hv" | "..."
     diagram_direction: str | None = None
     border_radius: int | None = None      # px
     stroke_width: int | None = None       # px
     highlights: dict[str, Any] = field(default_factory=dict)
     labels: dict[str, str] = field(default_factory=dict)
     orientation: str | None = None
+    # --- 3D / depth treatment (Sprint 13) ---
+    chart_style: str | None = None       # "flat" | "soft_3d" | "true_3d"
+    depth: int | None = None             # px extrusion (0 = flat, larger = more 3D)
+    bevel: int | None = None             # px bevel radius (0 = sharp edges)
+    perspective: float | None = None     # 0.0-1.0 camera perspective strength
+    lighting: str | None = None          # "flat" | "soft" | "dramatic"
+    shadow: bool | None = None
+    tilt: int | None = None              # deg camera tilt for true_3d scenes
 
 
 @dataclass

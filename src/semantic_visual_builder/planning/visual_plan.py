@@ -55,7 +55,61 @@ def set_role(
     )
 
 
-def summarize_visual_plan(plan: VisualPlan) -> str:
+def summarise_style_3d(plan: VisualPlan) -> str | None:
+    """Return a single-line summary of the 3D treatment on a plan, if any."""
+    style = plan.style
+    parts: list[str] = []
+    if style.chart_style:
+        parts.append(f"chart_style={style.chart_style}")
+    for label, value in (
+        ("depth", style.depth),
+        ("bevel", style.bevel),
+        ("perspective", style.perspective),
+        ("tilt", style.tilt),
+        ("lighting", style.lighting),
+        ("shadow", style.shadow),
+    ):
+        if value is not None:
+            parts.append(f"{label}={value}")
+    if not parts:
+        return None
+    return "3D treatment: " + ", ".join(parts)
+
+
+def apply_3d_to_style(
+    plan: VisualPlan,
+    *,
+    chart_style: str | None = None,
+    depth: int | None = None,
+    bevel: int | None = None,
+    perspective: float | None = None,
+    lighting: str | None = None,
+    shadow: bool | None = None,
+    tilt: int | None = None,
+) -> None:
+    """Mutate the plan's style to record the 3D treatment chosen by the user.
+
+    Only fields that are not None are written, so a user can override just one
+    knob (for example, just ``depth``) without resetting the others.
+    """
+    style = plan.style
+    if chart_style is not None:
+        style.chart_style = chart_style
+    if depth is not None:
+        style.depth = depth
+    if bevel is not None:
+        style.bevel = bevel
+    if perspective is not None:
+        style.perspective = perspective
+    if lighting is not None:
+        style.lighting = lighting
+    if shadow is not None:
+        style.shadow = shadow
+    if tilt is not None:
+        style.tilt = tilt
+
+
+def summarise_visual_plan(plan: VisualPlan) -> str:
     lines = [f"Visual kind: {plan.visual_kind}", f"Intent: {plan.intent}"]
     if plan.chart_type:
         lines.append(f"Chart type: {plan.chart_type}")
@@ -92,6 +146,9 @@ def summarize_visual_plan(plan: VisualPlan) -> str:
         lines.append(f"Orientation: {plan.style.orientation}")
     if plan.style.highlights:
         lines.append(f"Highlights: {plan.style.highlights}")
+    three_d_summary = summarise_style_3d(plan)
+    if three_d_summary:
+        lines.append(three_d_summary)
     if plan.metadata.plan_id:
         lines.append(f"Plan ID: {plan.metadata.plan_id}")
     if plan.metadata.mapping_method:
@@ -129,6 +186,13 @@ def visual_plan_from_llm_draft(draft: LlmVisualPlanDraft) -> VisualPlan:
             highlights=(draft.style or {}).get("highlights", {}) or {},
             labels=(draft.style or {}).get("labels", {}) or {},
             orientation=(draft.style or {}).get("orientation"),
+            chart_style=(draft.style or {}).get("chart_style"),
+            depth=_normalise_int((draft.style or {}).get("depth")),
+            bevel=_normalise_int((draft.style or {}).get("bevel")),
+            perspective=_normalise_float((draft.style or {}).get("perspective")),
+            lighting=(draft.style or {}).get("lighting"),
+            shadow=_normalise_bool((draft.style or {}).get("shadow")),
+            tilt=_normalise_int((draft.style or {}).get("tilt")),
         ),
         render_target=RenderTarget(renderer=draft.renderer),
     )
@@ -235,6 +299,13 @@ def visual_plan_from_dict(data: dict[str, Any]) -> VisualPlan:
             highlights=style_data.get("highlights", {}) or {},
             labels=style_data.get("labels", {}) or {},
             orientation=style_data.get("orientation"),
+            chart_style=style_data.get("chart_style"),
+            depth=_normalise_int(style_data.get("depth")),
+            bevel=_normalise_int(style_data.get("bevel")),
+            perspective=_normalise_float(style_data.get("perspective")),
+            lighting=style_data.get("lighting"),
+            shadow=_normalise_bool(style_data.get("shadow")),
+            tilt=_normalise_int(style_data.get("tilt")),
         )
     render_target_data = data.get("render_target", {})
     if isinstance(render_target_data, dict):
@@ -271,6 +342,7 @@ def merge_visual_plans(base: VisualPlan, update: VisualPlan) -> VisualPlan:
         merged.filters = [deepcopy(item) for item in update.filters]
     if update.grouping:
         merged.grouping = list(update.grouping)
+
     if update.diagram_nodes:
         merged.diagram_nodes = deepcopy(update.diagram_nodes)
     if update.diagram_edges:
@@ -304,6 +376,20 @@ def merge_visual_plans(base: VisualPlan, update: VisualPlan) -> VisualPlan:
         merged.style.labels = deepcopy(update.style.labels)
     if update.style.orientation is not None:
         merged.style.orientation = update.style.orientation
+    if update.style.chart_style is not None:
+        merged.style.chart_style = update.style.chart_style
+    if update.style.depth is not None:
+        merged.style.depth = update.style.depth
+    if update.style.bevel is not None:
+        merged.style.bevel = update.style.bevel
+    if update.style.perspective is not None:
+        merged.style.perspective = update.style.perspective
+    if update.style.lighting is not None:
+        merged.style.lighting = update.style.lighting
+    if update.style.shadow is not None:
+        merged.style.shadow = update.style.shadow
+    if update.style.tilt is not None:
+        merged.style.tilt = update.style.tilt
 
     if update.metadata.plan_id is not None:
         merged.metadata.plan_id = update.metadata.plan_id
@@ -324,6 +410,10 @@ def merge_visual_plans(base: VisualPlan, update: VisualPlan) -> VisualPlan:
     return merged
 
 
+
+
+# Backwards-compatible US spelling used by tests and downstream callers.
+summarize_visual_plan = summarise_visual_plan
 def _normalise_int(value: object) -> int | None:
     if value is None or isinstance(value, bool):
         return None
@@ -335,4 +425,34 @@ def _normalise_int(value: object) -> int | None:
         text = value.strip()
         if text.isdigit():
             return int(text)
+    return None
+
+
+def _normalise_float(value: object) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        text = value.strip()
+        try:
+            return float(text)
+        except ValueError:
+            return None
+    return None
+
+
+def _normalise_bool(value: object) -> bool | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"true", "yes", "on", "1"}:
+            return True
+        if lowered in {"false", "no", "off", "0"}:
+            return False
+    if isinstance(value, (int, float)):
+        return bool(value)
     return None

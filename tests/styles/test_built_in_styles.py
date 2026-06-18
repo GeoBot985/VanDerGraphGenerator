@@ -1,4 +1,4 @@
-﻿"""Built-in composite style profile tests."""
+"""Built-in composite style profile tests."""
 
 from semantic_visual_builder.styles.built_in_styles import list_builtin_style_profiles
 from semantic_visual_builder.styles.style_validator import StyleValidator
@@ -18,6 +18,12 @@ _EXPECTED_IDS = [
     "sunset_warm",
     "colorblind_safe",
     "high_contrast_print",
+    # --- 3D / soft_3d / true_3d variants (Sprint 13) ---
+    "soft_3d_gloss",
+    "soft_3d_boardroom",
+    "true_3d_cosmic",
+    "true_3d_warehouse",
+    "true_3d_pastel",
 ]
 
 

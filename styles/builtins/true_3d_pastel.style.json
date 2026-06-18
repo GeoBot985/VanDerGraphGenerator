@@ -1,15 +1,14 @@
 {
   "metadata": {
-    "style_id": "pastel_soft",
-    "style_name": "Pastel Soft",
-    "description": "Soft pastel categorical palette on white, smooth splines and a light grid for friendly dashboards.",
+    "style_id": "true_3d_pastel",
+    "style_name": "True 3D Pastel",
+    "description": "Pastel palette elevated to a friendly 3D scene: white background, soft tilt, gentle perspective so the geometry feels playful rather than technical.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
+      "true_3d",
       "playful",
-      "pastel",
-      "soft",
-      "flat"
+      "pastel"
     ]
   },
   "palette": {
@@ -39,11 +38,11 @@
   "chart": {
     "background": "#ffffff",
     "plot_background": "#ffffff",
-    "grid": "light",
+    "grid": "none",
     "legend_position": "right",
     "label_density": "medium",
     "title_alignment": "left",
-    "bar_gap": 0.35,
+    "bar_gap": 0.3,
     "line_shape": "spline"
   },
   "diagram": {
@@ -52,18 +51,18 @@
     "node_stroke": "#ffadad",
     "decision_fill": "#caffbf",
     "edge_colour": "#ffadad",
-    "border_radius": 12,
-    "stroke_width": 1,
+    "border_radius": 10,
+    "stroke_width": 2,
     "class_defs": {}
   },
   "three_d": {
-    "chart_style": "flat",
-    "depth": null,
-    "bevel": null,
-    "perspective": null,
-    "lighting": null,
-    "shadow": null,
-    "tilt": null
+    "chart_style": "true_3d",
+    "depth": 20,
+    "bevel": 5,
+    "perspective": 0.4,
+    "lighting": "soft",
+    "shadow": true,
+    "tilt": 20
   },
   "renderer_hints": {
     "plotly_template": "plotly_white",

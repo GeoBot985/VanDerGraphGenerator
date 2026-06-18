@@ -1,4 +1,4 @@
-"""Apply style profiles to visual plans."""
+﻿"""Apply style profiles to visual plans."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 
-from .style_schema import StyleProfile
+from .style_schema import StyleProfile, ThreeDStyle
 
 
 @dataclass
@@ -16,6 +16,24 @@ class StyleApplicationResult:
     visual_plan: VisualPlan | None = None
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+
+
+def _apply_three_d(visual_plan: VisualPlan, three_d: ThreeDStyle) -> None:
+    """Copy the style profile's 3D knobs onto the visual plan style."""
+    if three_d.chart_style is not None:
+        visual_plan.style.chart_style = three_d.chart_style
+    if three_d.depth is not None:
+        visual_plan.style.depth = three_d.depth
+    if three_d.bevel is not None:
+        visual_plan.style.bevel = three_d.bevel
+    if three_d.perspective is not None:
+        visual_plan.style.perspective = three_d.perspective
+    if three_d.lighting is not None:
+        visual_plan.style.lighting = three_d.lighting
+    if three_d.shadow is not None:
+        visual_plan.style.shadow = three_d.shadow
+    if three_d.tilt is not None:
+        visual_plan.style.tilt = three_d.tilt
 
 
 class StyleApplier:
@@ -94,6 +112,8 @@ class StyleApplier:
             visual_plan.style.palette["class_defs"] = deepcopy(
                 style_profile.diagram.class_defs
             )
+
+        _apply_three_d(visual_plan, style_profile.three_d)
 
         if visual_plan.style.title is None and style_profile.metadata.style_name:
             visual_plan.style.title = style_profile.metadata.style_name

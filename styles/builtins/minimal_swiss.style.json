@@ -55,6 +55,15 @@
     "stroke_width": 1,
     "class_defs": {}
   },
+  "three_d": {
+    "chart_style": "flat",
+    "depth": null,
+    "bevel": null,
+    "perspective": null,
+    "lighting": null,
+    "shadow": null,
+    "tilt": null
+  },
   "renderer_hints": {
     "plotly_template": "plotly_white",
     "mermaid_theme": "base",

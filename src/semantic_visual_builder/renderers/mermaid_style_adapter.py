@@ -1,4 +1,4 @@
-"""Apply style intents to Mermaid code, with extracted palette support."""
+﻿"""Apply style intents to Mermaid code, with extracted palette support and 3D treatment."""
 
 from __future__ import annotations
 
@@ -44,6 +44,42 @@ def _build_init_directive(style: object) -> str | None:
     return "%%{init: {'theme': 'base', 'themeVariables': {" + pairs + "}}}%%"
 
 
+def mermaid_chart_style(plan: VisualPlan) -> str:
+    """Return the active diagram chart style, defaulting to ``flat``."""
+    value = getattr(getattr(plan, "style", None), "chart_style", None)
+    if value in {"flat", "soft_3d", "true_3d"}:
+        return value
+    return "flat"
+
+
+def is_mermaid_3d(plan: VisualPlan) -> bool:
+    return mermaid_chart_style(plan) != "flat"
+
+
+def _3d_node_shape(style: str, base_shape: str) -> str:
+    """Return a Mermaid node shape that hints at the requested 3D treatment.
+
+    Mermaid itself cannot rotate, but it offers three shapes that read as 3D:
+    stadium/pill ``([label])`` for cylinders, hexagon ``{{label}}`` for boxes,
+    and double-circle ``((label))`` for "3D" blobs. Picking the right one
+    lets flat / soft_3d / true_3d coexist on the same canvas.
+    """
+    inner = base_shape.strip()
+    if inner.startswith("[") and inner.endswith("]"):
+        inner = inner[1:-1]
+    elif inner.startswith("(") and inner.endswith(")"):
+        inner = inner[1:-1]
+    elif inner.startswith("{") and inner.endswith("}"):
+        inner = inner[1:-1]
+    if style == "true_3d":
+        # Stadium/pill reads as a 3D cylinder.
+        return f"([{inner}])"
+    if style == "soft_3d":
+        # Round-edged rectangle.
+        return f"({inner})"
+    return base_shape
+
+
 class MermaidStyleAdapter:
     def apply_style_to_mermaid(self, mermaid_code: str, visual_plan: VisualPlan) -> str:
         style = visual_plan.style
@@ -68,6 +104,7 @@ class MermaidStyleAdapter:
 
         border_radius = getattr(style, "border_radius", None)
         stroke_width = getattr(style, "stroke_width", None)
+        chart_style = mermaid_chart_style(visual_plan)
 
         def _class_def(name: str, fill: str, stroke: str, color: str) -> str:
             parts = [f"fill:{fill}", f"stroke:{stroke}", f"color:{color}"]
@@ -75,6 +112,13 @@ class MermaidStyleAdapter:
                 parts.append(f"stroke-width:{stroke_width}px")
             if border_radius is not None:
                 parts.append(f"rx:{border_radius}px")
+            if chart_style == "soft_3d":
+                parts.append("stroke-width:2px")
+                parts.append("fill-opacity:0.92")
+            elif chart_style == "true_3d":
+                parts.append("stroke-width:3px")
+                parts.append("fill-opacity:0.96")
+                parts.append(f"shadow:0 2px 6px {stroke}")
             return f"classDef {name} {','.join(parts)};"
 
         class_defs: list[str] = []

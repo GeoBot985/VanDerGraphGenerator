@@ -9,7 +9,12 @@ from semantic_visual_builder.planning.visual_plan_schema import (
     VisualPlan,
 )
 from semantic_visual_builder.renderers.base_renderer import BaseRenderer
-from semantic_visual_builder.renderers.mermaid_style_adapter import MermaidStyleAdapter
+from semantic_visual_builder.renderers.mermaid_style_adapter import (
+    MermaidStyleAdapter,
+    is_mermaid_3d,
+    mermaid_chart_style,
+    _3d_node_shape,
+)
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.utils.text_sanitize import sanitize_label
 from semantic_visual_builder.validation.validation_result import ValidationResult
@@ -97,7 +102,7 @@ class MermaidRenderer(BaseRenderer):
         lines = [f"flowchart {direction}"]
         for node in nodes:
             lines.append(
-                f"    {self._safe_node_id(node.id)}{self._node_brackets(node)}"
+                f"    {self._safe_node_id(node.id)}{self._node_brackets(node, visual_plan)}"
             )
         for edge in edges:
             if edge.label:
@@ -171,7 +176,7 @@ class MermaidRenderer(BaseRenderer):
             lines.append(f"    subgraph {self._safe_node_id(lane)}[{lane}]")
             for node in lane_nodes:
                 lines.append(
-                    f"        {self._safe_node_id(node.id)}{self._node_brackets(node)}"
+                    f"        {self._safe_node_id(node.id)}{self._node_brackets(node, visual_plan)}"
                 )
             lines.append("    end")
         for edge in edges:
@@ -200,13 +205,17 @@ class MermaidRenderer(BaseRenderer):
                 lines.append(f"    {source} --- {target}")
         return "\n".join(lines)
 
-    def _node_brackets(self, node: DiagramNode) -> str:
+    def _node_brackets(self, node: DiagramNode, plan: VisualPlan | None = None) -> str:
         label = sanitize_label(node.label)
         if node.node_type == "decision":
-            return f"{{{label}}}"
-        if node.node_type in {"start", "end"}:
-            return f"([{label}])"
-        return f"[{label}]"
+            base = f"{{{label}}}"
+        elif node.node_type in {"start", "end"}:
+            base = f"([{label}])"
+        else:
+            base = f"[{label}]"
+        if plan is None:
+            return base
+        return _3d_node_shape(mermaid_chart_style(plan), base)
 
     def _safe_node_id(self, node_id: str) -> str:
         return "".join(ch for ch in node_id if ch.isalnum() or ch == "_")

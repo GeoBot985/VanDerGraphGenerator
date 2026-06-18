@@ -10,6 +10,16 @@ from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.planning.visual_plan import get_role
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 from semantic_visual_builder.renderers.base_renderer import BaseRenderer
+from semantic_visual_builder.renderers.plotly_3d import (  # noqa: F401  (3D scene helpers wired through plotly_chart_builders)
+    apply_3d_to_layout,
+    bar3d_trace,
+    chart_style,
+    extrusion_marker,
+    pie3d_trace,
+    scene,
+    shadow,
+    surface3d_trace,
+)
 from semantic_visual_builder.renderers.plotly_style_adapter import PlotlyStyleAdapter
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.validation.validation_result import ValidationResult
@@ -152,19 +162,30 @@ class PlotlyRenderer(BaseRenderer):
         else:
             grouped = dataframe.assign(_x=series.dt.to_period("D").astype(str))
         counts = grouped.groupby("_x", dropna=False).size().reset_index(name="_y").sort_values("_x")
-        trace = {
-            "type": "scatter",
-            "mode": "lines+markers",
-            "x": counts["_x"].tolist(),
-            "y": counts["_y"].tolist(),
-            "name": "Transactions",
-        }
         primary_colour = self._primary_palette_colour(plan)
-        if primary_colour:
-            trace["line"] = {"color": primary_colour}
-            trace["marker"] = {"color": primary_colour}
+        if chart_style(plan) == "true_3d":
+            trace = surface3d_trace(
+                plan,
+                counts["_x"].tolist(),
+                counts["_y"].tolist(),
+                name="Transactions",
+            )
+        else:
+            trace = {
+                "type": "scatter",
+                "mode": "lines+markers",
+                "x": counts["_x"].tolist(),
+                "y": counts["_y"].tolist(),
+                "name": "Transactions",
+            }
+            if chart_style(plan) == "soft_3d":
+                trace["marker"] = {"size": 10, **extrusion_marker(plan, color=primary_colour)}
+            elif primary_colour:
+                trace["line"] = {"color": primary_colour}
+                trace["marker"] = {"color": primary_colour}
         layout_title = "Week" if transform == "week" else "Month" if transform == "month" else "Year" if transform == "year" else (x_role.field or "Time")
         layout = self._layout(plan, x_title=layout_title, y_title="Transactions")
+        apply_3d_to_layout(plan, layout)
         return trace, layout, []
 
     def _build_bar(self, plan: VisualPlan, dataframe: pd.DataFrame, horizontal: bool) -> tuple[dict[str, object], dict[str, object], list[str]]:
@@ -175,16 +196,43 @@ class PlotlyRenderer(BaseRenderer):
         grouped = self._aggregate_category(dataframe, category.field, measure)
         colors = self._bar_colors(plan, grouped["label"].tolist())
         warnings = self._highlight_warnings(plan, category.field)
-        if horizontal:
-            trace = {"type": "bar", "orientation": "h", "x": grouped["value"].tolist(), "y": grouped["label"].tolist(), "name": self._measure_name(measure)}
-            if colors:
-                trace["marker"] = {"color": colors}
-            layout = self._layout(plan, x_title=self._measure_name(measure), y_title=category.field or "Category")
-        else:
-            trace = {"type": "bar", "x": grouped["label"].tolist(), "y": grouped["value"].tolist(), "name": self._measure_name(measure)}
-            if colors:
-                trace["marker"] = {"color": colors}
+        if chart_style(plan) == "true_3d":
+            trace = bar3d_trace(
+                plan,
+                grouped["label"].tolist(),
+                grouped["value"].tolist(),
+                name=self._measure_name(measure),
+                colorway=colors,
+            )
             layout = self._layout(plan, x_title=category.field or "Category", y_title=self._measure_name(measure))
+            apply_3d_to_layout(plan, layout)
+            # Tell the user the value axis is the height, not the y axis,
+            # so the chart reads as a city-skyline 3D bar rather than a flat strip.
+            layout["scene"]["zaxis"] = {"title": self._measure_name(measure)}
+            layout["scene"]["yaxis"] = {"title": category.field or "Category", "tickmode": "array", "tickvals": list(range(len(grouped))), "ticktext": grouped["label"].tolist()}
+        elif chart_style(plan) == "soft_3d":
+            marker: dict[str, object] = {"color": colors[0]} if colors else {}
+            marker.update(extrusion_marker(plan))
+            trace = {
+                "type": "bar",
+                "orientation": "h" if horizontal else "v",
+                "x": grouped["value"].tolist() if horizontal else grouped["label"].tolist(),
+                "y": grouped["label"].tolist() if horizontal else grouped["value"].tolist(),
+                "name": self._measure_name(measure),
+                "marker": marker,
+            }
+            layout = self._layout(plan, x_title=self._measure_name(measure) if horizontal else (category.field or "Category"), y_title=category.field or "Category" if horizontal else self._measure_name(measure))
+        else:
+            if horizontal:
+                trace = {"type": "bar", "orientation": "h", "x": grouped["value"].tolist(), "y": grouped["label"].tolist(), "name": self._measure_name(measure)}
+                if colors:
+                    trace["marker"] = {"color": colors}
+                layout = self._layout(plan, x_title=self._measure_name(measure), y_title=category.field or "Category")
+            else:
+                trace = {"type": "bar", "x": grouped["label"].tolist(), "y": grouped["value"].tolist(), "name": self._measure_name(measure)}
+                if colors:
+                    trace["marker"] = {"color": colors}
+                layout = self._layout(plan, x_title=category.field or "Category", y_title=self._measure_name(measure))
         return trace, layout, warnings
 
     def _build_scatter(self, plan: VisualPlan, dataframe: pd.DataFrame) -> tuple[dict[str, object], dict[str, object], list[str]]:
@@ -195,11 +243,37 @@ class PlotlyRenderer(BaseRenderer):
         x_values = pd.to_numeric(dataframe[x_role.field], errors="coerce")
         y_values = pd.to_numeric(dataframe[y_role.field], errors="coerce")
         valid = ~(x_values.isna() | y_values.isna())
-        trace = {"type": "scatter", "mode": "markers", "x": x_values[valid].tolist(), "y": y_values[valid].tolist(), "name": "Points"}
         color = self._primary_palette_colour(plan) or self._colour_for_scheme(plan.style.colour_scheme)
-        if color:
-            trace["marker"] = {"color": color}
+        if chart_style(plan) == "true_3d":
+            size_role = get_role(plan, "size")
+            z_values = (
+                pd.to_numeric(dataframe[size_role.field], errors="coerce")[valid].tolist()
+                if size_role is not None and size_role.field
+                else [0.0] * int(valid.sum())
+            )
+            trace = {
+                "type": "scatter3d",
+                "mode": "markers",
+                "x": x_values[valid].tolist(),
+                "y": y_values[valid].tolist(),
+                "z": z_values,
+                "name": "Points",
+                "marker": {
+                    "size": 6,
+                    "color": color or "#4C78A8",
+                    "opacity": 0.95 if shadow(plan) else 1.0,
+                    "line": {"width": 0, "color": color or "#4C78A8"},
+                },
+            }
+        else:
+            trace = {"type": "scatter", "mode": "markers", "x": x_values[valid].tolist(), "y": y_values[valid].tolist(), "name": "Points"}
+            marker: dict[str, object] = {"color": color} if color else {}
+            if chart_style(plan) == "soft_3d":
+                marker.update(extrusion_marker(plan))
+                marker["size"] = 12
+            trace["marker"] = marker
         layout = self._layout(plan, x_title=x_role.field or "X", y_title=y_role.field or "Y")
+        apply_3d_to_layout(plan, layout)
         return trace, layout, []
 
     def _build_pie(self, plan: VisualPlan, dataframe: pd.DataFrame, hole: float = 0.0) -> tuple[dict[str, object], dict[str, object], list[str]]:
@@ -208,13 +282,32 @@ class PlotlyRenderer(BaseRenderer):
         if category is None or measure is None:
             raise ValueError("Pie charts require category and measure roles.")
         grouped = self._aggregate_category(dataframe, category.field, measure)
-        trace = {"type": "pie", "labels": grouped["label"].tolist(), "values": grouped["value"].tolist(), "name": self._measure_name(measure)}
-        if hole > 0:
-            trace["hole"] = hole
         colors = self._categorical_colors(plan, grouped["label"].tolist())
-        if colors:
-            trace["marker"] = {"colors": colors}
+        if chart_style(plan) == "true_3d":
+            trace = {
+                "type": "pie",
+                "labels": grouped["label"].tolist(),
+                "values": grouped["value"].tolist(),
+                "name": self._measure_name(measure),
+                "pull": [0.05] * len(grouped["label"].tolist()),
+                "marker": {"colors": colors} if colors else {},
+                "domain": {"x": [0.05, 0.95], "y": [0.05, 0.95]},
+                "rotation": -45,
+                "direction": "clockwise",
+                "hole": max(hole, 0.25),
+            }
+        else:
+            trace = pie3d_trace(
+                plan,
+                grouped["label"].tolist(),
+                grouped["value"].tolist(),
+                hole=hole,
+                name=self._measure_name(measure),
+            )
+            if colors:
+                trace["marker"] = {"colors": colors}
         layout = self._layout(plan, x_title=category.field or "Category", y_title=self._measure_name(measure))
+        apply_3d_to_layout(plan, layout)
         return trace, layout, self._highlight_warnings(plan, category.field)
 
     def _aggregate_category(self, dataframe: pd.DataFrame, field: str | None, measure) -> pd.DataFrame:
@@ -239,13 +332,17 @@ class PlotlyRenderer(BaseRenderer):
             title = f"{title} - {plan.style.subtitle}"
         x_title = plan.style.labels.get("x", x_title) if plan.style.labels else x_title
         y_title = plan.style.labels.get("y", y_title) if plan.style.labels else y_title
-        return {
+        layout: dict[str, object] = {
             "title": title,
             "xaxis": {"title": x_title},
             "yaxis": {"title": y_title},
             "template": "plotly_white",
             "margin": {"l": 60, "r": 30, "t": 60, "b": 60},
         }
+        if chart_style(plan) == "true_3d":
+            layout["template"] = "plotly_dark"
+            layout["scene"] = scene(plan)
+        return layout
 
     def _bar_colors(self, plan: VisualPlan, labels: list[str]) -> list[str] | None:
         scheme = self._primary_palette_colour(plan) or self._colour_for_scheme(plan.style.colour_scheme)

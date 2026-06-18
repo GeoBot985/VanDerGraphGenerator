@@ -1,68 +1,67 @@
 {
   "metadata": {
-    "style_id": "colorblind_safe",
-    "style_name": "Colorblind Safe",
-    "description": "Okabe-Ito colour-vision-deficiency-safe palette on white, clean sans, medium grid and a bold title for accessible reporting.",
+    "style_id": "soft_3d_gloss",
+    "style_name": "Soft 3D Gloss",
+    "description": "Soft extrusion of the Magazine Bold palette: rounded bars with subtle bevels and a faint shadow, no perspective scene so it still reads at small sizes.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "accessible",
-      "colorblind",
-      "categorical",
-      "flat"
+      "soft_3d",
+      "glossy",
+      "playful"
     ]
   },
   "palette": {
-    "primary": "#0072b2",
-    "secondary": "#e69f00",
-    "accent": "#009e73",
+    "primary": "#e6194b",
+    "secondary": "#3cb44b",
+    "accent": "#4363d8",
     "neutral": "#888888",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#0072b2",
-      "#e69f00",
-      "#009e73",
-      "#cc79a7",
-      "#56b4e9",
-      "#d55e00"
+      "#e6194b",
+      "#3cb44b",
+      "#4363d8",
+      "#f58231",
+      "#911eb4",
+      "#42d4f4"
     ]
   },
   "typography": {
-    "font_family": "Arial",
+    "font_family": "Helvetica",
     "font_weight": "bold",
-    "title_size": 20,
+    "title_size": 22,
     "label_size": 13,
     "tick_size": 11
   },
   "chart": {
     "background": "#ffffff",
     "plot_background": "#ffffff",
-    "grid": "medium",
+    "grid": "light",
     "legend_position": "right",
     "label_density": "medium",
     "title_alignment": "left",
-    "bar_gap": 0.25,
-    "line_shape": "linear"
+    "bar_gap": 0.35,
+    "line_shape": "spline"
   },
   "diagram": {
     "direction": "TD",
     "node_fill": "#eeeeee",
-    "node_stroke": "#0072b2",
-    "decision_fill": "#009e73",
-    "edge_colour": "#0072b2",
-    "border_radius": 4,
+    "node_stroke": "#e6194b",
+    "decision_fill": "#4363d8",
+    "edge_colour": "#e6194b",
+    "border_radius": 12,
     "stroke_width": 2,
     "class_defs": {}
   },
   "three_d": {
-    "chart_style": "flat",
-    "depth": null,
-    "bevel": null,
+    "chart_style": "soft_3d",
+    "depth": 18,
+    "bevel": 4,
     "perspective": null,
-    "lighting": null,
-    "shadow": null,
+    "lighting": "soft",
+    "shadow": true,
     "tilt": null
   },
   "renderer_hints": {

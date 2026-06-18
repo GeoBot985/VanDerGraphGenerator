@@ -1,11 +1,21 @@
 ﻿"""Built-in composite style profiles.
 
 Each built-in style is a complete design system: a colour palette, a
-typographic identity (font family, weight, and title/label/tick sizes), and a
+typographic identity (font family, weight, and title/label/tick sizes), a
 chart surface treatment (background, plot background, grid, legend position,
-title alignment, bar gap, line shape). The styles are intentionally more than
-colour schemes so that switching a style changes the whole feel of a chart or
-diagram, not just its data colours.
+title alignment, bar gap, line shape), and a 3D treatment (chart_style plus
+depth/bevel/perspective/lighting/shadow/tilt) so the same style can be
+applied to flat or 3D-rendered charts without losing its identity.
+
+The catalog is intentionally a mix of:
+
+- 2D / "flat" styles that produce clean flat print-ready visuals,
+- "soft_3d" styles that add gentle extrusion without losing layout, and
+- "true_3d" styles that turn the same chart into an interactive 3D scene.
+
+Style authors can pick any chart and any built-in: the renderer will
+collapse to flat where 3D is not requested, or upgrade to 3D where the
+style asks for it. No user rewriting required.
 """
 
 from __future__ import annotations
@@ -19,12 +29,34 @@ from .style_schema import (
     RendererStyleHints,
     StyleMetadata,
     StyleProfile,
+    ThreeDStyle,
     TypographyStyle,
 )
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _three_d(
+    chart_style: str = "flat",
+    *,
+    depth: int | None = None,
+    bevel: int | None = None,
+    perspective: float | None = None,
+    lighting: str | None = None,
+    shadow: bool | None = None,
+    tilt: int | None = None,
+) -> ThreeDStyle:
+    return ThreeDStyle(
+        chart_style=chart_style,
+        depth=depth,
+        bevel=bevel,
+        perspective=perspective,
+        lighting=lighting,
+        shadow=shadow,
+        tilt=tilt,
+    )
 
 
 def _style(
@@ -60,12 +92,13 @@ def _style(
     stroke_width: int = 1,
     diagram_direction: str = "TD",
     mermaid_theme: str | None = None,
+    three_d: ThreeDStyle | None = None,
 ) -> StyleProfile:
     """Build a composite chart+diagram style profile.
 
     Diagram colours and renderer hints are derived from the palette when not
     given explicitly, so a new theme only needs to specify its distinctive
-    colours plus its typographic and surface identity.
+    colours plus its typographic, surface, and 3D identity.
     """
     primary = primary or sequence[0]
     secondary = secondary or (sequence[1] if len(sequence) > 1 else primary)
@@ -116,6 +149,7 @@ def _style(
             border_radius=border_radius,
             stroke_width=stroke_width,
         ),
+        three_d=three_d or _three_d("flat"),
         renderer_hints=RendererStyleHints(
             plotly_template="plotly_dark" if dark else "plotly_white",
             mermaid_theme=mermaid_theme or ("dark" if dark else "base"),
@@ -126,15 +160,20 @@ def _style(
 
 
 def list_builtin_style_profiles() -> list[StyleProfile]:
-    """Composite design-system styles available out of the box."""
+    """Composite design-system styles available out of the box.
+
+    The catalog deliberately mixes flat, soft_3d and true_3d styles so a user
+    can pick the visual feel they want regardless of the underlying chart
+    type, and so the same colourway shows up in all three treatments.
+    """
     return [
-        # --- Editorial / publication ---
+        # ===== FLAT, PRINT-FRIENDLY =====
         _style(
             "editorial_serif",
             "Editorial Serif",
             "Newspaper-style serif typography on warm cream, with a restrained "
             "charcoal palette and medium grid for data journalism.",
-            ["editorial", "serif", "publication"],
+            ["editorial", "serif", "publication", "flat"],
             background="#fbf7f0",
             plot_background="#fffdf7",
             grid="medium",
@@ -152,13 +191,14 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="linear",
             border_radius=2,
             stroke_width=1,
+            three_d=_three_d("flat"),
         ),
         _style(
             "magazine_bold",
             "Magazine Bold",
             "Glossy magazine feel: heavy sans titles, generous spacing, vivid "
             "categorical colours on white with smooth spline lines.",
-            ["magazine", "bold", "vibrant"],
+            ["magazine", "bold", "vibrant", "flat"],
             background="#ffffff",
             grid="light",
             legend_position="right",
@@ -174,14 +214,15 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="spline",
             border_radius=10,
             stroke_width=2,
+            three_d=_three_d("flat"),
         ),
-        # --- Corporate / executive ---
+        # ===== CORPORATE / EXECUTIVE FLAT =====
         _style(
             "boardroom",
             "Boardroom",
             "Executive navy-and-gold on white, Helvetica bold, bottom legend and "
             "a fine grid for boardroom decks.",
-            ["corporate", "executive", "presentation"],
+            ["corporate", "executive", "presentation", "flat"],
             background="#ffffff",
             plot_background="#fafcff",
             grid="light",
@@ -202,6 +243,7 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="linear",
             border_radius=4,
             stroke_width=2,
+            three_d=_three_d("flat"),
         ),
         _style(
             "minimal_swiss",
@@ -229,14 +271,15 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="linear",
             border_radius=0,
             stroke_width=1,
+            three_d=_three_d("flat"),
         ),
-        # --- Technical / engineering ---
+        # ===== TECHNICAL / ENGINEERING FLAT =====
         _style(
             "technical_report",
             "Technical Report",
             "Engineering report look: clean sans on white, a fine grid, muted "
             "blue-grey palette and centred titles.",
-            ["technical", "engineering", "report"],
+            ["technical", "engineering", "report", "flat"],
             background="#ffffff",
             plot_background="#ffffff",
             grid="light",
@@ -254,13 +297,14 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="linear",
             border_radius=3,
             stroke_width=1,
+            three_d=_three_d("flat"),
         ),
         _style(
             "academic_paper",
             "Academic Paper",
             "Journal-style serif on white, thin grid, black/grey palette and a "
             "bottom legend for dense reference figures.",
-            ["academic", "serif", "print"],
+            ["academic", "serif", "print", "flat"],
             background="#ffffff",
             plot_background="#ffffff",
             grid="light",
@@ -278,14 +322,15 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="linear",
             border_radius=0,
             stroke_width=1,
+            three_d=_three_d("flat"),
         ),
-        # --- Dark / dashboard ---
+        # ===== DARK / DASHBOARD =====
         _style(
             "dashboard_dark",
             "Dashboard Dark",
             "Operations dashboard on dark slate: Segoe UI, bright categorical "
             "data colours and a subtle grid for at-a-glance monitoring.",
-            ["dark", "dashboard", "ops"],
+            ["dark", "dashboard", "ops", "flat"],
             background="#0f172a",
             plot_background="#111c33",
             grid="light",
@@ -304,40 +349,44 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="linear",
             border_radius=6,
             stroke_width=1,
+            three_d=_three_d("flat"),
         ),
         _style(
             "terminal_neon",
             "Terminal Neon",
             "Developer/CLI vibe: monospace on near-black, neon green and amber "
             "data colours, no grid and high-contrast titles.",
-            ["dark", "developer", "neon"],
+            ["developer", "dark", "neon", "flat"],
             background="#0a0a0a",
-            plot_background="#0d0d0d",
+            plot_background="#101010",
             grid="none",
             legend_position="right",
-            label_density="low",
+            label_density="medium",
             title_alignment="left",
             dark=True,
-            neutral="#6b7280",
-            sequence=["#00e676", "#ffb300", "#00e5ff", "#d500f9", "#ff1744", "#ffea00"],
+            primary="#39ff14",
+            accent="#ffbf00",
+            neutral="#444444",
+            sequence=["#39ff14", "#ffbf00", "#ff5e5e", "#5cd2ff", "#b380ff", "#ffffff"],
             font_family="Courier New",
-            font_weight="bold",
+            font_weight="normal",
             title_size=18,
             label_size=12,
-            tick_size=11,
+            tick_size=10,
             bar_gap=0.2,
             line_shape="linear",
             border_radius=0,
-            stroke_width=2,
+            stroke_width=1,
+            mermaid_theme="dark",
+            three_d=_three_d("flat"),
         ),
-        # --- Soft / friendly ---
         _style(
             "pastel_soft",
             "Pastel Soft",
-            "Friendly rounded sans on light, soft pastels, light grid and large "
-            "rounded corners for approachable visuals.",
-            ["pastel", "soft", "friendly"],
-            background="#fffafc",
+            "Soft pastel categorical palette on white, smooth splines and a "
+            "light grid for friendly dashboards.",
+            ["playful", "pastel", "soft", "flat"],
+            background="#ffffff",
             plot_background="#ffffff",
             grid="light",
             legend_position="right",
@@ -354,13 +403,14 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="spline",
             border_radius=12,
             stroke_width=1,
+            three_d=_three_d("flat"),
         ),
         _style(
             "marketing_punch",
             "Marketing Punch",
             "Punchy marketing look: heavy bold sans, vivid palette, no grid, big "
             "titles and wide bars for hero charts.",
-            ["marketing", "bold", "vibrant"],
+            ["marketing", "bold", "vibrant", "flat"],
             background="#ffffff",
             plot_background="#ffffff",
             grid="none",
@@ -377,14 +427,15 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="linear",
             border_radius=14,
             stroke_width=2,
+            three_d=_three_d("flat"),
         ),
-        # --- Sequential / thematic ---
+        # ===== SEQUENTIAL / THEMATIC =====
         _style(
             "ocean_cool",
             "Ocean Cool",
             "Sequential ocean blues on white, clean sans, light grid and smooth "
             "spline lines for trend and area charts.",
-            ["sequential", "blue", "cool"],
+            ["sequential", "blue", "cool", "flat"],
             background="#ffffff",
             plot_background="#f7fbff",
             grid="light",
@@ -401,13 +452,14 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="spline",
             border_radius=6,
             stroke_width=1,
+            three_d=_three_d("flat"),
         ),
         _style(
             "sunset_warm",
             "Sunset Warm",
             "Warm sunset palette on cream, serif titles and spline lines for "
             "expressive, warm-toned visuals.",
-            ["warm", "sunset", "editorial"],
+            ["warm", "sunset", "editorial", "flat"],
             background="#fff8f0",
             plot_background="#fffdf9",
             grid="light",
@@ -424,14 +476,15 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="spline",
             border_radius=8,
             stroke_width=1,
+            three_d=_three_d("flat"),
         ),
-        # --- Accessible ---
+        # ===== ACCESSIBLE =====
         _style(
             "colorblind_safe",
             "Colorblind Safe",
             "Okabe-Ito colour-vision-deficiency-safe palette on white, clean sans, "
             "medium grid and a bold title for accessible reporting.",
-            ["accessible", "colorblind", "categorical"],
+            ["accessible", "colorblind", "categorical", "flat"],
             background="#ffffff",
             plot_background="#ffffff",
             grid="medium",
@@ -449,13 +502,14 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="linear",
             border_radius=4,
             stroke_width=2,
+            three_d=_three_d("flat"),
         ),
         _style(
             "high_contrast_print",
             "High Contrast Print",
             "Bold black-on-white with strong grid and large type for print and "
             "low-vision accessibility.",
-            ["accessible", "high-contrast", "print"],
+            ["accessible", "high-contrast", "print", "flat"],
             background="#ffffff",
             plot_background="#ffffff",
             grid="medium",
@@ -473,5 +527,183 @@ def list_builtin_style_profiles() -> list[StyleProfile]:
             line_shape="linear",
             border_radius=0,
             stroke_width=3,
+            three_d=_three_d("flat"),
+        ),
+
+        # ===== SOFT 3D / EXTRUDED =====
+        _style(
+            "soft_3d_gloss",
+            "Soft 3D Gloss",
+            "Soft extrusion of the Magazine Bold palette: rounded bars with "
+            "subtle bevels and a faint shadow, no perspective scene so it "
+            "still reads at small sizes.",
+            ["soft_3d", "glossy", "playful"],
+            background="#ffffff",
+            grid="light",
+            legend_position="right",
+            label_density="medium",
+            title_alignment="left",
+            sequence=["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4", "#42d4f4"],
+            font_family="Helvetica",
+            font_weight="bold",
+            title_size=22,
+            label_size=13,
+            tick_size=11,
+            bar_gap=0.35,
+            line_shape="spline",
+            border_radius=12,
+            stroke_width=2,
+            three_d=_three_d(
+                "soft_3d",
+                depth=18,
+                bevel=4,
+                lighting="soft",
+                shadow=True,
+            ),
+        ),
+        _style(
+            "soft_3d_boardroom",
+            "Soft 3D Boardroom",
+            "Executive navy with a soft extrusion so the deck reads as 3D "
+            "without losing the printability of the Boardroom palette.",
+            ["soft_3d", "corporate", "presentation"],
+            background="#ffffff",
+            plot_background="#fafcff",
+            grid="light",
+            legend_position="bottom",
+            label_density="medium",
+            title_alignment="left",
+            primary="#1f3b66",
+            secondary="#5b8def",
+            accent="#c9a227",
+            neutral="#9aa3b0",
+            sequence=["#1f3b66", "#5b8def", "#c9a227", "#3c5a8a", "#8a6d1f", "#b0b8c4"],
+            font_family="Helvetica",
+            font_weight="bold",
+            title_size=20,
+            label_size=12,
+            tick_size=10,
+            bar_gap=0.3,
+            line_shape="linear",
+            border_radius=6,
+            stroke_width=2,
+            three_d=_three_d(
+                "soft_3d",
+                depth=14,
+                bevel=3,
+                lighting="soft",
+                shadow=True,
+            ),
+        ),
+
+        # ===== TRUE 3D / INTERACTIVE SCENES =====
+        _style(
+            "true_3d_cosmic",
+            "True 3D Cosmic",
+            "Deep cosmic palette with full Plotly 3D scene: tilted bars with "
+            "soft perspective lighting and a dark background so the geometry "
+            "reads as 3D rather than extruded.",
+            ["true_3d", "cosmic", "dark", "immersive"],
+            background="#0b1020",
+            plot_background="#101a33",
+            grid="none",
+            legend_position="right",
+            label_density="medium",
+            title_alignment="left",
+            dark=True,
+            primary="#7c3aed",
+            secondary="#22d3ee",
+            accent="#f97316",
+            neutral="#94a3b8",
+            sequence=["#7c3aed", "#22d3ee", "#f97316", "#22c55e", "#f43f5e", "#facc15"],
+            font_family="Segoe UI",
+            font_weight="normal",
+            title_size=20,
+            label_size=12,
+            tick_size=10,
+            bar_gap=0.25,
+            line_shape="linear",
+            border_radius=10,
+            stroke_width=2,
+            mermaid_theme="dark",
+            three_d=_three_d(
+                "true_3d",
+                depth=24,
+                bevel=6,
+                perspective=0.7,
+                lighting="soft",
+                shadow=True,
+                tilt=30,
+            ),
+        ),
+        _style(
+            "true_3d_warehouse",
+            "True 3D Warehouse",
+            "Operations palette turned into a 3D ops scene: bright categorical "
+            "data colours on dark slate, dramatic lighting for at-a-glance "
+            "monitoring across categories and time.",
+            ["true_3d", "ops", "dashboard", "immersive"],
+            background="#0f172a",
+            plot_background="#111c33",
+            grid="none",
+            legend_position="right",
+            label_density="medium",
+            title_alignment="left",
+            dark=True,
+            neutral="#94a3b8",
+            sequence=["#38bdf8", "#34d399", "#fbbf24", "#f472b6", "#a78bfa", "#fb7185"],
+            font_family="Segoe UI",
+            font_weight="normal",
+            title_size=18,
+            label_size=12,
+            tick_size=10,
+            bar_gap=0.25,
+            line_shape="linear",
+            border_radius=8,
+            stroke_width=2,
+            mermaid_theme="dark",
+            three_d=_three_d(
+                "true_3d",
+                depth=28,
+                bevel=4,
+                perspective=0.6,
+                lighting="dramatic",
+                shadow=True,
+                tilt=25,
+            ),
+        ),
+        _style(
+            "true_3d_pastel",
+            "True 3D Pastel",
+            "Pastel palette elevated to a friendly 3D scene: white background, "
+            "soft tilt, gentle perspective so the geometry feels playful "
+            "rather than technical.",
+            ["true_3d", "playful", "pastel"],
+            background="#ffffff",
+            plot_background="#ffffff",
+            grid="none",
+            legend_position="right",
+            label_density="medium",
+            title_alignment="left",
+            neutral="#cccccc",
+            sequence=["#ffadad", "#ffd6a5", "#caffbf", "#9bf6ff", "#bdb2ff", "#fdffb6"],
+            font_family="Verdana",
+            font_weight="normal",
+            title_size=18,
+            label_size=12,
+            tick_size=10,
+            bar_gap=0.3,
+            line_shape="spline",
+            border_radius=10,
+            stroke_width=2,
+            three_d=_three_d(
+                "true_3d",
+                depth=20,
+                bevel=5,
+                perspective=0.4,
+                lighting="soft",
+                shadow=True,
+                tilt=20,
+            ),
         ),
     ]

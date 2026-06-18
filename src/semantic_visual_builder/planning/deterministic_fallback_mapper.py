@@ -168,6 +168,12 @@ class DeterministicFallbackMapper:
         )
         plan.render_target.renderer = renderer
 
+        
+        chart_style_hint = self.detect_chart_style(message)
+        if chart_style_hint is not None:
+            plan.style.chart_style = chart_style_hint
+            plan.notes.append(f"3D treatment requested by user: {chart_style_hint}.")
+
         if intent == "show_process":
             plan = DiagramPlanBuilder().build_basic_flowchart(message)
             if diagram_type is not None:
@@ -316,3 +322,38 @@ class DeterministicFallbackMapper:
             return None
 
         return ("compare_categories", "bar", "plotly", category_field, measure_field, aggregation)
+
+
+    #: Map of common phrases the user uses to ask for a 3D chart. Detected in
+    #: addition to chart_type and intent so the same flat chart can be re-rendered
+    #: as soft_3d / true_3d without changing the chart_type.
+    _CHART_STYLE_KEYWORDS: tuple[tuple[str, str], ...] = (
+        ("true 3d", "true_3d"),
+        ("true3d", "true_3d"),
+        ("3d scene", "true_3d"),
+        ("immersive 3d", "true_3d"),
+        ("fully 3d", "true_3d"),
+        ("interactive 3d", "true_3d"),
+        ("soft 3d", "soft_3d"),
+        ("soft3d", "soft_3d"),
+        ("extruded", "soft_3d"),
+        ("raised", "soft_3d"),
+        ("3d", "soft_3d"),
+    )
+
+    def detect_chart_style(self, message: str) -> str | None:
+        """Return ``soft_3d`` / ``true_3d`` / ``flat`` from natural language.
+
+        A request that mentions "true 3d" or "immersive 3d" upgrades to a full
+        3D scene; a request that simply says "3d" stays at the cheaper
+        ``soft_3d`` extrusion. ``None`` is returned when no 3D hint is
+        present, leaving the chart style unset (the profile / default wins).
+        """
+        lowered = message.lower()
+        # Order matters: more specific phrases first.
+        for keyword, value in self._CHART_STYLE_KEYWORDS:
+            if keyword in lowered:
+                return value
+        if "flat" in lowered and "3d" not in lowered:
+            return "flat"
+        return None

@@ -6,6 +6,13 @@ import pandas as pd
 
 from semantic_visual_builder.planning.visual_plan import get_role
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
+from semantic_visual_builder.renderers.plotly_3d import (  # noqa: F401
+    apply_3d_to_layout,
+    bar3d_trace,
+    chart_style,
+    extrusion_marker,
+    scene,
+)
 
 
 class PlotlyChartBuilders:
@@ -15,15 +22,32 @@ class PlotlyChartBuilders:
         self, plan: VisualPlan, dataframe: pd.DataFrame
     ) -> tuple[list[dict], dict, list[str]]:
         x_values, y_values, x_title, y_title = self._aggregate_xy(plan, dataframe)
-        trace = {
-            "type": "scatter",
-            "mode": "lines",
-            "fill": "tozeroy",
-            "x": x_values,
-            "y": y_values,
-            "name": y_title,
-        }
-        return [trace], self._layout(plan, x_title=x_title, y_title=y_title), []
+        style = chart_style(plan)
+        if style == "true_3d":
+            trace = {
+                "type": "scatter3d",
+                "mode": "lines",
+                "fill": "toself",
+                "x": list(range(len(x_values))),
+                "y": y_values,
+                "z": [0.0] * len(x_values),
+                "name": y_title,
+                "line": {"width": 6},
+            }
+        else:
+            trace = {
+                "type": "scatter",
+                "mode": "lines",
+                "fill": "tozeroy",
+                "x": x_values,
+                "y": y_values,
+                "name": y_title,
+            }
+            if style == "soft_3d":
+                trace["marker"] = extrusion_marker(plan)
+        layout = self._layout(plan, x_title=x_title, y_title=y_title)
+        apply_3d_to_layout(plan, layout)
+        return [trace], layout, []
 
     def build_stacked_area(
         self, plan: VisualPlan, dataframe: pd.DataFrame
@@ -46,14 +70,32 @@ class PlotlyChartBuilders:
         x_values = sorted(grouped[x_col].astype(str).unique().tolist())
         stacks = sorted(grouped[stack_col].astype(str).unique().tolist())
         traces: list[dict] = []
-        for stack_value in stacks:
-            subset = grouped[grouped[stack_col].astype(str) == stack_value].set_index(x_col)
-            y_vals = [
-                float(subset.loc[x, value_col]) if x in subset.index else 0.0
-                for x in x_values
-            ]
-            traces.append(
-                {
+        style = chart_style(plan)
+        if style == "true_3d":
+            # Surface plot per stack level.
+            for index, stack_value in enumerate(stacks):
+                subset = grouped[grouped[stack_col].astype(str) == stack_value].set_index(x_col)
+                y_vals = [
+                    float(subset.loc[x, value_col]) if x in subset.index else 0.0
+                    for x in x_values
+                ]
+                traces.append({
+                    "type": "scatter3d",
+                    "mode": "lines",
+                    "x": list(range(len(x_values))),
+                    "y": y_vals,
+                    "z": [index] * len(x_values),
+                    "name": stack_value,
+                    "line": {"width": 6},
+                })
+        else:
+            for stack_value in stacks:
+                subset = grouped[grouped[stack_col].astype(str) == stack_value].set_index(x_col)
+                y_vals = [
+                    float(subset.loc[x, value_col]) if x in subset.index else 0.0
+                    for x in x_values
+                ]
+                trace: dict = {
                     "type": "scatter",
                     "mode": "lines",
                     "stackgroup": "one",
@@ -61,12 +103,16 @@ class PlotlyChartBuilders:
                     "y": y_vals,
                     "name": stack_value,
                 }
-            )
+                if style == "soft_3d":
+                    trace["fill"] = "tonexty"
+                    trace["line"] = {"shape": "spline"}
+                traces.append(trace)
         layout = self._layout(
             plan,
             x_title=x_field or "X",
             y_title=measure_role.field or "Value",
         )
+        apply_3d_to_layout(plan, layout)
         return traces, layout, []
 
     def build_bubble(
@@ -82,20 +128,41 @@ class PlotlyChartBuilders:
         size_values = pd.to_numeric(dataframe[size_role.field], errors="coerce")
         valid = ~(x_values.isna() | y_values.isna() | size_values.isna())
         sizes = size_values[valid]
-        sizeref = max(float(sizes.max()) / 40.0, 1.0) if not sizes.empty else 1.0
-        trace = {
-            "type": "scatter",
-            "mode": "markers",
-            "x": x_values[valid].tolist(),
-            "y": y_values[valid].tolist(),
-            "name": size_role.field or "Size",
-            "marker": {
-                "size": sizes.tolist(),
-                "sizemode": "area",
-                "sizeref": sizeref,
-            },
-        }
+        if chart_style(plan) == "true_3d":
+            sizeref = max(float(sizes.max()) / 40.0, 1.0) if not sizes.empty else 1.0
+            trace = {
+                "type": "scatter3d",
+                "mode": "markers",
+                "x": x_values[valid].tolist(),
+                "y": y_values[valid].tolist(),
+                "z": sizes.tolist(),
+                "name": size_role.field or "Size",
+                "marker": {
+                    "size": sizes.tolist(),
+                    "sizemode": "area",
+                    "sizeref": sizeref,
+                    "opacity": 0.9,
+                    "line": {"width": 0},
+                },
+            }
+        else:
+            sizeref = max(float(sizes.max()) / 40.0, 1.0) if not sizes.empty else 1.0
+            trace = {
+                "type": "scatter",
+                "mode": "markers",
+                "x": x_values[valid].tolist(),
+                "y": y_values[valid].tolist(),
+                "name": size_role.field or "Size",
+                "marker": {
+                    "size": sizes.tolist(),
+                    "sizemode": "area",
+                    "sizeref": sizeref,
+                },
+            }
+            if chart_style(plan) == "soft_3d":
+                trace["marker"].update(extrusion_marker(plan))
         layout = self._layout(plan, x_title=x_role.field or "X", y_title=y_role.field or "Y")
+        apply_3d_to_layout(plan, layout)
         return [trace], layout, []
 
     def build_treemap(
@@ -106,13 +173,33 @@ class PlotlyChartBuilders:
         if category_role is None or measure_role is None:
             raise ValueError("Treemap requires category and measure roles.")
         grouped = self._aggregate_category(dataframe, category_role.field, measure_role)
-        trace = {
-            "type": "treemap",
-            "labels": grouped["label"].tolist(),
-            "parents": ["" for _ in grouped["label"].tolist()],
-            "values": grouped["value"].tolist(),
-        }
+        if chart_style(plan) == "true_3d":
+            trace = {
+                "type": "mesh3d",
+                "x": list(range(len(grouped))),
+                "y": grouped["value"].tolist(),
+                "z": [0] * len(grouped),
+                "intensity": grouped["value"].tolist(),
+                "text": grouped["label"].tolist(),
+                "name": measure_role.field or "Value",
+            }
+        elif chart_style(plan) == "soft_3d":
+            trace = {
+                "type": "treemap",
+                "labels": grouped["label"].tolist(),
+                "parents": ["" for _ in grouped["label"].tolist()],
+                "values": grouped["value"].tolist(),
+                "marker": {"line": {"width": 2, "color": "#ffffff"}},
+            }
+        else:
+            trace = {
+                "type": "treemap",
+                "labels": grouped["label"].tolist(),
+                "parents": ["" for _ in grouped["label"].tolist()],
+                "values": grouped["value"].tolist(),
+            }
         layout = self._layout(plan, x_title="", y_title="")
+        apply_3d_to_layout(plan, layout)
         return [trace], layout, []
 
     def build_waterfall(
@@ -123,13 +210,31 @@ class PlotlyChartBuilders:
         if category_role is None or measure_role is None:
             raise ValueError("Waterfall requires category and measure roles.")
         grouped = self._aggregate_category(dataframe, category_role.field, measure_role)
-        trace = {
-            "type": "waterfall",
-            "x": grouped["label"].tolist(),
-            "y": grouped["value"].tolist(),
-            "measure": ["relative" for _ in grouped["value"].tolist()],
-        }
+        labels = grouped["label"].tolist()
+        values = grouped["value"].tolist()
+        if chart_style(plan) == "true_3d":
+            trace = {
+                "type": "bar3d",
+                "x": labels,
+                "y": list(range(len(labels))),
+                "z": [0] * len(labels),
+                "dz": [float(v) for v in values],
+                "marker": {"color": values},
+                "name": measure_role.field or "Value",
+            }
+        else:
+            trace = {
+                "type": "waterfall",
+                "x": labels,
+                "y": values,
+                "measure": ["relative" for _ in values],
+            }
+            if chart_style(plan) == "soft_3d":
+                trace.setdefault("connector", {"line": {"width": 2}})
+                trace.setdefault("increasing", {"marker": {"line": {"width": 2}}})
+                trace.setdefault("decreasing", {"marker": {"line": {"width": 2}}})
         layout = self._layout(plan, x_title=category_role.field or "Category", y_title=measure_role.field or "Value")
+        apply_3d_to_layout(plan, layout)
         return [trace], layout, []
 
     def build_funnel(
@@ -140,12 +245,30 @@ class PlotlyChartBuilders:
         if category_role is None or measure_role is None:
             raise ValueError("Funnel requires category and measure roles.")
         grouped = self._aggregate_category(dataframe, category_role.field, measure_role)
-        trace = {
-            "type": "funnel",
-            "y": grouped["label"].tolist(),
-            "x": grouped["value"].tolist(),
-        }
+        labels = grouped["label"].tolist()
+        values = grouped["value"].tolist()
+        if chart_style(plan) == "true_3d":
+            trace = {
+                "type": "funnel3d" if False else "scatter3d",  # funnel3d needs custom; use scatter3d steps
+                "x": list(range(len(labels))),
+                "y": values,
+                "z": values,
+                "mode": "lines+markers",
+                "line": {"width": 12, "shape": "spline"},
+                "marker": {"size": 8},
+                "name": measure_role.field or "Value",
+            }
+        else:
+            trace = {
+                "type": "funnel",
+                "y": labels,
+                "x": values,
+            }
+            if chart_style(plan) == "soft_3d":
+                trace["textposition"] = "inside"
+                trace["textinfo"] = "value+percent initial"
         layout = self._layout(plan, x_title=measure_role.field or "Value", y_title=category_role.field or "Stage")
+        apply_3d_to_layout(plan, layout)
         return [trace], layout, []
 
     def build_radar(
@@ -161,6 +284,19 @@ class PlotlyChartBuilders:
         if theta:
             theta.append(theta[0])
             r_values.append(r_values[0])
+        if chart_style(plan) == "true_3d":
+            trace = {
+                "type": "scatter3d",
+                "mode": "lines+markers",
+                "x": r_values,
+                "y": [i for i in range(len(theta))],
+                "z": [0.0] * len(theta),
+                "name": measure_role.field or "Value",
+                "line": {"width": 6},
+            }
+            layout = self._layout(plan, x_title="", y_title="")
+            layout["scene"] = scene(plan)
+            return [trace], layout, []
         trace = {
             "type": "scatterpolar",
             "r": r_values,
@@ -168,8 +304,11 @@ class PlotlyChartBuilders:
             "fill": "toself",
             "name": measure_role.field or "Value",
         }
+        if chart_style(plan) == "soft_3d":
+            trace["marker"] = {"size": 12, **extrusion_marker(plan)}
         layout = self._layout(plan, x_title="", y_title="")
         layout["polar"] = {"radialaxis": {"visible": True}}
+        apply_3d_to_layout(plan, layout)
         return [trace], layout, []
 
     def build_gauge(
@@ -180,12 +319,21 @@ class PlotlyChartBuilders:
             raise ValueError("Gauge requires a measure role.")
         value = self._aggregate_single_value(dataframe, measure_role)
         max_value = max(value, 1.0)
+        gauge = {"axis": {"range": [0, max_value]}}
+        if chart_style(plan) == "soft_3d":
+            gauge["bar"] = {"color": "#1f4e79", "thickness": 0.35}
+        elif chart_style(plan) == "true_3d":
+            gauge["bar"] = {"color": "#1f4e79", "thickness": 0.5}
+            gauge["steps"] = [
+                {"range": [0, max_value * 0.5], "color": "#dbeafe"},
+                {"range": [max_value * 0.5, max_value], "color": "#bfdbfe"},
+            ]
         trace = {
             "type": "indicator",
             "mode": "gauge+number",
             "value": value,
             "title": {"text": plan.style.title or (measure_role.field or "Value")},
-            "gauge": {"axis": {"range": [0, max_value]}},
+            "gauge": gauge,
         }
         return [trace], self._layout(plan, x_title="", y_title=""), []
 
@@ -211,12 +359,28 @@ class PlotlyChartBuilders:
         if value_role is None or value_role.field is None:
             raise ValueError("Histogram requires a 'value' role with a field.")
         series = pd.to_numeric(dataframe[value_role.field], errors="coerce").dropna()
-        trace = {
-            "type": "histogram",
-            "x": series.tolist(),
-            "name": value_role.field,
-        }
+        if chart_style(plan) == "true_3d":
+            counts, edges = pd.cut(series, bins=20, retbins=True)
+            bin_labels = [f"{round(edges[i], 2)}-{round(edges[i+1], 2)}" for i in range(len(edges) - 1)]
+            counts = counts.value_counts().sort_index()
+            values = counts.tolist()
+            labels = [str(idx) for idx in counts.index.tolist()]
+            trace = bar3d_trace(
+                plan,
+                labels,
+                values,
+                name=value_role.field,
+            )
+        else:
+            trace = {
+                "type": "histogram",
+                "x": series.tolist(),
+                "name": value_role.field,
+            }
+            if chart_style(plan) == "soft_3d":
+                trace["marker"] = extrusion_marker(plan)
         layout = self._layout(plan, x_title=value_role.field, y_title="Count")
+        apply_3d_to_layout(plan, layout)
         return [trace], layout, []
 
     def build_box_plot(
@@ -227,7 +391,31 @@ class PlotlyChartBuilders:
             raise ValueError("Box plot requires a 'value' role with a field.")
         category_role = get_role(plan, "category")
         series = pd.to_numeric(dataframe[value_role.field], errors="coerce")
-
+        style = chart_style(plan)
+        if style == "true_3d":
+            if category_role and category_role.field:
+                categories = sorted(dataframe[category_role.field].astype(str).unique().tolist())
+                traces: list[dict] = []
+                for index, cat in enumerate(categories):
+                    subset = series[dataframe[category_role.field].astype(str) == cat].dropna().tolist()
+                    traces.append({
+                        "type": "box",
+                        "x": subset,
+                        "y": [index] * len(subset),
+                        "name": cat,
+                    })
+                layout = self._layout(plan, x_title=value_role.field, y_title=category_role.field)
+            else:
+                trace = {
+                    "type": "box",
+                    "x": series.dropna().tolist(),
+                    "y": [0] * len(series.dropna().tolist()),
+                    "name": value_role.field,
+                }
+                traces = [trace]
+                layout = self._layout(plan, x_title=value_role.field, y_title="")
+            apply_3d_to_layout(plan, layout)
+            return traces, layout, []
         if category_role and category_role.field:
             cat_values = dataframe[category_role.field].astype(str)
             trace = {
@@ -244,6 +432,8 @@ class PlotlyChartBuilders:
                 "name": value_role.field,
             }
             layout = self._layout(plan, x_title="", y_title=value_role.field)
+        if style == "soft_3d":
+            trace.setdefault("marker", extrusion_marker(plan))
         return [trace], layout, []
 
     def build_heatmap(
@@ -285,14 +475,29 @@ class PlotlyChartBuilders:
         if len(x_labels) * len(y_labels) > 200:
             warnings.append("Heatmap has many cells; output may be difficult to read.")
 
-        trace = {
-            "type": "heatmap",
-            "x": x_labels,
-            "y": y_labels,
-            "z": z_values,
-            "colorscale": "Blues",
-        }
+        style = chart_style(plan)
+        if style == "true_3d":
+            trace = {
+                "type": "surface",
+                "x": x_labels,
+                "y": y_labels,
+                "z": z_values,
+                "colorscale": "Blues",
+                "contours": {"z": {"show": True, "usecolormap": True, "highlightcolor": "#ffffff"}},
+            }
+        else:
+            trace = {
+                "type": "heatmap",
+                "x": x_labels,
+                "y": y_labels,
+                "z": z_values,
+                "colorscale": "Blues",
+            }
+            if style == "soft_3d":
+                trace["xgap"] = 2
+                trace["ygap"] = 2
         layout = self._layout(plan, x_title=x_field or "X", y_title=y_field or "Y")
+        apply_3d_to_layout(plan, layout)
         return [trace], layout, warnings
 
     def build_stacked_bar(
@@ -332,15 +537,34 @@ class PlotlyChartBuilders:
             warnings.append("Many stack groups may produce an unreadable stacked bar chart.")
 
         traces: list[dict] = []
+        style = chart_style(plan)
+        if style == "true_3d":
+            for index, sv in enumerate(stack_values):
+                subset = grouped[grouped["_stack"].astype(str) == sv].set_index("_cat")
+                y_vals = [float(subset.loc[c, "_val"]) if c in subset.index else 0.0 for c in categories]
+                traces.append({
+                    "type": "bar3d",
+                    "x": categories,
+                    "y": [index] * len(categories),
+                    "z": [0] * len(categories),
+                    "dz": y_vals,
+                    "name": sv,
+                })
+            layout = self._layout(plan, x_title=cat_field or "Category", y_title="Stack", z_title=m_field or "Value")
+            layout["scene"] = scene(plan)
+            return traces, layout, warnings
         for sv in stack_values:
             subset = grouped[grouped["_stack"].astype(str) == sv].set_index("_cat")
             y_vals = [float(subset.loc[c, "_val"]) if c in subset.index else 0.0 for c in categories]
-            traces.append({
+            trace = {
                 "type": "bar",
                 "x": categories,
                 "y": y_vals,
                 "name": sv,
-            })
+            }
+            if style == "soft_3d":
+                trace["marker"] = extrusion_marker(plan)
+            traces.append(trace)
 
         layout = self._layout(plan, x_title=cat_field or "Category", y_title="Value")
         layout["barmode"] = "stack"
@@ -469,13 +693,17 @@ class PlotlyChartBuilders:
         title = plan.style.title or self._default_title(plan)
         if plan.style.subtitle:
             title = f"{title} - {plan.style.subtitle}"
-        return {
+        layout: dict = {
             "title": title,
             "xaxis": {"title": x_title},
             "yaxis": {"title": y_title},
             "template": "plotly_white",
             "margin": {"l": 60, "r": 30, "t": 60, "b": 60},
         }
+        if chart_style(plan) == "true_3d":
+            layout["template"] = "plotly_dark"
+            layout["scene"] = scene(plan)
+        return layout
 
     def _default_title(self, plan: VisualPlan) -> str:
         if plan.chart_type == "histogram":
