@@ -202,7 +202,7 @@ class DeterministicFallbackMapper:
             elif "transactions by region" in text:
                 set_role(plan, "category", "Region")
                 set_role(plan, "measure", "row_count", aggregation="count")
-            elif getattr(self, "_aggregation_roles", None) is not None:
+            elif self._aggregation_roles is not None:
                 category_field, measure_field, aggregation = self._aggregation_roles
                 if category_field is not None:
                     set_role(plan, "category", category_field)
@@ -239,7 +239,7 @@ class DeterministicFallbackMapper:
 
     def _infer_aggregation_request(
         self, text: str, dataset_profile: DatasetProfile
-    ) -> tuple[str, str, str, str | None, str | None, str] | None:
+    ) -> tuple[str, str, str, str | None, str | None, str | None] | None:
         """Detect aggregation-over-categorical requests without an explicit chart keyword.
 
         Returns (intent, chart_type, renderer, category_field, measure_field,

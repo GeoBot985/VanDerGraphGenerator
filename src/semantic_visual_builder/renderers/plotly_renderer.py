@@ -326,7 +326,7 @@ class PlotlyRenderer(BaseRenderer):
             return "Count"
         return measure.field or "Measure"
 
-    def _layout(self, plan: VisualPlan, x_title: str, y_title: str) -> dict[str, object]:
+    def _layout(self, plan: VisualPlan, x_title: str, y_title: str) -> dict:
         title = plan.style.title or self._default_title(plan)
         if plan.style.subtitle:
             title = f"{title} - {plan.style.subtitle}"

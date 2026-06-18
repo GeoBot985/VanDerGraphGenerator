@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .data_profiler import DatasetProfile
+from .data_profiler import ColumnProfile, DatasetProfile
 
 
 @dataclass
@@ -97,7 +97,7 @@ class SchemaMatcher:
     def _find_best_match(
         self,
         expected: str,
-        available: dict[str, object],
+        available: dict[str, ColumnProfile],
         expected_semantic_type: str | None,
         field_aliases: list[str],
         used_targets: set[str],

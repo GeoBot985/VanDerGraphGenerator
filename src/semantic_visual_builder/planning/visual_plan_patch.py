@@ -17,6 +17,15 @@ from .visual_plan_schema import (
 )
 
 
+def _coerce_title_size(value: object) -> int | None:
+    """Coerce a JSON value into an integer title size, or None."""
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value)
+    return None
+
+
 @dataclass
 class VisualPlanPatch:
     visual_kind: str | None = None
@@ -38,15 +47,7 @@ class VisualPlanPatch:
         style = StyleIntent(
             title=style_data.get("title"),
             subtitle=style_data.get("subtitle"),
-            title_size=(
-                int(style_data.get("title_size"))
-                if isinstance(style_data.get("title_size"), (int, float))
-                or (
-                    isinstance(style_data.get("title_size"), str)
-                    and style_data.get("title_size").strip().isdigit()
-                )
-                else None
-            ),
+            title_size=_coerce_title_size(style_data.get("title_size")),
             colour_scheme=style_data.get("colour_scheme"),
             palette=style_data.get("palette", {}) or {},
             font_family=style_data.get("font_family"),

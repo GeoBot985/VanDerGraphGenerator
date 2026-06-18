@@ -319,7 +319,7 @@ class PlotlyChartBuilders:
             raise ValueError("Gauge requires a measure role.")
         value = self._aggregate_single_value(dataframe, measure_role)
         max_value = max(value, 1.0)
-        gauge = {"axis": {"range": [0, max_value]}}
+        gauge: dict = {"axis": {"range": [0, max_value]}}
         if chart_style(plan) == "soft_3d":
             gauge["bar"] = {"color": "#1f4e79", "thickness": 0.35}
         elif chart_style(plan) == "true_3d":
@@ -688,7 +688,7 @@ class PlotlyChartBuilders:
             return float(series.median(skipna=True) or 0.0)
         return float(series.sum(skipna=True) or 0.0)
 
-    def _layout(self, plan: VisualPlan, x_title: str, y_title: str) -> dict:
+    def _layout(self, plan: VisualPlan, x_title: str, y_title: str, z_title: str | None = None) -> dict:
         title = plan.style.title or self._default_title(plan)
         if plan.style.subtitle:
             title = f"{title} - {plan.style.subtitle}"
@@ -702,6 +702,8 @@ class PlotlyChartBuilders:
         if chart_style(plan) == "true_3d":
             layout["template"] = "plotly_dark"
             layout["scene"] = scene(plan)
+            if z_title is not None:
+                layout["scene"]["zaxis"] = {"title": z_title}
         return layout
 
     def _default_title(self, plan: VisualPlan) -> str:

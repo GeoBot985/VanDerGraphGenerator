@@ -80,14 +80,12 @@ class SemanticInputOrchestrator:
             f"LLM attempted: {'yes' if attempted_llm else 'no'}",
         ]
 
-        is_refinement = (
-            app_state.current_visual_plan is not None
-            and not self._looks_like_new_visual_request(user_message)
-        )
-
-        if is_refinement:
+        current_plan = app_state.current_visual_plan
+        if current_plan is not None and not self._looks_like_new_visual_request(
+            user_message
+        ):
             refinement_result = self.refinement_orchestrator.refine_plan(
-                current_plan=app_state.current_visual_plan,
+                current_plan=current_plan,
                 user_message=user_message,
                 app_state=app_state,
                 use_llm=use_llm,

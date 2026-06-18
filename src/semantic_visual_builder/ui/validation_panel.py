@@ -13,7 +13,7 @@ class ValidationPanel:
         validation = app_state.current_validation_result
         if validation is None:
             return "No validation result yet."
-        buckets = {
+        buckets: dict[ValidationSeverity, list[str]] = {
             ValidationSeverity.ERROR: [],
             ValidationSeverity.WARNING: [],
             ValidationSeverity.INFO: [],

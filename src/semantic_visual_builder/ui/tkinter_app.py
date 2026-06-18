@@ -123,7 +123,7 @@ class SemanticVisualBuilderApp:
     """Minimal Tkinter shell for guided semantic visual planning."""
 
     def __init__(
-        self, app_state: AppState, root: tk.Misc | None = None, build_ui: bool = True
+        self, app_state: AppState, root: tk.Tk | None = None, build_ui: bool = True
     ):
         self.app_state = app_state
         self.csv_loader = CsvLoader()
@@ -458,7 +458,7 @@ class SemanticVisualBuilderApp:
         info_tabs = ttk.Notebook(right)
         info_tabs.pack(fill="both", expand=True, pady=(4, 0))
 
-        def _add_text_tab(label: str) -> tk.Widget:
+        def _add_text_tab(label: str) -> tk.Text:
             tab = ttk.Frame(info_tabs)
             info_tabs.add(tab, text=label)
             widget = make_readonly_text(tab, height=8)
@@ -488,6 +488,8 @@ class SemanticVisualBuilderApp:
         self._set_status("Startup complete.")
 
     def _build_menu(self) -> None:
+        if self.root is None:
+            return
         menu = tk.Menu(self.root)
         file_menu = tk.Menu(menu, tearoff=0)
         file_menu.add_command(label="Load CSV", command=self.load_csv)
@@ -1017,6 +1019,8 @@ class SemanticVisualBuilderApp:
         return message
 
     def show_environment_report(self) -> str:
+        if self.root is None:
+            return ""
         if self.app_state.runtime_paths is None:
             message = "Runtime paths are unavailable."
         else:
@@ -1146,6 +1150,8 @@ class SemanticVisualBuilderApp:
         return "Settings dialog opened."
 
     def _show_settings_dialog(self) -> None:
+        if self.root is None:
+            return
         settings = self.settings_dialog.current_settings()
         dialog = tk.Toplevel(self.root)
         dialog.title("Settings")
@@ -1153,7 +1159,7 @@ class SemanticVisualBuilderApp:
         dialog.grab_set()
         dialog.resizable(False, False)
 
-        rows: list[tuple[str, tk.Widget]] = []
+        rows: list[tuple[str, tk.Variable]] = []
 
         def add_row(label: str, widget: tk.Widget) -> None:
             row = ttk.Frame(dialog)
@@ -1314,7 +1320,9 @@ class SemanticVisualBuilderApp:
 
     def _pick_gallery_item_dialog(self) -> str | None:
         """Show a combobox of loaded gallery items; return the chosen item_id."""
-        choice = {"value": None}
+        if self.root is None:
+            return None
+        choice: dict[str, str | None] = {"value": None}
         dialog = tk.Toplevel(self.root)
         dialog.title("Run Gallery Item")
         dialog.transient(self.root)
@@ -1448,6 +1456,8 @@ class SemanticVisualBuilderApp:
         )
 
     def show_troubleshooting(self) -> str:
+        if self.root is None:
+            return ""
         message = (
             "Troubleshooting:\n"
             "- Start Ollama before using LLM features.\n"
@@ -2181,6 +2191,8 @@ class SemanticVisualBuilderApp:
         return "Style review dialog opened."
 
     def _show_style_review_dialog(self, controller: StyleReviewDialogController) -> None:
+        if self.root is None:
+            return
         draft = controller.draft
         dialog = tk.Toplevel(self.root)
         dialog.title("Review Extracted Style")
@@ -2240,7 +2252,7 @@ class SemanticVisualBuilderApp:
 
         def sync_draft() -> list[str]:
             for field_name, var in fields:
-                controller.update_field(field_name, var.get() or None)
+                controller.update_field(field_name, var.get())
             tags_text = tags_var.get().strip()
             draft.tags = [t.strip() for t in tags_text.split(",") if t.strip()]
             return controller.validate()
@@ -2374,6 +2386,8 @@ class SemanticVisualBuilderApp:
         return f"Revision count: {self.app_state.revision_history.count()}"
 
     def run(self) -> None:
+        if self.root is None:
+            return
         self.root.mainloop()
 
 

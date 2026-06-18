@@ -82,7 +82,7 @@ class GalleryRunner:
                 profile=profile,
                 source_info=DatasetSourceInfo(source_type="sample", path=path),
             )
-            app_state.dataset_context = ctx  # type: ignore[union-attr]
+            app_state.dataset_context = ctx  # type: ignore[attr-defined]
         elif suffix == ".xlsx":
             from semantic_visual_builder.data.csv_loader import LoadedDataset
             from semantic_visual_builder.data.data_profiler import DataProfiler
@@ -100,7 +100,7 @@ class GalleryRunner:
                 profile=profile,
                 source_info=DatasetSourceInfo(source_type="sample", path=path, sheet_name=loaded_excel.sheet_name),
             )
-            app_state.dataset_context = ctx  # type: ignore[union-attr]
+            app_state.dataset_context = ctx  # type: ignore[attr-defined]
 
     def _load_recipe(self, path: Path, app_state: object) -> None:
         from semantic_visual_builder.recipes.recipe_store import RecipeStore

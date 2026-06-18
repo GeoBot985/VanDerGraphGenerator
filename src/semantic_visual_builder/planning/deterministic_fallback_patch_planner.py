@@ -17,6 +17,7 @@ class DeterministicFallbackPatchPlanner:
         text = message.lower().strip()
 
         patch = VisualPlanPatch(style=StyleIntent())
+        assert patch.style is not None
         notes: list[str] = []
 
         chart_type = self._extract_requested_chart_type(text)

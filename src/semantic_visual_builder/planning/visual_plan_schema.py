@@ -26,7 +26,7 @@ class StyleIntent:
     title_size: int | None = None
     title_alignment: str | None = None   # "left" | "center" | "right"
     colour_scheme: str | None = None
-    palette: dict[str, str] = field(default_factory=dict)
+    palette: dict[str, Any] = field(default_factory=dict)
     font_family: str | None = None
     font_weight: str | None = None        # "normal" | "bold"
     label_size: int | None = None

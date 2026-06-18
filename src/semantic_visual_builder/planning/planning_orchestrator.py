@@ -79,6 +79,7 @@ class PlanningOrchestrator:
         )
 
         if attempted_llm:
+            assert selected_model is not None
             llm_result = self.llm_mapper.map_to_draft(
                 model=selected_model,
                 user_message=user_message,
@@ -231,8 +232,8 @@ class PlanningOrchestrator:
             plan.visual_kind == "chart"
             and plan.chart_type is not None
             and any(
-                get_role(plan, required_role) is None
-                or get_role(plan, required_role).field is None
+                (role := get_role(plan, required_role)) is None
+                or role.field is None
                 for required_role in {
                     "category",
                     "measure",

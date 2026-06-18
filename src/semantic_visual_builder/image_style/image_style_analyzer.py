@@ -145,4 +145,4 @@ class ImageStyleAnalyzer:
         text = hex_value.lstrip("#")
         if len(text) != 6:
             return None
-        return tuple(int(text[index : index + 2], 16) for index in (0, 2, 4))
+        return (int(text[0:2], 16), int(text[2:4], 16), int(text[4:6], 16))

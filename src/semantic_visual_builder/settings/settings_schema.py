@@ -51,7 +51,7 @@ class AppSettings:
 
 def _coerce_timeout(value: object) -> float:
     try:
-        timeout = float(value)
+        timeout = float(value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return 300.0
     return timeout if timeout > 0 else 300.0

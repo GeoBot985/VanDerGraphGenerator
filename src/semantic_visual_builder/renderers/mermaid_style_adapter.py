@@ -122,7 +122,7 @@ class MermaidStyleAdapter:
             return f"classDef {name} {','.join(parts)};"
 
         class_defs: list[str] = []
-        class_defs_map = (
+        class_defs_map: dict = (
             palette.get("class_defs", {}) if isinstance(palette, dict) else {}
         )
         if isinstance(class_defs_map, dict) and class_defs_map:

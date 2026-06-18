@@ -65,7 +65,7 @@ class SettingsDialogController:
 def _coerce_field(field_name: str, value: object) -> object:
     if field_name == "generation_timeout_seconds":
         try:
-            timeout = float(value)
+            timeout = float(value)  # type: ignore[arg-type]
         except (TypeError, ValueError):
             return value
         return timeout
@@ -85,7 +85,7 @@ def _validate_field(field_name: str, value: object) -> list[str]:
             return [f"Ollama URL must start with http:// or https://: {url!r}"]
     if field_name == "generation_timeout_seconds":
         try:
-            timeout = float(value)
+            timeout = float(value)  # type: ignore[arg-type]
         except (TypeError, ValueError):
             return [f"Generation timeout must be a number: {value!r}"]
         if timeout <= 0:

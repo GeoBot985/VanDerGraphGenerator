@@ -81,6 +81,7 @@ class RefinementOrchestrator:
         )
 
         if attempted_llm:
+            assert selected_model is not None
             llm_result = self._map_refinement(
                 model=selected_model,
                 user_message=user_message,
@@ -394,6 +395,8 @@ class RefinementOrchestrator:
 
         updated = refined
         style_patch = VisualPlanPatch(style=type(fallback_patch.style)())
+        assert fallback_patch.style is not None
+        assert style_patch.style is not None
         has_changes = False
 
         if (
@@ -597,8 +600,8 @@ class RefinementOrchestrator:
             plan.visual_kind == "chart"
             and plan.chart_type is not None
             and any(
-                get_role(plan, required_role) is None
-                or get_role(plan, required_role).field is None
+                (role := get_role(plan, required_role)) is None
+                or role.field is None
                 for required_role in {
                     "category",
                     "measure",

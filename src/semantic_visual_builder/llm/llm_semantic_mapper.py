@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from semantic_visual_builder.data.data_profiler import DatasetProfile
 from semantic_visual_builder.knowledge.graph_matrix import GraphMatrix
 from semantic_visual_builder.knowledge.product_kb import ProductKnowledgeBase
@@ -234,7 +236,7 @@ class LlmSemanticMapper:
             grouping=self._optional_list(data, "grouping"),
             style=style,
             renderer=renderer,
-            confidence=float(confidence) if confidence is not None else None,
+            confidence=float(confidence) if isinstance(confidence, (int, float, str)) else None,
             assumptions=self._optional_list(data, "assumptions"),
             questions=self._optional_list(data, "questions"),
             diagram_nodes=self._optional_list(data, "diagram_nodes"),
@@ -247,7 +249,7 @@ class LlmSemanticMapper:
             return value
         return str(value)
 
-    def _optional_list(self, data: dict[str, object], key: str) -> list[object]:
+    def _optional_list(self, data: dict[str, object], key: str) -> list[Any]:
         value = data.get(key)
         if isinstance(value, list):
             return list(value)
