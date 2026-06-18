@@ -1,55 +1,58 @@
 {
   "metadata": {
-    "style_id": "ocean",
-    "style_name": "Ocean",
-    "description": "Sequential ocean blues and teals.",
+    "style_id": "pastel_soft",
+    "style_name": "Pastel Soft",
+    "description": "Friendly rounded sans on light, soft pastels, light grid and large rounded corners for approachable visuals.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "sequential",
-      "blue",
-      "cool"
+      "pastel",
+      "soft",
+      "friendly"
     ]
   },
   "palette": {
-    "primary": "#023e8a",
-    "secondary": "#0077b6",
-    "accent": "#0096c7",
-    "neutral": "#888888",
+    "primary": "#ffadad",
+    "secondary": "#ffd6a5",
+    "accent": "#caffbf",
+    "neutral": "#cccccc",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#023e8a",
-      "#0077b6",
-      "#0096c7",
-      "#00b4d8",
-      "#48cae4",
-      "#90e0ef"
+      "#ffadad",
+      "#ffd6a5",
+      "#caffbf",
+      "#9bf6ff",
+      "#bdb2ff",
+      "#fdffb6"
     ]
   },
   "typography": {
-    "font_family": "Arial",
+    "font_family": "Verdana",
+    "font_weight": "normal",
     "title_size": 18,
     "label_size": 12,
     "tick_size": 10
   },
   "chart": {
-    "background": "#ffffff",
+    "background": "#fffafc",
     "plot_background": "#ffffff",
     "grid": "light",
     "legend_position": "right",
     "label_density": "medium",
     "title_alignment": "left",
-    "bar_gap": null,
-    "line_shape": null
+    "bar_gap": 0.35,
+    "line_shape": "spline"
   },
   "diagram": {
     "direction": "TD",
     "node_fill": "#eeeeee",
-    "node_stroke": "#023e8a",
-    "decision_fill": "#0096c7",
-    "edge_colour": "#023e8a",
+    "node_stroke": "#ffadad",
+    "decision_fill": "#caffbf",
+    "edge_colour": "#ffadad",
+    "border_radius": 12,
+    "stroke_width": 1,
     "class_defs": {}
   },
   "renderer_hints": {

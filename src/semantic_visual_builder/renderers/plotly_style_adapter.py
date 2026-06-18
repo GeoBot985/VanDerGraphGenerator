@@ -17,6 +17,19 @@ def _is_dark_colour(hex_value: str | None) -> bool:
     return (r * 299 + g * 587 + b * 114) / 1000 < 80
 
 
+def _coerce_axis_title(value: object) -> dict:
+    """Normalise a Plotly axis title into the dict form the adapter can extend.
+
+    Chart builders may set axis["title"] to a plain string; the style adapter
+    needs a dict so it can attach a font size, so wrap strings as {"text": ...}.
+    """
+    if isinstance(value, dict):
+        return value
+    if value is None:
+        return {}
+    return {"text": str(value)}
+
+
 def _muted_grid_colour(background: str | None) -> str:
     """Return a subtle grid line colour appropriate for the background."""
     if _is_dark_colour(background):
@@ -41,6 +54,19 @@ class PlotlyStyleAdapter:
         if title_text is not None:
             if style.title_size:
                 layout["title"] = {"text": title_text, "font": {"size": style.title_size}}
+                # Plotly draws the title inside the top margin, which the chart
+                # builders fix at 60px. Large title fonts get clipped there, so
+                # grow the top margin to fit the title (plus a second line when a
+                # subtitle is present) and let Plotly auto-fit the axes.
+                margin = layout.setdefault("margin", {})
+                current_t = int(margin.get("t", 60) or 60)
+                needed_t = style.title_size + 40
+                if style.subtitle:
+                    needed_t += int(style.title_size * 0.6)
+                margin["t"] = max(current_t, needed_t)
+                for axis_name in ("xaxis", "yaxis"):
+                    axis = layout.setdefault(axis_name, {})
+                    axis["automargin"] = True
             else:
                 layout["title"] = title_text
 
@@ -69,7 +95,9 @@ class PlotlyStyleAdapter:
             for axis_name in ("xaxis", "yaxis"):
                 axis = layout.setdefault(axis_name, {})
                 if style.label_size:
-                    axis.setdefault("title", {}).setdefault("font", {})["size"] = style.label_size
+                    title = _coerce_axis_title(axis.get("title"))
+                    axis["title"] = title
+                    title.setdefault("font", {})["size"] = style.label_size
                 if tick_size:
                     axis.setdefault("tickfont", {})["size"] = tick_size
 

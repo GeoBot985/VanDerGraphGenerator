@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from semantic_visual_builder.state.app_state import AppState
+from semantic_visual_builder.styles.built_in_styles import list_builtin_style_profiles
 from semantic_visual_builder.styles.style_summary import summarize_style
 
 _BUILTIN_STYLE_IDS = frozenset(
-    {"corporate_blue", "minimal_grey", "presentation_green", "process_blue"}
+    style.style_id for style in list_builtin_style_profiles()
 )
 
 

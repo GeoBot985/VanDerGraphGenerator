@@ -45,10 +45,9 @@ class StyleComparisonPanel:
 
     def can_replace(self, result: StyleComparisonResult, app_state: AppState) -> bool:
         """Return True if the compared style is a user style (not built-in)."""
-        builtin_ids = {
-            "corporate_blue",
-            "minimal_grey",
-            "presentation_green",
-            "process_blue",
-        }
+        from semantic_visual_builder.styles.built_in_styles import (
+            list_builtin_style_profiles,
+        )
+
+        builtin_ids = {style.style_id for style in list_builtin_style_profiles()}
         return result.compared_style_id not in builtin_ids

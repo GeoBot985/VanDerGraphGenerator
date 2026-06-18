@@ -1,14 +1,14 @@
 {
   "metadata": {
-    "style_id": "vibrant",
-    "style_name": "Vibrant",
-    "description": "Bright, high-saturation categorical palette on white.",
+    "style_id": "magazine_bold",
+    "style_name": "Magazine Bold",
+    "description": "Glossy magazine feel: heavy sans titles, generous spacing, vivid categorical colours on white with smooth spline lines.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "vibrant",
-      "categorical",
-      "bright"
+      "magazine",
+      "bold",
+      "vibrant"
     ]
   },
   "palette": {
@@ -29,20 +29,21 @@
     ]
   },
   "typography": {
-    "font_family": "Arial",
-    "title_size": 18,
-    "label_size": 12,
-    "tick_size": 10
+    "font_family": "Helvetica",
+    "font_weight": "bold",
+    "title_size": 26,
+    "label_size": 14,
+    "tick_size": 12
   },
   "chart": {
     "background": "#ffffff",
     "plot_background": "#ffffff",
     "grid": "light",
     "legend_position": "right",
-    "label_density": "medium",
+    "label_density": "high",
     "title_alignment": "left",
-    "bar_gap": null,
-    "line_shape": null
+    "bar_gap": 0.3,
+    "line_shape": "spline"
   },
   "diagram": {
     "direction": "TD",
@@ -50,6 +51,8 @@
     "node_stroke": "#e6194b",
     "decision_fill": "#4363d8",
     "edge_colour": "#e6194b",
+    "border_radius": 10,
+    "stroke_width": 2,
     "class_defs": {}
   },
   "renderer_hints": {

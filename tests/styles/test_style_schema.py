@@ -47,9 +47,9 @@ def test_builtin_style_profiles_have_expected_shape() -> None:
     styles = list_builtin_style_profiles()
 
     assert len(styles) >= 4
-    assert {
-        "corporate_blue",
-        "minimal_grey",
-        "presentation_green",
-        "process_blue",
-    }.issubset({style.style_id for style in styles})
+    ids = {style.style_id for style in styles}
+    assert {"editorial_serif", "boardroom", "dashboard_dark", "terminal_neon"}.issubset(ids)
+    # every built-in style is a composite with typography + surface
+    for style in styles:
+        assert style.typography.font_family
+        assert style.chart.background is not None

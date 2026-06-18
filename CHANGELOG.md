@@ -1,5 +1,48 @@
 # Changelog
 
+## Unreleased (composite built-in styles)
+
+### Built-in styles are now full design systems, not just colour schemes
+The previous built-in colour-scheme styles (corporate_blue, minimal_grey,
+dark_slate, ocean, etc.) have been removed and replaced with 14 composite
+styles. Each style combines a colour palette **with a typographic identity**
+(font family, weight, title/label/tick sizes) **and a chart surface
+treatment** (background, plot background, grid, legend position, label
+density, title alignment, bar gap, line shape), so switching a style changes
+the whole feel of a chart or diagram, not just its data colours.
+
+The new set: Editorial Serif, Magazine Bold, Boardroom, Minimal Swiss,
+Technical Report, Academic Paper, Dashboard Dark, Terminal Neon, Pastel Soft,
+Marketing Punch, Ocean Cool, Sunset Warm, Colorblind Safe, High Contrast Print.
+
+- Distinct typographic identities span serif (Georgia, Times New Roman), sans
+  (Helvetica, Segoe UI, Verdana, Arial) and monospace (Courier New), with
+  weights and sizes that vary per style (title sizes from 16 to 28).
+- Surface treatments vary too: dark dashboards, cream editorial backgrounds,
+  no-grid minimal layouts, medium-grid print styles, bottom/right/none
+  legends, and spline vs linear line shapes.
+- `styles/builtins/*.style.json` regenerated via
+  `scripts/generate_builtin_styles.py`; the previous built-in JSON files were
+  removed.
+- Stale leftover user-extracted test styles (dark_and_neon, grrr, etc.) cleared
+  from `user_data/styles` so the catalog is just the 14 composites.
+- `style_panel` and `style_comparison_panel` no longer hardcode the old
+  built-in IDs; the built-in set is derived from `list_builtin_style_profiles`,
+  so new built-ins are correctly labelled and protected from replacement.
+- New tests assert each style is a full composite (typography + surface +
+  palette) and that the set has distinct typographic identities. All 14 styles
+  render both Plotly charts and Mermaid diagrams.
+
+### Bug fix
+- Plotly style adapter no longer crashes with `'str' object has no attribute
+  'setdefault'` when a style with a label size is applied to a chart whose axis
+  titles are plain strings. String axis titles are now coerced to
+  `{"text": ...}` before the font size is attached.
+
+### Internal
+- 563 tests; all passing.
+
+
 ## Unreleased (settings plumbing, real dialog, polish)
 
 ### Settings now flow into the runtime

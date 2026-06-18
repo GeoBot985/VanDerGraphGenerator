@@ -1,55 +1,58 @@
 {
   "metadata": {
-    "style_id": "high_contrast",
-    "style_name": "High Contrast",
-    "description": "Bold high-contrast palette for accessibility and print.",
+    "style_id": "academic_paper",
+    "style_name": "Academic Paper",
+    "description": "Journal-style serif on white, thin grid, black/grey palette and a bottom legend for dense reference figures.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "accessible",
-      "high-contrast",
-      "bold"
+      "academic",
+      "serif",
+      "print"
     ]
   },
   "palette": {
     "primary": "#000000",
-    "secondary": "#e6194b",
-    "accent": "#3cb44b",
+    "secondary": "#444444",
+    "accent": "#666666",
     "neutral": "#555555",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
       "#000000",
-      "#e6194b",
-      "#3cb44b",
-      "#4363d8",
-      "#f58231",
-      "#ffe119"
+      "#444444",
+      "#666666",
+      "#888888",
+      "#aaaaaa",
+      "#cccccc"
     ]
   },
   "typography": {
-    "font_family": "Arial",
-    "title_size": 18,
-    "label_size": 12,
-    "tick_size": 10
+    "font_family": "Times New Roman",
+    "font_weight": "normal",
+    "title_size": 16,
+    "label_size": 11,
+    "tick_size": 9
   },
   "chart": {
     "background": "#ffffff",
     "plot_background": "#ffffff",
-    "grid": "medium",
-    "legend_position": "right",
-    "label_density": "medium",
+    "grid": "light",
+    "legend_position": "bottom",
+    "label_density": "high",
     "title_alignment": "left",
-    "bar_gap": null,
-    "line_shape": null
+    "bar_gap": 0.2,
+    "line_shape": "linear"
   },
   "diagram": {
     "direction": "TD",
     "node_fill": "#eeeeee",
     "node_stroke": "#000000",
-    "decision_fill": "#3cb44b",
+    "decision_fill": "#666666",
     "edge_colour": "#000000",
+    "border_radius": 0,
+    "stroke_width": 1,
     "class_defs": {}
   },
   "renderer_hints": {

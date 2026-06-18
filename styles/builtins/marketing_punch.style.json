@@ -1,14 +1,14 @@
 {
   "metadata": {
-    "style_id": "sunset",
-    "style_name": "Sunset",
-    "description": "Warm sunset reds, oranges and magentas.",
+    "style_id": "marketing_punch",
+    "style_name": "Marketing Punch",
+    "description": "Punchy marketing look: heavy bold sans, vivid palette, no grid, big titles and wide bars for hero charts.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "warm",
-      "sunset",
-      "categorical"
+      "marketing",
+      "bold",
+      "vibrant"
     ]
   },
   "palette": {
@@ -29,20 +29,21 @@
     ]
   },
   "typography": {
-    "font_family": "Arial",
-    "title_size": 18,
-    "label_size": 12,
-    "tick_size": 10
+    "font_family": "Helvetica",
+    "font_weight": "bold",
+    "title_size": 28,
+    "label_size": 14,
+    "tick_size": 12
   },
   "chart": {
     "background": "#ffffff",
     "plot_background": "#ffffff",
-    "grid": "light",
-    "legend_position": "right",
+    "grid": "none",
+    "legend_position": "bottom",
     "label_density": "medium",
     "title_alignment": "left",
-    "bar_gap": null,
-    "line_shape": null
+    "bar_gap": 0.3,
+    "line_shape": "linear"
   },
   "diagram": {
     "direction": "TD",
@@ -50,6 +51,8 @@
     "node_stroke": "#ff0054",
     "decision_fill": "#ff8500",
     "edge_colour": "#ff0054",
+    "border_radius": 14,
+    "stroke_width": 2,
     "class_defs": {}
   },
   "renderer_hints": {

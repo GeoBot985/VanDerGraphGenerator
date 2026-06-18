@@ -487,11 +487,21 @@ class FieldMapper:
             updated.style.orientation = "horizontal"
 
         if updated.intent == "compare_categories":
-            category = categorical_fields[0] if categorical_fields else None
-            measure = numeric_fields[0] if numeric_fields else "row_count"
+            existing_category = get_role(updated, "category")
+            existing_measure = get_role(updated, "measure")
+            category = existing_category.field if existing_category and existing_category.field else (
+                categorical_fields[0] if categorical_fields else None
+            )
+            measure = existing_measure.field if existing_measure and existing_measure.field else (
+                numeric_fields[0] if numeric_fields else "row_count"
+            )
+            # Preserve an aggregation inferred upstream (e.g. "sum of amount per region").
+            aggregation = existing_measure.aggregation if existing_measure and existing_measure.aggregation else (
+                "count" if measure == "row_count" else None
+            )
             updated.data_roles = [
                 DataRole(role="category", field=category),
-                DataRole(role="measure", field=measure, aggregation="count" if measure == "row_count" else None),
+                DataRole(role="measure", field=measure, aggregation=aggregation),
             ]
             return updated
 

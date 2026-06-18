@@ -1,45 +1,45 @@
 {
   "metadata": {
-    "style_id": "colorblind_safe",
-    "style_name": "Colorblind Safe",
-    "description": "Okabe-Ito colour-vision-deficiency-safe palette on white, clean sans, medium grid and a bold title for accessible reporting.",
+    "style_id": "boardroom",
+    "style_name": "Boardroom",
+    "description": "Executive navy-and-gold on white, Helvetica bold, bottom legend and a fine grid for boardroom decks.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "accessible",
-      "colorblind",
-      "categorical"
+      "corporate",
+      "executive",
+      "presentation"
     ]
   },
   "palette": {
-    "primary": "#0072b2",
-    "secondary": "#e69f00",
-    "accent": "#009e73",
-    "neutral": "#888888",
+    "primary": "#1f3b66",
+    "secondary": "#5b8def",
+    "accent": "#c9a227",
+    "neutral": "#9aa3b0",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#0072b2",
-      "#e69f00",
-      "#009e73",
-      "#cc79a7",
-      "#56b4e9",
-      "#d55e00"
+      "#1f3b66",
+      "#5b8def",
+      "#c9a227",
+      "#3c5a8a",
+      "#8a6d1f",
+      "#b0b8c4"
     ]
   },
   "typography": {
-    "font_family": "Arial",
+    "font_family": "Helvetica",
     "font_weight": "bold",
     "title_size": 20,
-    "label_size": 13,
-    "tick_size": 11
+    "label_size": 12,
+    "tick_size": 10
   },
   "chart": {
     "background": "#ffffff",
-    "plot_background": "#ffffff",
-    "grid": "medium",
-    "legend_position": "right",
+    "plot_background": "#fafcff",
+    "grid": "light",
+    "legend_position": "bottom",
     "label_density": "medium",
     "title_alignment": "left",
     "bar_gap": 0.25,
@@ -48,9 +48,9 @@
   "diagram": {
     "direction": "TD",
     "node_fill": "#eeeeee",
-    "node_stroke": "#0072b2",
-    "decision_fill": "#009e73",
-    "edge_colour": "#0072b2",
+    "node_stroke": "#1f3b66",
+    "decision_fill": "#c9a227",
+    "edge_colour": "#1f3b66",
     "border_radius": 4,
     "stroke_width": 2,
     "class_defs": {}

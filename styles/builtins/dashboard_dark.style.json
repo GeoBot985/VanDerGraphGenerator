@@ -1,14 +1,14 @@
 {
   "metadata": {
-    "style_id": "dark_slate",
-    "style_name": "Dark Slate",
-    "description": "Dark slate background with cool blue-teal accents.",
+    "style_id": "dashboard_dark",
+    "style_name": "Dashboard Dark",
+    "description": "Operations dashboard on dark slate: Segoe UI, bright categorical data colours and a subtle grid for at-a-glance monitoring.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
       "dark",
-      "cool",
-      "presentation"
+      "dashboard",
+      "ops"
     ]
   },
   "palette": {
@@ -29,20 +29,21 @@
     ]
   },
   "typography": {
-    "font_family": "Arial",
+    "font_family": "Segoe UI",
+    "font_weight": "normal",
     "title_size": 18,
     "label_size": 12,
     "tick_size": 10
   },
   "chart": {
-    "background": "#1e293b",
-    "plot_background": "#1e293b",
-    "grid": "none",
+    "background": "#0f172a",
+    "plot_background": "#111c33",
+    "grid": "light",
     "legend_position": "right",
     "label_density": "medium",
     "title_alignment": "left",
-    "bar_gap": null,
-    "line_shape": null
+    "bar_gap": 0.25,
+    "line_shape": "linear"
   },
   "diagram": {
     "direction": "TD",
@@ -50,6 +51,8 @@
     "node_stroke": "#38bdf8",
     "decision_fill": "#fbbf24",
     "edge_colour": "#38bdf8",
+    "border_radius": 6,
+    "stroke_width": 1,
     "class_defs": {}
   },
   "renderer_hints": {

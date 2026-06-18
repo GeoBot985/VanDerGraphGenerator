@@ -1,35 +1,36 @@
 {
   "metadata": {
-    "style_id": "pastel",
-    "style_name": "Pastel",
-    "description": "Soft pastel palette for gentle, approachable visuals.",
+    "style_id": "technical_report",
+    "style_name": "Technical Report",
+    "description": "Engineering report look: clean sans on white, a fine grid, muted blue-grey palette and centred titles.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "pastel",
-      "soft",
-      "light"
+      "technical",
+      "engineering",
+      "report"
     ]
   },
   "palette": {
-    "primary": "#ffadad",
-    "secondary": "#ffd6a5",
-    "accent": "#caffbf",
-    "neutral": "#cccccc",
+    "primary": "#334155",
+    "secondary": "#0ea5e9",
+    "accent": "#64748b",
+    "neutral": "#6b7280",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#ffadad",
-      "#ffd6a5",
-      "#caffbf",
-      "#9bf6ff",
-      "#bdb2ff",
-      "#fdffb6"
+      "#334155",
+      "#0ea5e9",
+      "#64748b",
+      "#94a3b8",
+      "#cbd5e1",
+      "#1e293b"
     ]
   },
   "typography": {
-    "font_family": "Arial",
+    "font_family": "Segoe UI",
+    "font_weight": "normal",
     "title_size": 18,
     "label_size": 12,
     "tick_size": 10
@@ -40,16 +41,18 @@
     "grid": "light",
     "legend_position": "right",
     "label_density": "medium",
-    "title_alignment": "left",
-    "bar_gap": null,
-    "line_shape": null
+    "title_alignment": "center",
+    "bar_gap": 0.2,
+    "line_shape": "linear"
   },
   "diagram": {
     "direction": "TD",
     "node_fill": "#eeeeee",
-    "node_stroke": "#ffadad",
-    "decision_fill": "#caffbf",
-    "edge_colour": "#ffadad",
+    "node_stroke": "#334155",
+    "decision_fill": "#64748b",
+    "edge_colour": "#334155",
+    "border_radius": 3,
+    "stroke_width": 1,
     "class_defs": {}
   },
   "renderer_hints": {

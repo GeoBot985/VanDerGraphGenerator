@@ -1,55 +1,58 @@
 {
   "metadata": {
-    "style_id": "warm_earth",
-    "style_name": "Warm Earth",
-    "description": "Muted autumnal earth tones.",
+    "style_id": "ocean_cool",
+    "style_name": "Ocean Cool",
+    "description": "Sequential ocean blues on white, clean sans, light grid and smooth spline lines for trend and area charts.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "earth",
-      "autumn",
-      "muted"
+      "sequential",
+      "blue",
+      "cool"
     ]
   },
   "palette": {
-    "primary": "#582f0e",
-    "secondary": "#7f4f24",
-    "accent": "#936639",
-    "neutral": "#b6ad90",
+    "primary": "#023e8a",
+    "secondary": "#0077b6",
+    "accent": "#0096c7",
+    "neutral": "#888888",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#582f0e",
-      "#7f4f24",
-      "#936639",
-      "#a68a64",
-      "#b6ad90",
-      "#c2c5aa"
+      "#023e8a",
+      "#0077b6",
+      "#0096c7",
+      "#00b4d8",
+      "#48cae4",
+      "#90e0ef"
     ]
   },
   "typography": {
-    "font_family": "Arial",
+    "font_family": "Segoe UI",
+    "font_weight": "normal",
     "title_size": 18,
     "label_size": 12,
     "tick_size": 10
   },
   "chart": {
     "background": "#ffffff",
-    "plot_background": "#ffffff",
+    "plot_background": "#f7fbff",
     "grid": "light",
     "legend_position": "right",
     "label_density": "medium",
     "title_alignment": "left",
-    "bar_gap": null,
-    "line_shape": null
+    "bar_gap": 0.25,
+    "line_shape": "spline"
   },
   "diagram": {
     "direction": "TD",
     "node_fill": "#eeeeee",
-    "node_stroke": "#582f0e",
-    "decision_fill": "#936639",
-    "edge_colour": "#582f0e",
+    "node_stroke": "#023e8a",
+    "decision_fill": "#0096c7",
+    "edge_colour": "#023e8a",
+    "border_radius": 6,
+    "stroke_width": 1,
     "class_defs": {}
   },
   "renderer_hints": {

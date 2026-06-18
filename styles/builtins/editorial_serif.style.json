@@ -1,0 +1,71 @@
+{
+  "metadata": {
+    "style_id": "editorial_serif",
+    "style_name": "Editorial Serif",
+    "description": "Newspaper-style serif typography on warm cream, with a restrained charcoal palette and medium grid for data journalism.",
+    "schema_version": "1.0",
+    "author": null,
+    "tags": [
+      "editorial",
+      "serif",
+      "publication"
+    ]
+  },
+  "palette": {
+    "primary": "#1b1b1b",
+    "secondary": "#7a1f1f",
+    "accent": "#1f4e79",
+    "neutral": "#4a4a4a",
+    "warning": null,
+    "success": null,
+    "danger": null,
+    "sequence": [
+      "#1b1b1b",
+      "#7a1f1f",
+      "#1f4e79",
+      "#5b6b3a",
+      "#9a6a1f",
+      "#6a4c93"
+    ]
+  },
+  "typography": {
+    "font_family": "Georgia",
+    "font_weight": "normal",
+    "title_size": 22,
+    "label_size": 13,
+    "tick_size": 11
+  },
+  "chart": {
+    "background": "#fbf7f0",
+    "plot_background": "#fffdf7",
+    "grid": "medium",
+    "legend_position": "bottom",
+    "label_density": "medium",
+    "title_alignment": "left",
+    "bar_gap": 0.2,
+    "line_shape": "linear"
+  },
+  "diagram": {
+    "direction": "TD",
+    "node_fill": "#eeeeee",
+    "node_stroke": "#1b1b1b",
+    "decision_fill": "#1f4e79",
+    "edge_colour": "#1b1b1b",
+    "border_radius": 2,
+    "stroke_width": 1,
+    "class_defs": {}
+  },
+  "renderer_hints": {
+    "plotly_template": "plotly_white",
+    "mermaid_theme": "base",
+    "chartjs_options": {}
+  },
+  "supported_visual_kinds": [
+    "chart",
+    "diagram"
+  ],
+  "supported_renderers": [
+    "plotly",
+    "mermaid"
+  ]
+}

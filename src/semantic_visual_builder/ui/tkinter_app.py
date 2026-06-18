@@ -928,11 +928,15 @@ class SemanticVisualBuilderApp:
         plan = self.app_state.current_visual_plan
         validation = self.app_state.current_validation_result
         if plan is None or validation is None or not validation.is_valid:
-            message = (
-                "No valid visual plan is ready. Load data and describe the visual "
-                "first."
-            )
+            if plan is None:
+                message = "No visual plan yet. Describe the visual first, then Generate Preview."
+            elif validation is not None and not validation.is_valid:
+                issues = "; ".join(self._validation_issue_lines(validation))
+                message = f"The current plan is not valid, so no preview can be rendered: {issues}"
+            else:
+                message = "No valid visual plan is ready. Load data and describe the visual first."
             self.app_state.add_status(message)
+            self._append_system_message(message)
             self._refresh_all_views()
             return message
 
@@ -946,6 +950,7 @@ class SemanticVisualBuilderApp:
                 )
                 self.app_state.add_status(message)
                 self.app_state.set_preview_failed(message)
+                self._append_system_message(message)
                 self._refresh_all_views()
                 return message
 
@@ -964,6 +969,7 @@ class SemanticVisualBuilderApp:
             if self.app_state.app_settings.open_preview_after_generation:
                 self.preview_host.open_preview(export_result.path)
             self.app_state.add_status(f"Preview generated: {export_result.path}")
+            self._append_system_message(f"Preview generated: {export_result.path}")
             self._refresh_all_views()
             return f"Preview generated: {export_result.path}"
         except Exception as exc:
@@ -1452,7 +1458,23 @@ class SemanticVisualBuilderApp:
         messagebox.showinfo("Troubleshooting", message, parent=self.root)
         return message
 
+    def _validation_issue_lines(self, validation) -> list[str]:
+        messages = getattr(validation, "messages", None)
+        if not messages:
+            return []
+        lines: list[str] = []
+        for entry in messages:
+            text = getattr(entry, "message", None) or str(entry)
+            severity = getattr(entry, "severity", None)
+            is_valid = getattr(entry, "is_valid", True)
+            if severity is not None and getattr(severity, "value", None) == "error":
+                lines.append(text)
+            elif is_valid is False:
+                lines.append(text)
+        return lines or [str(m) for m in messages]
+
     def _visual_plan_response(self, plan, validation) -> str:
+
         return (
             "I interpreted this as a neutral visual plan.\n\n"
             f"{summarize_visual_plan(plan)}\n\n"

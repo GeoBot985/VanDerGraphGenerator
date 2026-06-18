@@ -65,5 +65,5 @@ class TestStyleComparisonPanel:
 
     def test_cannot_replace_builtin_style(self) -> None:
         state = AppState()
-        result = _make_result("corporate_blue", "Corporate Blue", 0.9)
+        result = _make_result("boardroom", "Boardroom", 0.9)
         assert self.panel.can_replace(result, state) is False

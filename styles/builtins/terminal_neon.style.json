@@ -1,0 +1,71 @@
+{
+  "metadata": {
+    "style_id": "terminal_neon",
+    "style_name": "Terminal Neon",
+    "description": "Developer/CLI vibe: monospace on near-black, neon green and amber data colours, no grid and high-contrast titles.",
+    "schema_version": "1.0",
+    "author": null,
+    "tags": [
+      "dark",
+      "developer",
+      "neon"
+    ]
+  },
+  "palette": {
+    "primary": "#00e676",
+    "secondary": "#ffb300",
+    "accent": "#00e5ff",
+    "neutral": "#6b7280",
+    "warning": null,
+    "success": null,
+    "danger": null,
+    "sequence": [
+      "#00e676",
+      "#ffb300",
+      "#00e5ff",
+      "#d500f9",
+      "#ff1744",
+      "#ffea00"
+    ]
+  },
+  "typography": {
+    "font_family": "Courier New",
+    "font_weight": "bold",
+    "title_size": 18,
+    "label_size": 12,
+    "tick_size": 11
+  },
+  "chart": {
+    "background": "#0a0a0a",
+    "plot_background": "#0d0d0d",
+    "grid": "none",
+    "legend_position": "right",
+    "label_density": "low",
+    "title_alignment": "left",
+    "bar_gap": 0.2,
+    "line_shape": "linear"
+  },
+  "diagram": {
+    "direction": "TD",
+    "node_fill": "#00e676",
+    "node_stroke": "#00e676",
+    "decision_fill": "#00e5ff",
+    "edge_colour": "#00e676",
+    "border_radius": 0,
+    "stroke_width": 2,
+    "class_defs": {}
+  },
+  "renderer_hints": {
+    "plotly_template": "plotly_dark",
+    "mermaid_theme": "dark",
+    "chartjs_options": {}
+  },
+  "supported_visual_kinds": [
+    "chart",
+    "diagram"
+  ],
+  "supported_renderers": [
+    "plotly",
+    "mermaid"
+  ]
+}

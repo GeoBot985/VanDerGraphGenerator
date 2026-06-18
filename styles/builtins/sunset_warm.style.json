@@ -1,58 +1,58 @@
 {
   "metadata": {
-    "style_id": "colorblind_safe",
-    "style_name": "Colorblind Safe",
-    "description": "Okabe-Ito colour-vision-deficiency-safe palette on white, clean sans, medium grid and a bold title for accessible reporting.",
+    "style_id": "sunset_warm",
+    "style_name": "Sunset Warm",
+    "description": "Warm sunset palette on cream, serif titles and spline lines for expressive, warm-toned visuals.",
     "schema_version": "1.0",
     "author": null,
     "tags": [
-      "accessible",
-      "colorblind",
-      "categorical"
+      "warm",
+      "sunset",
+      "editorial"
     ]
   },
   "palette": {
-    "primary": "#0072b2",
-    "secondary": "#e69f00",
-    "accent": "#009e73",
+    "primary": "#ff0054",
+    "secondary": "#ff5400",
+    "accent": "#ff8500",
     "neutral": "#888888",
     "warning": null,
     "success": null,
     "danger": null,
     "sequence": [
-      "#0072b2",
-      "#e69f00",
-      "#009e73",
-      "#cc79a7",
-      "#56b4e9",
-      "#d55e00"
+      "#ff0054",
+      "#ff5400",
+      "#ff8500",
+      "#ff9e00",
+      "#9e0059",
+      "#390099"
     ]
   },
   "typography": {
-    "font_family": "Arial",
-    "font_weight": "bold",
+    "font_family": "Georgia",
+    "font_weight": "normal",
     "title_size": 20,
     "label_size": 13,
     "tick_size": 11
   },
   "chart": {
-    "background": "#ffffff",
-    "plot_background": "#ffffff",
-    "grid": "medium",
+    "background": "#fff8f0",
+    "plot_background": "#fffdf9",
+    "grid": "light",
     "legend_position": "right",
     "label_density": "medium",
     "title_alignment": "left",
     "bar_gap": 0.25,
-    "line_shape": "linear"
+    "line_shape": "spline"
   },
   "diagram": {
     "direction": "TD",
     "node_fill": "#eeeeee",
-    "node_stroke": "#0072b2",
-    "decision_fill": "#009e73",
-    "edge_colour": "#0072b2",
-    "border_radius": 4,
-    "stroke_width": 2,
+    "node_stroke": "#ff0054",
+    "decision_fill": "#ff8500",
+    "edge_colour": "#ff0054",
+    "border_radius": 8,
+    "stroke_width": 1,
     "class_defs": {}
   },
   "renderer_hints": {
