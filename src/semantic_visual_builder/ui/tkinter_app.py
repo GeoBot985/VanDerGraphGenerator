@@ -9,7 +9,10 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from semantic_visual_builder.data.csv_loader import CsvLoader
 from semantic_visual_builder.data.data_profiler import DataProfiler
+from semantic_visual_builder.data.excel_loader import ExcelLoader
+from semantic_visual_builder.export.export_manager import ExportManager, ExportRequest
 from semantic_visual_builder.export.html_exporter import HtmlExporter
+from semantic_visual_builder.gallery.gallery_store import GalleryStore
 from semantic_visual_builder.image_style import (
     ImageLoader,
     ImageStyleAnalyzer,
@@ -68,6 +71,7 @@ from semantic_visual_builder.renderers.python_renderer_future import (
 )
 from semantic_visual_builder.renderers.renderer_registry import RendererRegistry
 from semantic_visual_builder.runtime.environment_report import build_environment_report
+from semantic_visual_builder.settings.settings_store import SettingsStore
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.styles import (
     StyleApplier,
@@ -77,17 +81,27 @@ from semantic_visual_builder.styles import (
 )
 from semantic_visual_builder.ui.about_dialog import show_about_dialog
 from semantic_visual_builder.ui.error_dialog import show_error_dialog
+from semantic_visual_builder.ui.export_dialog import ExportDialogController
+from semantic_visual_builder.ui.gallery_panel import GalleryPanelController
 from semantic_visual_builder.ui.preview_panel import PreviewPanel
 from semantic_visual_builder.ui.recipe_panel import RecipePanel
+from semantic_visual_builder.ui.settings_dialog import SettingsDialogController
 from semantic_visual_builder.ui.status_panel import StatusPanel
+from semantic_visual_builder.ui.style_comparison_panel import StyleComparisonPanel
 from semantic_visual_builder.ui.style_extraction_panel import StyleExtractionPanel
 from semantic_visual_builder.ui.style_panel import StylePanel
 from semantic_visual_builder.ui.validation_panel import ValidationPanel
-from semantic_visual_builder.ui.widgets import HoverTooltip, make_readonly_text, set_text
+from semantic_visual_builder.ui.widgets import (
+    HoverTooltip,
+    make_readonly_text,
+    set_text,
+)
 from semantic_visual_builder.utils.paths import (
     get_builtin_styles_dir,
+    get_gallery_path,
     get_previews_dir,
     get_recipes_dir,
+    get_settings_path,
     get_user_styles_dir,
     get_webview_template_dir,
 )
@@ -178,7 +192,17 @@ class SemanticVisualBuilderApp:
         self.recipe_panel = RecipePanel()
         self.style_panel = StylePanel()
         self.style_extraction_panel = StyleExtractionPanel()
+        self.style_comparison_panel = StyleComparisonPanel()
+        self.gallery_panel = GalleryPanelController()
+        self.export_dialog = ExportDialogController()
+        self.settings_dialog = SettingsDialogController(
+            store=SettingsStore(get_settings_path())
+        )
+        self.settings_dialog.load()
+        self.excel_loader = ExcelLoader()
+        self.export_manager = ExportManager()
         self.status_panel = StatusPanel()
+        self._load_gallery_items()
         self.validation_panel = ValidationPanel()
         self.renderer_registry = RendererRegistry(
             [
@@ -435,6 +459,8 @@ class SemanticVisualBuilderApp:
         self.recipe_text = _add_text_tab("Recipe")
         self.style_text = _add_text_tab("Style")
         self.style_extraction_text = _add_text_tab("Extraction")
+        self.gallery_text = _add_text_tab("Gallery")
+        self.style_comparison_text = _add_text_tab("Style Compare")
         self.validation_text = _add_text_tab("Validation")
         self.debug_text = _add_text_tab("Debug")
 
@@ -456,12 +482,40 @@ class SemanticVisualBuilderApp:
         file_menu.add_command(
             label="Load Sample Dataset", command=self.load_sample_dataset
         )
+        file_menu.add_command(label="Load Excel...", command=self.load_excel_action)
+        file_menu.add_separator()
         file_menu.add_command(label="Save Recipe", command=self.save_recipe_action)
         file_menu.add_command(label="Load Recipe", command=self.load_recipe_action)
+        file_menu.add_separator()
         file_menu.add_command(label="Export HTML", command=self.export_html_action)
+        file_menu.add_command(
+            label="Export Report HTML...", command=self.export_report_html_action
+        )
+        file_menu.add_command(label="Export PNG...", command=self.export_png_action)
+        file_menu.add_command(label="Export SVG...", command=self.export_svg_action)
+        file_menu.add_separator()
+        file_menu.add_command(label="Settings...", command=self.open_settings_action)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.root.destroy)
         menu.add_cascade(label="File", menu=file_menu)
+
+        gallery_menu = tk.Menu(menu, tearoff=0)
+        gallery_menu.add_command(
+            label="Reload Gallery Items", command=self.reload_gallery_items_action
+        )
+        gallery_menu.add_command(
+            label="Run First Gallery Item", command=self.run_first_gallery_item_action
+        )
+        gallery_menu.add_command(
+            label="Run Gallery Item by ID...", command=self.run_gallery_item_by_id_action
+        )
+        menu.add_cascade(label="Gallery", menu=gallery_menu)
+
+        style_menu = tk.Menu(menu, tearoff=0)
+        style_menu.add_command(
+            label="Compare Active Style", command=self.compare_styles_action
+        )
+        menu.add_cascade(label="Style", menu=style_menu)
 
         view_menu = tk.Menu(menu, tearoff=0)
         view_menu.add_command(
@@ -965,6 +1019,279 @@ class SemanticVisualBuilderApp:
         os.startfile(self.app_state.runtime_paths.export_dir)
         return f"Opened exports folder: {self.app_state.runtime_paths.export_dir}"
 
+    def _export_dir_for_request(self) -> Path:
+        if self.app_state.runtime_paths is not None:
+            return self.app_state.runtime_paths.export_dir
+        return get_previews_dir().parent
+
+    def _renderer_output_html(self) -> str | None:
+        output = self.app_state.last_renderer_output
+        if output is None:
+            return None
+        return getattr(output, "content", None) or ""
+
+    def export_report_html_action(self) -> str:
+        chart_html = self._renderer_output_html()
+        if chart_html is None or self.app_state.last_preview_path is None:
+            message = "Generate a preview before exporting a report."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        title = simpledialog.askstring(
+            "Report Title", "Report title:", parent=self.root
+        ) or "Visual Report"
+        request = ExportRequest(
+            export_type="report_html",
+            export_dir=self._export_dir_for_request(),
+            content=chart_html,
+            title=title,
+            renderer_name=getattr(self.app_state.last_renderer_output, "renderer_name", None),
+            dataset_name=self._dataset_name(),
+            notes=None,
+            filename_prefix="report",
+        )
+        result = self.export_manager.export(request)
+        self.app_state.set_last_export_request(request)
+        self.app_state.last_export_result = result
+        if not result.success or result.path is None:
+            message = result.error or "Report HTML export failed."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        message = f"Report HTML exported: {result.path}"
+        self.app_state.add_status(message)
+        self._refresh_all_views()
+        return message
+
+    def export_png_action(self) -> str:
+        source_path = self.app_state.last_preview_path
+        if source_path is None:
+            message = "Generate a preview before exporting PNG."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        request = ExportRequest(
+            export_type="png",
+            export_dir=self._export_dir_for_request(),
+            filename_prefix="chart",
+            extra={"source_path": str(source_path)},
+        )
+        result = self.export_manager.export(request)
+        self.app_state.set_last_export_request(request)
+        self.app_state.last_export_result = result
+        message = result.error or f"PNG export result: {result.path}"
+        self.app_state.add_status(message)
+        self._refresh_all_views()
+        return message
+
+    def export_svg_action(self) -> str:
+        source_path = self.app_state.last_preview_path
+        if source_path is None:
+            message = "Generate a preview before exporting SVG."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        request = ExportRequest(
+            export_type="svg",
+            export_dir=self._export_dir_for_request(),
+            filename_prefix="chart",
+            extra={"source_path": str(source_path)},
+        )
+        result = self.export_manager.export(request)
+        self.app_state.set_last_export_request(request)
+        self.app_state.last_export_result = result
+        message = result.error or f"SVG export result: {result.path}"
+        self.app_state.add_status(message)
+        self._refresh_all_views()
+        return message
+
+    def _dataset_name(self) -> str | None:
+        loaded = self.app_state.dataset_context.loaded_dataset
+        return loaded.path.name if loaded and loaded.path else None
+
+    def open_settings_action(self) -> str:
+        self.settings_dialog.load()
+        current = self.settings_dialog.current_settings()
+        renderer = simpledialog.askstring(
+            "Settings",
+            "Default renderer (plotly / mermaid / chartjs):",
+            initialvalue=current.default_renderer,
+            parent=self.root,
+        )
+        if renderer:
+            errors = self.settings_dialog.update_field(
+                "default_renderer", renderer.strip()
+            )
+            if errors:
+                messagebox.showerror("Invalid setting", "\n".join(errors), parent=self.root)
+        model = simpledialog.askstring(
+            "Settings",
+            "Default Ollama model (leave blank for none):",
+            initialvalue=current.default_ollama_model or "",
+            parent=self.root,
+        )
+        if model is not None:
+            self.settings_dialog.update_field("default_ollama_model", model.strip() or None)
+        success, msg = self.settings_dialog.save()
+        if success:
+            self.app_state.set_app_settings(self.settings_dialog.current_settings())
+            self.app_state.llm_mapping_enabled = (
+                self.settings_dialog.current_settings().llm_mapping_enabled
+            )
+            self._use_llm_var.set(self.app_state.llm_mapping_enabled)
+            self.refresh_ollama()
+        self.app_state.add_status(f"Settings: {msg}")
+        self._refresh_all_views()
+        return msg
+
+    def _load_gallery_items(self) -> None:
+        try:
+            items = GalleryStore(get_gallery_path()).load_items()
+            self.gallery_panel.set_items(items)
+            self.app_state.set_gallery_items(items)
+        except Exception as exc:
+            self.app_state.add_status(f"Gallery load failed: {exc}")
+
+    def reload_gallery_items_action(self) -> str:
+        self._load_gallery_items()
+        self._refresh_all_views()
+        return "Gallery items reloaded."
+
+    def run_first_gallery_item_action(self) -> str:
+        if not self.gallery_panel.items:
+            message = "No gallery items loaded."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        first = self.gallery_panel.items[0]
+        self.gallery_panel.select_item(first.item_id)
+        messages = self.gallery_panel.run_active(self.app_state)
+        for m in messages:
+            self.app_state.add_status(m)
+        self._refresh_all_views()
+        return "\n".join(messages)
+
+    def run_gallery_item_by_id_action(self) -> str:
+        item_id = simpledialog.askstring(
+            "Run Gallery Item", "Gallery item ID:", parent=self.root
+        )
+        if not item_id:
+            return "No item ID provided."
+        item = self.gallery_panel.select_item(item_id.strip())
+        if item is None:
+            message = f"No gallery item with ID {item_id!r}."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        messages = self.gallery_panel.run_active(self.app_state)
+        for m in messages:
+            self.app_state.add_status(m)
+        self._refresh_all_views()
+        return "\n".join(messages)
+
+    def load_excel_action(self) -> str:
+        if self.app_state.runtime_paths is not None:
+            initial_dir = self.app_state.runtime_paths.asset_dir / "samples"
+        else:
+            initial_dir = Path.cwd() / "assets" / "samples"
+        filename = filedialog.askopenfilename(
+            filetypes=[("Excel workbooks", "*.xlsx")], initialdir=str(initial_dir)
+        )
+        if not filename:
+            return "No Excel file selected."
+        path = Path(filename)
+        try:
+            info = self.excel_loader.inspect_workbook(path)
+        except Exception as exc:
+            message = f"Could not read workbook: {exc}"
+            self.app_state.add_status(message)
+            show_error_dialog("Excel load error", "Could not read workbook.", str(exc), parent=self.root)
+            self._refresh_all_views()
+            return message
+        if len(info.sheet_names) > 1:
+            sheet = simpledialog.askstring(
+                "Select Sheet",
+                f"Sheets:\n{chr(10).join(info.sheet_names)}\n\nSheet name:",
+                parent=self.root,
+            )
+            if not sheet or sheet.strip() not in info.sheet_names:
+                message = "No valid sheet selected."
+                self.app_state.add_status(message)
+                self._refresh_all_views()
+                return message
+            sheet_name = sheet.strip()
+        else:
+            sheet_name = info.sheet_names[0]
+        try:
+            loaded_excel = self.excel_loader.load_sheet(path, sheet_name)
+        except Exception as exc:
+            message = f"Could not load sheet: {exc}"
+            self.app_state.add_status(message)
+            show_error_dialog("Excel load error", "Could not load sheet.", str(exc), parent=self.root)
+            self._refresh_all_views()
+            return message
+        from semantic_visual_builder.data.csv_loader import LoadedDataset
+        loaded = LoadedDataset(path=path, dataframe=loaded_excel.dataframe)
+        profile = self.data_profiler.profile(loaded.dataframe)
+        self.app_state.dataset_context.loaded_dataset = loaded
+        self.app_state.dataset_context.profile = profile
+        self.app_state.current_visual_plan = None
+        self.app_state.current_validation_result = None
+        self.app_state.clear_renderer_outputs()
+        self.app_state.set_pending_clarification(None)
+        self.app_state.set_active_recipe(None)
+        self.app_state.workflow_state.advance_to(WorkflowStep.VISUAL_GOAL_REQUIRED)
+        self.app_state.add_status(f"Loaded Excel: {path.name} ({sheet_name})")
+        self._append_preview(f"Loaded dataset: {path.name} ({sheet_name})")
+        self._refresh_all_views()
+        return f"Loaded Excel: {path.name} ({sheet_name})"
+
+    def compare_styles_action(self) -> str:
+        from semantic_visual_builder.styles.style_comparison import StyleComparator
+        active = self.app_state.active_style_profile
+        available = self.app_state.available_style_profiles
+        if active is None or not available:
+            message = "Select an active style and load available styles first."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        try:
+            engine = StyleComparator()
+            results = engine.rank_similar_styles(active, available)
+        except Exception as exc:
+            message = f"Style comparison failed: {exc}"
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        self.app_state.set_style_comparison_results(results)
+        self.app_state.add_status(f"Compared active style against {len(results)} styles.")
+        self._refresh_all_views()
+        return self.style_comparison_panel.comparison_text(self.app_state)
+
+    def _update_gallery_view(self) -> None:
+        if not hasattr(self, "gallery_text"):
+            return
+        lines = [
+            self.gallery_panel.items_list_text(),
+            "",
+            self.gallery_panel.active_item_text(),
+        ]
+        set_text(self.gallery_text, "\n".join(lines))
+
+    def _update_style_comparison_view(self) -> None:
+        if not hasattr(self, "style_comparison_text"):
+            return
+        set_text(
+            self.style_comparison_text,
+            "\n".join(
+                [
+                    self.style_comparison_panel.top_match_text(self.app_state),
+                    "",
+                    self.style_comparison_panel.comparison_text(self.app_state),
+                ]
+            ),
+        )
+
     def show_troubleshooting(self) -> str:
         message = (
             "Troubleshooting:\n"
@@ -1180,6 +1507,8 @@ class SemanticVisualBuilderApp:
         self._update_recipe_view()
         self._update_style_view()
         self._update_style_extraction_view()
+        self._update_gallery_view()
+        self._update_style_comparison_view()
         self._update_validation_view()
         self._update_clarification_view()
         self._update_workflow_view()

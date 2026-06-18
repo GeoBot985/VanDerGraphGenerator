@@ -12,6 +12,8 @@ from semantic_visual_builder.runtime.runtime_paths import (
     RuntimePathResolver,
     RuntimePaths,
 )
+from semantic_visual_builder.settings.settings_manager import SettingsManager
+from semantic_visual_builder.settings.settings_store import SettingsStore
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.ui.tkinter_app import SemanticVisualBuilderApp
 from semantic_visual_builder.utils.error_handling import (
@@ -19,7 +21,7 @@ from semantic_visual_builder.utils.error_handling import (
     user_friendly_error,
 )
 from semantic_visual_builder.utils.logging_config import configure_logging, get_logger
-from semantic_visual_builder.utils.paths import get_runtime_paths
+from semantic_visual_builder.utils.paths import get_runtime_paths, get_settings_path
 from semantic_visual_builder.version import APP_NAME, APP_VERSION
 
 
@@ -36,6 +38,13 @@ def create_app_state(runtime_paths: RuntimePaths | None = None) -> AppState:
         ).load()
     except Exception as exc:
         state.add_status(f"Graph matrix load failed: {exc}")
+    try:
+        manager = SettingsManager(SettingsStore(get_settings_path()))
+        settings = manager.load_settings()
+        manager.apply_to_app_state(settings, state)
+        state.add_status("Settings loaded.")
+    except Exception as exc:
+        state.add_status(f"Settings load failed: {exc}")
     return state
 
 

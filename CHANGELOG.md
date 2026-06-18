@@ -1,5 +1,46 @@
 # Changelog
 
+## Unreleased
+
+### Desktop UI wiring (follow-up to 0.12.0 known limitations)
+The following library-level features are now reachable from the Tkinter app:
+
+- **Settings dialog + persistence** ? `SettingsStore`/`SettingsManager` loaded
+  in `create_app_state`; a `File -> Settings...` dialog edits the default
+  renderer and default Ollama model and persists them to
+  `config/app_settings.json`. The LLM-mapping toggle and model combo now
+  respect saved settings on launch.
+- **Gallery panel** ? gallery items load from `assets/gallery/gallery_items.json`
+  at startup, a `Gallery` menu (reload / run first / run by ID) loads the
+  sample dataset and prompt in one click, and a `Gallery` tab lists items.
+  `GalleryRunner` now uses `ConversationState.add_user_message` so the prompt
+  is actually seeded.
+- **Excel (.xlsx) input** ? `File -> Load Excel...` inspects the workbook,
+  prompts for a sheet when there are several, and loads it via `ExcelLoader`.
+- **Multi-format export** ? `File -> Export Report HTML...` (fully working,
+  titled self-contained report), plus `Export PNG...` / `Export SVG...`
+  wired through `ExportManager` (graceful "not yet implemented" messages until
+  the headless-renderer path lands). `PngExporter`/`SvgExporter` constructors
+  and signatures now match `ExportManager` so the export dialog no longer
+  crashes.
+- **Style comparison** ? a `Style` menu entry runs `StyleComparator` against
+  the active style and available styles, with results shown in a new
+  `Style Compare` tab.
+
+### Fixes
+- **Chart.js silent trap** ? `RendererRegistry` now raises a clear `ValueError`
+  for `render_target.renderer == "chartjs"` at routing time, instead of
+  selecting a renderer that raises `NotImplementedError` after validation
+  passes. Use the Plotly renderer.
+- New `tests/architecture/test_ui_wiring.py` guards against the
+  built-but-unexposed regression pattern (asserts all UI controllers are
+  instantiated, settings are loaded at bootstrap, and the Chart.js path is
+  rejected at routing time).
+
+### Internal
+- 519 tests; all passing (was 513).
+
+
 ## 0.12.0 — 2026-06-12
 
 ### New features

@@ -20,7 +20,10 @@ class RendererRegistry:
             raise ValueError("PythonRendererFuture is disabled in the MVP.")
         if visual_plan.visual_kind == "chart":
             if desired == "chartjs":
-                return self._find_renderer("chartjs")
+                raise ValueError(
+                    "Chart.js rendering is not yet active. "
+                    "Use the Plotly renderer instead."
+                )
             if desired not in {None, "", "plotly"}:
                 raise ValueError(f"Unsupported chart renderer '{desired}'.")
             return self._find_renderer("plotly")

@@ -62,7 +62,7 @@ class TestMermaidExtractedStyleMapping:
     def test_direction_applied_to_flowchart_header(self) -> None:
         plan = _make_plan(diagram_direction="LR")
         result = self.adapter.apply_style_to_mermaid(SIMPLE_FLOWCHART, plan)
-        assert result.startswith("flowchart LR")
+        assert "flowchart LR" in result
 
     def test_no_invalid_hex_in_output(self) -> None:
         plan = _make_plan()

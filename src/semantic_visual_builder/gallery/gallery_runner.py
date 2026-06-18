@@ -23,7 +23,14 @@ class GalleryRunner:
 
         if item.prompt and hasattr(app_state, "conversation_state"):
             try:
-                app_state.conversation_state.set_last_user_message(item.prompt)  # type: ignore[union-attr]
+                conversation = app_state.conversation_state  # type: ignore[union-attr]
+                setter = getattr(conversation, "set_last_user_message", None)
+                if callable(setter):
+                    setter(item.prompt)
+                elif hasattr(conversation, "add_user_message"):
+                    conversation.add_user_message(item.prompt)  # type: ignore[union-attr]
+                else:
+                    raise AttributeError("conversation_state has no prompt setter")
                 messages.append(f"Prompt set: {item.prompt}")
             except Exception as exc:
                 messages.append(f"Could not set prompt: {exc}")

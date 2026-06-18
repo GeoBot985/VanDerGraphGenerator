@@ -57,10 +57,21 @@ class PlotlyStyleAdapter:
         font = layout.setdefault("font", {})
         if style.font_family:
             font["family"] = style.font_family
+        if style.font_weight:
+            font["weight"] = 700 if style.font_weight == "bold" else 400
         if is_dark:
             font.setdefault("color", "#ffffff")
         else:
             font.setdefault("color", "#000000")
+
+        if style.label_size or style.tick_size:
+            tick_size = style.tick_size or style.label_size
+            for axis_name in ("xaxis", "yaxis"):
+                axis = layout.setdefault(axis_name, {})
+                if style.label_size:
+                    axis.setdefault("title", {}).setdefault("font", {})["size"] = style.label_size
+                if tick_size:
+                    axis.setdefault("tickfont", {})["size"] = tick_size
 
         if style.grid:
             show_grid = style.grid != "none"
@@ -88,6 +99,26 @@ class PlotlyStyleAdapter:
             else:
                 legend["x"] = 1.0
                 legend["y"] = 1.0
+
+        if style.bar_gap is not None:
+            layout["bargap"] = style.bar_gap
+
+        if style.title_alignment:
+            title_entry = layout.get("title")
+            x_map = {"left": 0.0, "center": 0.5, "right": 1.0}
+            anchor_map = {"left": "left", "center": "center", "right": "right"}
+            x_val = x_map.get(style.title_alignment)
+            if x_val is not None:
+                if isinstance(title_entry, str):
+                    layout["title"] = {"text": title_entry, "x": x_val, "xanchor": anchor_map[style.title_alignment]}
+                elif isinstance(title_entry, dict):
+                    title_entry["x"] = x_val
+                    title_entry["xanchor"] = anchor_map[style.title_alignment]
+
+        if style.line_shape:
+            for trace in plotly_config.get("data", []):
+                if isinstance(trace, dict) and trace.get("type") in ("scatter", "scattergl"):
+                    trace.setdefault("line", {})["shape"] = style.line_shape
 
         palette = style.palette if isinstance(style.palette, dict) else {}
         sequence_from_palette = palette.get("sequence") if isinstance(palette, dict) else None

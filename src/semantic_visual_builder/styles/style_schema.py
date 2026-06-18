@@ -34,6 +34,7 @@ class ColourPalette:
 @dataclass
 class TypographyStyle:
     font_family: str | None = None
+    font_weight: str | None = None  # "normal" | "bold"
     title_size: int | None = None
     label_size: int | None = None
     tick_size: int | None = None
@@ -58,6 +59,8 @@ class DiagramStyle:
     node_stroke: str | None = None
     decision_fill: str | None = None
     edge_colour: str | None = None
+    border_radius: int | None = None   # px — 0 = sharp, 8 = rounded
+    stroke_width: int | None = None    # px — 1 = thin, 2 = medium, 3 = thick
     class_defs: dict[str, dict[str, Any]] = field(default_factory=dict)
 
 

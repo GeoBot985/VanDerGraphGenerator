@@ -93,3 +93,20 @@ def get_webview_template_dir() -> Path:
         / "webview"
         / "templates"
     )
+
+def get_gallery_dir() -> Path:
+    """Return the bundled gallery config directory."""
+
+    return get_assets_dir() / "gallery"
+
+
+def get_gallery_path() -> Path:
+    """Return the gallery items JSON config path."""
+
+    return get_gallery_dir() / "gallery_items.json"
+
+
+def get_settings_path() -> Path:
+    """Return the user app settings JSON path."""
+
+    return get_runtime_paths().config_dir / "app_settings.json"

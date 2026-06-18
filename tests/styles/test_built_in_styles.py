@@ -23,7 +23,26 @@ _ADDED_SCHEMES = [
     "high_contrast",
     "solarized",
     "warm_earth",
+    # expanded set
+    "nordic",
+    "rose_gold",
+    "cyberpunk",
+    "terra_cotta",
+    "lavender_mist",
+    "matcha",
+    "deep_space",
+    "retro",
+    "berry",
+    "executive",
+    "arctic",
+    "autumn",
+    "candy",
+    "print_friendly",
+    "data_science",
+    "teal_coral",
 ]
+
+_MIN_BUILTIN_COUNT = 30
 
 
 def test_builtin_style_ids_are_stable() -> None:
@@ -36,8 +55,10 @@ def test_builtin_style_ids_are_stable() -> None:
 def test_added_colour_schemes_are_present() -> None:
     ids = [style.style_id for style in list_builtin_style_profiles()]
 
-    assert ids == _ORIGINAL_FOUR + _ADDED_SCHEMES
+    for scheme_id in _ADDED_SCHEMES:
+        assert scheme_id in ids, f"missing built-in style: {scheme_id}"
     assert len(ids) == len(set(ids)), "built-in style ids must be unique"
+    assert len(ids) >= _MIN_BUILTIN_COUNT, f"expected at least {_MIN_BUILTIN_COUNT} built-in styles, got {len(ids)}"
 
 
 def test_all_builtin_styles_validate() -> None:

@@ -19,14 +19,22 @@ class StyleIntent:
     title: str | None = None
     subtitle: str | None = None
     title_size: int | None = None
+    title_alignment: str | None = None   # "left" | "center" | "right"
     colour_scheme: str | None = None
     palette: dict[str, str] = field(default_factory=dict)
     font_family: str | None = None
+    font_weight: str | None = None        # "normal" | "bold"
+    label_size: int | None = None
+    tick_size: int | None = None
     grid: str | None = None
     legend_position: str | None = None
     background: str | None = None
     plot_background: str | None = None
+    bar_gap: float | None = None
+    line_shape: str | None = None         # "linear" | "spline" | "hv" | …
     diagram_direction: str | None = None
+    border_radius: int | None = None      # px
+    stroke_width: int | None = None       # px
     highlights: dict[str, Any] = field(default_factory=dict)
     labels: dict[str, str] = field(default_factory=dict)
     orientation: str | None = None

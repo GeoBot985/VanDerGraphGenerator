@@ -42,12 +42,28 @@ class StyleApplier:
             visual_plan.style.grid = style_profile.chart.grid
         if style_profile.chart.legend_position is not None:
             visual_plan.style.legend_position = style_profile.chart.legend_position
+        if style_profile.chart.title_alignment is not None:
+            visual_plan.style.title_alignment = style_profile.chart.title_alignment
+        if style_profile.chart.bar_gap is not None:
+            visual_plan.style.bar_gap = style_profile.chart.bar_gap
+        if style_profile.chart.line_shape is not None:
+            visual_plan.style.line_shape = style_profile.chart.line_shape
         if style_profile.diagram.direction is not None:
             visual_plan.style.diagram_direction = style_profile.diagram.direction
+        if style_profile.diagram.border_radius is not None:
+            visual_plan.style.border_radius = style_profile.diagram.border_radius
+        if style_profile.diagram.stroke_width is not None:
+            visual_plan.style.stroke_width = style_profile.diagram.stroke_width
         if style_profile.typography.font_family is not None:
             visual_plan.style.font_family = style_profile.typography.font_family
+        if style_profile.typography.font_weight is not None:
+            visual_plan.style.font_weight = style_profile.typography.font_weight
         if style_profile.typography.title_size is not None:
             visual_plan.style.title_size = style_profile.typography.title_size
+        if style_profile.typography.label_size is not None:
+            visual_plan.style.label_size = style_profile.typography.label_size
+        if style_profile.typography.tick_size is not None:
+            visual_plan.style.tick_size = style_profile.typography.tick_size
         if style_profile.palette.sequence:
             visual_plan.style.palette["sequence"] = list(style_profile.palette.sequence)
         if style_profile.palette.primary is not None:

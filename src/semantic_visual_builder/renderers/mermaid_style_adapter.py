@@ -29,6 +29,21 @@ def _text_colour_for_bg(bg: str | None) -> str:
     return "#ffffff" if brightness < 128 else "#000000"
 
 
+def _build_init_directive(style: object) -> str | None:
+    """Return a Mermaid %%{init}%% directive when theme variables need setting."""
+    theme_vars: dict[str, str] = {}
+    font_family = getattr(style, "font_family", None)
+    label_size = getattr(style, "label_size", None) or getattr(style, "tick_size", None)
+    if font_family:
+        theme_vars["fontFamily"] = font_family
+    if label_size:
+        theme_vars["fontSize"] = f"{label_size}px"
+    if not theme_vars:
+        return None
+    pairs = ", ".join(f'"{k}": "{v}"' for k, v in theme_vars.items())
+    return "%%{init: {'theme': 'base', 'themeVariables': {" + pairs + "}}}%%"
+
+
 class MermaidStyleAdapter:
     def apply_style_to_mermaid(self, mermaid_code: str, visual_plan: VisualPlan) -> str:
         style = visual_plan.style
@@ -39,6 +54,10 @@ class MermaidStyleAdapter:
         if lines and lines[0].startswith("flowchart"):
             lines[0] = f"flowchart {direction}"
 
+        init = _build_init_directive(style)
+        if init:
+            lines = [init] + lines
+
         palette = style.palette if isinstance(style.palette, dict) else {}
         background = style.background or "#ffffff"
         primary = _safe_hex(palette.get("primary") if isinstance(palette, dict) else None, "#d9eaf7")
@@ -46,6 +65,17 @@ class MermaidStyleAdapter:
         accent = _safe_hex(palette.get("accent") if isinstance(palette, dict) else None, "#fff2cc")
         neutral = _safe_hex(palette.get("neutral") if isinstance(palette, dict) else None, "#e2f0d9")
         danger = _safe_hex(palette.get("danger") if isinstance(palette, dict) else None, "#fce4d6")
+
+        border_radius = getattr(style, "border_radius", None)
+        stroke_width = getattr(style, "stroke_width", None)
+
+        def _class_def(name: str, fill: str, stroke: str, color: str) -> str:
+            parts = [f"fill:{fill}", f"stroke:{stroke}", f"color:{color}"]
+            if stroke_width is not None:
+                parts.append(f"stroke-width:{stroke_width}px")
+            if border_radius is not None:
+                parts.append(f"rx:{border_radius}px")
+            return f"classDef {name} {','.join(parts)};"
 
         class_defs: list[str] = []
         class_defs_map = (
@@ -58,9 +88,7 @@ class MermaidStyleAdapter:
                 fill = _safe_hex(attrs.get("fill"), "#ffffff")
                 stroke = _safe_hex(attrs.get("stroke"), "#1f4e79")
                 color = _safe_hex(attrs.get("color"), _text_colour_for_bg(fill))
-                class_defs.append(
-                    f"classDef {name} fill:{fill},stroke:{stroke},color:{color};"
-                )
+                class_defs.append(_class_def(name, fill, stroke, color))
 
         if not class_defs:
             node_fill_raw = (
@@ -83,9 +111,7 @@ class MermaidStyleAdapter:
                 "end": (danger, secondary, end_text),
             }
             for name, (fill, stroke, color) in defaults.items():
-                class_defs.append(
-                    f"classDef {name} fill:{fill},stroke:{stroke},color:{color};"
-                )
+                class_defs.append(_class_def(name, fill, stroke, color))
 
         plan_node_fill = _safe_hex(
             palette.get("node_fill") if isinstance(palette, dict) else None,
@@ -98,8 +124,6 @@ class MermaidStyleAdapter:
             "#1f4e79",
         )
         plan_text = _text_colour_for_bg(plan_node_fill)
-        class_defs.append(
-            f"classDef plan_node fill:{plan_node_fill},stroke:{plan_node_stroke},color:{plan_text};"
-        )
+        class_defs.append(_class_def("plan_node", plan_node_fill, plan_node_stroke, plan_text))
 
         return "\n".join(lines + [""] + class_defs)
