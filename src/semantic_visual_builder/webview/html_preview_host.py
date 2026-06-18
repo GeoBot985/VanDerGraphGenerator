@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .embedded_preview import BrowserPreviewSurface, PreviewSurface
 
+
 class HtmlPreviewHost:
     """Open preview pages using the standard library browser module."""
 

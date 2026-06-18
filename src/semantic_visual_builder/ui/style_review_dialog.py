@@ -11,7 +11,6 @@ from semantic_visual_builder.styles.style_review_model import (
 )
 from semantic_visual_builder.styles.style_schema import StyleProfile
 
-
 _ALLOWED_GRID = ("none", "light", "medium")
 _ALLOWED_DENSITY = ("low", "medium", "high")
 

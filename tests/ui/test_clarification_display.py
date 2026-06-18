@@ -1,6 +1,10 @@
 """Clarification display tests."""
 
-from semantic_visual_builder.planning.clarification import ClarificationOption, ClarificationRequest, PendingClarification
+from semantic_visual_builder.planning.clarification import (
+    ClarificationOption,
+    ClarificationRequest,
+    PendingClarification,
+)
 from semantic_visual_builder.planning.visual_plan import get_role
 from semantic_visual_builder.planning.visual_plan_schema import DataRole, VisualPlan
 from semantic_visual_builder.state.app_state import AppState

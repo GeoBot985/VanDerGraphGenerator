@@ -1,11 +1,19 @@
 """Workflow display tests."""
 
-from semantic_visual_builder.planning.visual_plan_schema import DataRole, StyleIntent, VisualPlan
+from semantic_visual_builder.planning.visual_plan_schema import (
+    DataRole,
+    StyleIntent,
+    VisualPlan,
+)
 from semantic_visual_builder.planning.workflow_state import WorkflowStep
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.state.revision_history import RevisionHistory
 from semantic_visual_builder.ui.tkinter_app import SemanticVisualBuilderApp
-from semantic_visual_builder.validation.validation_result import ValidationMessage, ValidationResult, ValidationSeverity
+from semantic_visual_builder.validation.validation_result import (
+    ValidationMessage,
+    ValidationResult,
+    ValidationSeverity,
+)
 
 
 def test_workflow_display_helpers() -> None:

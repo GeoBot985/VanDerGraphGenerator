@@ -6,14 +6,16 @@ from dataclasses import dataclass, field
 
 from semantic_visual_builder.llm.llm_mapping_result import LlmMappingResult
 from semantic_visual_builder.llm.llm_semantic_mapper import LlmSemanticMapper
-from semantic_visual_builder.planning.clarification import ClarificationOption, ClarificationRequest
+from semantic_visual_builder.planning.clarification import (
+    ClarificationOption,
+    ClarificationRequest,
+)
 from semantic_visual_builder.planning.clarification_engine import ClarificationEngine
 from semantic_visual_builder.planning.deterministic_fallback_patch_planner import (
     DeterministicFallbackPatchPlanner,
 )
 from semantic_visual_builder.planning.field_mapper import FieldMapper
-from semantic_visual_builder.planning.visual_plan import get_role
-from semantic_visual_builder.planning.visual_plan import summarize_visual_plan
+from semantic_visual_builder.planning.visual_plan import get_role, summarize_visual_plan
 from semantic_visual_builder.planning.visual_plan_patch import VisualPlanPatch
 from semantic_visual_builder.planning.visual_plan_patch_applier import (
     VisualPlanPatchApplier,

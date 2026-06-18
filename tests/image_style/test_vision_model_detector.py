@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-
-from semantic_visual_builder.image_style.vision_model_detector import VisionModelDetector
+from semantic_visual_builder.image_style.vision_model_detector import (
+    VisionModelDetector,
+)
 
 
 class TestVisionModelDetector:

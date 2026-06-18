@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from semantic_visual_builder.knowledge.graph_matrix import GraphMatrixLoader
 from semantic_visual_builder.knowledge.product_kb import ProductKnowledgeLoader
@@ -48,11 +49,52 @@ def create_app_state(runtime_paths: RuntimePaths | None = None) -> AppState:
     return state
 
 
+
+def _load_startup_dataset(state: AppState, path: Path) -> None:
+    """Load a CSV or Excel dataset into app state before the UI starts."""
+    try:
+        suffix = path.suffix.lower()
+        if suffix == ".csv":
+            from semantic_visual_builder.data.csv_loader import CsvLoader
+            from semantic_visual_builder.data.data_profiler import DataProfiler
+
+            loaded = CsvLoader().load(path)
+            profile = DataProfiler().profile(loaded.dataframe)
+        elif suffix == ".xlsx":
+            from semantic_visual_builder.data.csv_loader import LoadedDataset
+            from semantic_visual_builder.data.data_profiler import DataProfiler
+            from semantic_visual_builder.data.excel_loader import ExcelLoader
+
+            info = ExcelLoader().inspect_workbook(path)
+            loaded_excel = ExcelLoader().load_sheet(path, info.sheet_names[0])
+            loaded = LoadedDataset(path=path, dataframe=loaded_excel.dataframe)
+            profile = DataProfiler().profile(loaded.dataframe)
+        else:
+            state.add_status(f"Unsupported startup dataset type: {suffix}")
+            return
+        state.dataset_context.loaded_dataset = loaded
+        state.dataset_context.profile = profile
+        state.add_status(f"Loaded startup dataset: {path.name}")
+    except Exception as exc:
+        state.add_status(f"Startup dataset load failed: {exc}")
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="semantic_visual_builder", add_help=True)
     parser.add_argument("--smoke-test", action="store_true")
     parser.add_argument("--version", action="store_true")
     parser.add_argument("--env-report", action="store_true")
+    parser.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="Disable LLM semantic mapping for this run (use deterministic fallback).",
+    )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default=None,
+        help="Load a CSV/Excel dataset at startup for headless demos.",
+    )
     return parser.parse_args(argv)
 
 
@@ -69,6 +111,11 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         state = create_app_state(runtime_paths)
+        if args.no_llm:
+            state.llm_mapping_enabled = False
+            state.set_app_settings(state.app_settings)
+        if args.dataset:
+            _load_startup_dataset(state, Path(args.dataset))
         report = FirstRunChecker(runtime_paths).run()
         state.add_status("First-run checks complete.")
         for check in report.checks:

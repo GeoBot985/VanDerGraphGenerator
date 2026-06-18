@@ -22,7 +22,8 @@ def get_runtime_paths() -> RuntimePaths:
 def get_project_root() -> Path:
     """Return the repository root when running from source.
 
-    TODO: add PyInstaller-aware path handling in a later sprint.
+    PyInstaller-aware path resolution lives in runtime_paths.RuntimePathResolver;
+    this helper is kept for callers that only need the source tree root.
     """
 
     return Path(__file__).resolve().parents[3]

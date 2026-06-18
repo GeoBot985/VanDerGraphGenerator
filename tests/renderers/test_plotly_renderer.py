@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from semantic_visual_builder.data.csv_loader import CsvLoader
-from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.data.data_profiler import DataProfiler
+from semantic_visual_builder.data.dataset_context import DatasetContext
 from semantic_visual_builder.planning.field_mapper import FieldMapper
 from semantic_visual_builder.planning.intent_mapper import IntentMapper
 from semantic_visual_builder.planning.visual_plan_schema import DataRole, VisualPlan

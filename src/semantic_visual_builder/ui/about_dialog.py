@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from tkinter import messagebox
 
-from semantic_visual_builder.version import APP_NAME, INTERNAL_NAME, APP_STATUS, APP_VERSION
+from semantic_visual_builder.version import (
+    APP_NAME,
+    APP_STATUS,
+    APP_VERSION,
+    INTERNAL_NAME,
+)
 
 
 def show_about_dialog(parent=None) -> None:

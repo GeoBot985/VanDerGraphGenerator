@@ -1,5 +1,12 @@
-{
-  "app_name": "Van Der Graph Generator",
-  "internal_name": "semantic_visual_builder",
-  "ollama_base_url": "http://localhost:11434"
+﻿{
+  "default_ollama_model": "granite4:3b",
+  "ollama_base_url": "http://localhost:11434",
+  "generation_timeout_seconds": 300.0,
+  "llm_mapping_enabled": true,
+  "default_renderer": "plotly",
+  "default_export_dir": null,
+  "prefer_local_renderer_assets": true,
+  "open_preview_after_generation": true,
+  "default_style_profile_id": null,
+  "debug_mode": false
 }

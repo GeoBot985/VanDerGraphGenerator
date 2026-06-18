@@ -1,7 +1,11 @@
 """Visual plan schema tests."""
 
-from semantic_visual_builder.planning.visual_plan_schema import DiagramEdge, DiagramNode, VisualPlan
 from semantic_visual_builder.planning.visual_plan import summarize_visual_plan
+from semantic_visual_builder.planning.visual_plan_schema import (
+    DiagramEdge,
+    DiagramNode,
+    VisualPlan,
+)
 
 
 def test_visual_plan_includes_diagram_counts_in_summary() -> None:

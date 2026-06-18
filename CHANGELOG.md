@@ -1,5 +1,68 @@
 # Changelog
 
+## Unreleased (settings plumbing, real dialog, polish)
+
+### Settings now flow into the runtime
+- `AppSettings` gained `ollama_base_url` and `generation_timeout_seconds`.
+  `OllamaClient` is now built from settings (`_build_ollama_client`) in both
+  the constructor and `refresh_ollama`, so a non-default Ollama host/port is
+  configurable instead of hardcoded.
+- `default_export_dir` is honored by export requests; `prefer_local_renderer_assets`
+  drives the `AssetManager`; `open_preview_after_generation` gates the
+  auto-open preview step in `generate_preview`.
+- `config/app_settings.example.json` now mirrors the actual persisted schema.
+
+### Real Settings dialog
+- Replaced the sequential `simpledialog` prompts with a proper `tk.Toplevel`
+  form covering the whole `AppSettings` surface: Ollama URL, model, generation
+  timeout, renderer (plotly/mermaid), export dir, LLM mapping, prefer-local
+  assets, open-preview-after-generation, and debug mode. Save validates via
+  `SettingsDialogController`, rebuilds the Ollama client + renderer host, and
+  refreshes the model list.
+
+### Chart.js surface trimmed
+- The Settings renderer dropdown and `SettingsDialogController` validation now
+  only offer `plotly` and `mermaid`; `chartjs` is rejected with a clear
+  message so users never pick a renderer that can't render. The renderer module
+  and the routing-time rejection guard remain in place.
+
+### Cross-platform open
+- New `utils/open_path.py` (`open_in_os`) replaces all `os.startfile` calls, so
+  opening previews / logs / exports no longer crashes on macOS and Linux.
+  `os` is no longer imported by the Tkinter app.
+
+### Style review wired into extraction
+- After image style extraction, an `EditableStyleDraft` is built and stored.
+  A new `Style -> Review Extracted Style...` action opens a `StyleReviewDialog`
+  Toplevel where the user edits palette colours, grid, label density, tone, and
+  tags, then chooses Save (persist + set active), Apply (apply to current plan),
+  or Cancel. Extraction no longer jumps straight to applying/saving the raw
+  draft.
+
+### Headless / demo flags
+- `--no-llm` disables LLM semantic mapping for the run (deterministic fallback).
+- `--dataset PATH` loads a CSV or Excel dataset at startup for headless demos
+  and screenshots.
+
+### Gallery UX
+- `Gallery -> Run Gallery Item by ID...` now opens a combobox of loaded item
+  titles instead of asking for a free-text ID.
+
+### Lint + CI
+- `ruff` baseline cleaned up (47 import-sort/unused-import errors auto-fixed)
+  and `E501` ignored in `pyproject.toml` so `ruff check src tests` is green.
+- New `.github/workflows/ci.yml` runs `ruff check` plus `pytest` on Ubuntu and
+  Windows, installing Playwright + Chromium so the browser export tests run.
+
+### Internal
+- Stale TODO removed from `utils/paths.get_project_root` (PyInstaller-aware
+  resolution lives in `runtime_paths`).
+- New `tests/utils/test_open_path.py` and architecture guards for the new
+  settings fields, dialog validation, `open_in_os`, style review wiring, and
+  headless flags.
+- 554 tests; all passing (was 545).
+
+
 ## Unreleased (follow-up: real export + conversational refinement)
 
 ### Multi-format export is now real

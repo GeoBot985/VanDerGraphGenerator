@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import webbrowser
 from abc import ABC, abstractmethod
 from pathlib import Path
-import webbrowser
 
 
 class PreviewSurface(ABC):

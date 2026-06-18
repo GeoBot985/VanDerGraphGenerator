@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
-
 from semantic_visual_builder.recipes.recipe_schema import RecipeMetadata, VisualRecipe
 
 
@@ -57,7 +56,9 @@ class TestRecipeDefaultStyleSchema:
 
 class TestRecipeApplicationResult:
     def test_application_result_has_default_style_fields(self) -> None:
-        from semantic_visual_builder.recipes.recipe_applier import RecipeApplicationResult
+        from semantic_visual_builder.recipes.recipe_applier import (
+            RecipeApplicationResult,
+        )
 
         result = RecipeApplicationResult(
             success=True,
@@ -68,7 +69,9 @@ class TestRecipeApplicationResult:
         assert result.default_style_profile_name == "Corporate Blue"
 
     def test_application_result_default_style_none_when_not_set(self) -> None:
-        from semantic_visual_builder.recipes.recipe_applier import RecipeApplicationResult
+        from semantic_visual_builder.recipes.recipe_applier import (
+            RecipeApplicationResult,
+        )
 
         result = RecipeApplicationResult(success=True)
         assert result.default_style_profile_id is None

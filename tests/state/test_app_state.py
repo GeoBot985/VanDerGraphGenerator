@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.planning.visual_plan_schema import VisualPlan
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
+from semantic_visual_builder.state.app_state import AppState
 
 
 def test_app_state_initializes() -> None:

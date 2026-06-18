@@ -8,7 +8,14 @@ from typing import Any
 
 from semantic_visual_builder.llm.llm_mapping_result import LlmVisualPlanDraft
 
-from .visual_plan_schema import DataRole, DiagramEdge, DiagramNode, RenderTarget, StyleIntent, VisualPlan
+from .visual_plan_schema import (
+    DataRole,
+    DiagramEdge,
+    DiagramNode,
+    RenderTarget,
+    StyleIntent,
+    VisualPlan,
+)
 
 
 def normalise_style_colour(value: object) -> str | None:

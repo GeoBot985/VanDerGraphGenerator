@@ -1,7 +1,6 @@
 """Tests for style summary visibility in the style panel."""
 
 from semantic_visual_builder.state.app_state import AppState
-from semantic_visual_builder.ui.style_panel import StylePanel
 from semantic_visual_builder.styles.style_schema import (
     ChartStyle,
     ColourPalette,
@@ -9,6 +8,7 @@ from semantic_visual_builder.styles.style_schema import (
     StyleProfile,
     TypographyStyle,
 )
+from semantic_visual_builder.ui.style_panel import StylePanel
 
 
 def test_style_summary_includes_background_and_sequence() -> None:

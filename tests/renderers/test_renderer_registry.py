@@ -11,7 +11,9 @@ from semantic_visual_builder.planning.intent_mapper import IntentMapper
 from semantic_visual_builder.renderers.chartjs_renderer import ChartJsRenderer
 from semantic_visual_builder.renderers.mermaid_renderer import MermaidRenderer
 from semantic_visual_builder.renderers.plotly_renderer import PlotlyRenderer
-from semantic_visual_builder.renderers.python_renderer_future import PythonRendererFuture
+from semantic_visual_builder.renderers.python_renderer_future import (
+    PythonRendererFuture,
+)
 from semantic_visual_builder.renderers.renderer_registry import RendererRegistry
 
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
@@ -79,6 +78,9 @@ from semantic_visual_builder.styles import (
     StyleStore,
     StyleValidator,
 )
+from semantic_visual_builder.styles.style_review_model import (
+    editable_draft_from_style_profile,
+)
 from semantic_visual_builder.ui.about_dialog import show_about_dialog
 from semantic_visual_builder.ui.error_dialog import show_error_dialog
 from semantic_visual_builder.ui.export_dialog import ExportDialogController
@@ -90,12 +92,14 @@ from semantic_visual_builder.ui.status_panel import StatusPanel
 from semantic_visual_builder.ui.style_comparison_panel import StyleComparisonPanel
 from semantic_visual_builder.ui.style_extraction_panel import StyleExtractionPanel
 from semantic_visual_builder.ui.style_panel import StylePanel
+from semantic_visual_builder.ui.style_review_dialog import StyleReviewDialogController
 from semantic_visual_builder.ui.validation_panel import ValidationPanel
 from semantic_visual_builder.ui.widgets import (
     HoverTooltip,
     make_readonly_text,
     set_text,
 )
+from semantic_visual_builder.utils.open_path import open_in_os
 from semantic_visual_builder.utils.paths import (
     get_builtin_styles_dir,
     get_gallery_path,
@@ -103,12 +107,14 @@ from semantic_visual_builder.utils.paths import (
     get_recipes_dir,
     get_settings_path,
     get_user_styles_dir,
+    get_vendor_assets_dir,
     get_webview_template_dir,
 )
 from semantic_visual_builder.validation.capability_validator import CapabilityValidator
 from semantic_visual_builder.validation.llm_output_validator import LlmOutputValidator
 from semantic_visual_builder.validation.visual_plan_validator import VisualPlanValidator
 from semantic_visual_builder.version import APP_NAME, APP_VERSION
+from semantic_visual_builder.webview.asset_manager import AssetManager
 from semantic_visual_builder.webview.html_preview_host import HtmlPreviewHost
 from semantic_visual_builder.webview.renderer_host import RendererHost
 
@@ -129,7 +135,7 @@ class SemanticVisualBuilderApp:
         self.capability_answerer = (
             CapabilityAnswerer(app_state.product_kb) if app_state.product_kb else None
         )
-        self.ollama_client = OllamaClient()
+        self.ollama_client = self._build_ollama_client()
         self.llm_mapper = LlmSemanticMapper(
             ollama_client=self.ollama_client,
             prompt_builder=VisualIntentPromptBuilder(),
@@ -212,7 +218,13 @@ class SemanticVisualBuilderApp:
                 PythonRendererFuture(),
             ]
         )
-        self.renderer_host = RendererHost(get_webview_template_dir())
+        self.renderer_host = RendererHost(
+            get_webview_template_dir(),
+            asset_manager=AssetManager(
+                get_vendor_assets_dir(),
+                prefer_local=self.app_state.app_settings.prefer_local_renderer_assets,
+            ),
+        )
         self.html_exporter = HtmlExporter(get_previews_dir())
         self.preview_host = HtmlPreviewHost()
         self.conversation_state = self.app_state.conversation_state
@@ -515,6 +527,9 @@ class SemanticVisualBuilderApp:
         style_menu.add_command(
             label="Compare Active Style", command=self.compare_styles_action
         )
+        style_menu.add_command(
+            label="Review Extracted Style...", command=self.review_extracted_style_action
+        )
         menu.add_cascade(label="Style", menu=style_menu)
 
         view_menu = tk.Menu(menu, tearoff=0)
@@ -538,9 +553,7 @@ class SemanticVisualBuilderApp:
         self.root.config(menu=menu)
 
     def refresh_ollama(self) -> None:
-        from semantic_visual_builder.llm.ollama_client import OllamaClient
-
-        client = OllamaClient()
+        client = self._build_ollama_client()
         status = client.get_status()
         models = client.list_models() if status.is_connected else []
         self.app_state.ollama_status = status
@@ -948,7 +961,8 @@ class SemanticVisualBuilderApp:
                 self._refresh_all_views()
                 return message
             self.app_state.set_preview_generated(export_result.path, renderer_output)
-            self.preview_host.open_preview(export_result.path)
+            if self.app_state.app_settings.open_preview_after_generation:
+                self.preview_host.open_preview(export_result.path)
             self.app_state.add_status(f"Preview generated: {export_result.path}")
             self._refresh_all_views()
             return f"Preview generated: {export_result.path}"
@@ -990,7 +1004,7 @@ class SemanticVisualBuilderApp:
             self.app_state.add_status(message)
             self._refresh_all_views()
             return message
-        os.startfile(self.app_state.last_preview_path)
+        open_in_os(self.app_state.last_preview_path)
         message = f"Opened exported HTML: {self.app_state.last_preview_path}"
         self.app_state.add_status(message)
         self._refresh_all_views()
@@ -1010,16 +1024,27 @@ class SemanticVisualBuilderApp:
     def open_logs_folder(self) -> str:
         if self.app_state.runtime_paths is None:
             return "Runtime paths are unavailable."
-        os.startfile(self.app_state.runtime_paths.log_dir)
+        open_in_os(self.app_state.runtime_paths.log_dir)
         return f"Opened logs folder: {self.app_state.runtime_paths.log_dir}"
 
     def open_exports_folder(self) -> str:
         if self.app_state.runtime_paths is None:
             return "Runtime paths are unavailable."
-        os.startfile(self.app_state.runtime_paths.export_dir)
+        open_in_os(self.app_state.runtime_paths.export_dir)
         return f"Opened exports folder: {self.app_state.runtime_paths.export_dir}"
 
+    def _build_ollama_client(self):
+
+        settings = self.app_state.app_settings
+        return OllamaClient(
+            base_url=settings.ollama_base_url or "http://localhost:11434",
+            generation_timeout_seconds=settings.generation_timeout_seconds or 300.0,
+        )
+
     def _export_dir_for_request(self) -> Path:
+        configured = self.app_state.app_settings.default_export_dir
+        if configured:
+            return Path(configured)
         if self.app_state.runtime_paths is not None:
             return self.app_state.runtime_paths.export_dir
         return get_previews_dir().parent
@@ -1111,38 +1136,127 @@ class SemanticVisualBuilderApp:
 
     def open_settings_action(self) -> str:
         self.settings_dialog.load()
-        current = self.settings_dialog.current_settings()
-        renderer = simpledialog.askstring(
-            "Settings",
-            "Default renderer (plotly / mermaid / chartjs):",
-            initialvalue=current.default_renderer,
-            parent=self.root,
+        self._show_settings_dialog()
+        return "Settings dialog opened."
+
+    def _show_settings_dialog(self) -> None:
+        settings = self.settings_dialog.current_settings()
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Settings")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.resizable(False, False)
+
+        rows: list[tuple[str, tk.Widget]] = []
+
+        def add_row(label: str, widget: tk.Widget) -> None:
+            row = ttk.Frame(dialog)
+            row.pack(fill="x", padx=10, pady=3)
+            ttk.Label(row, text=label, width=24, anchor="e").pack(side="left")
+            widget.pack(side="left", fill="x", expand=True)
+
+        url_var = tk.StringVar(value=settings.ollama_base_url)
+        url_entry = ttk.Entry(dialog, textvariable=url_var, width=40)
+        add_row("Ollama URL:", url_entry)
+        rows.append(("ollama_base_url", url_var))
+
+        model_var = tk.StringVar(value=settings.default_ollama_model or "")
+        model_entry = ttk.Entry(dialog, textvariable=model_var, width=40)
+        add_row("Default Ollama model:", model_entry)
+        rows.append(("default_ollama_model", model_var))
+
+        timeout_var = tk.StringVar(value=str(settings.generation_timeout_seconds))
+        timeout_entry = ttk.Entry(dialog, textvariable=timeout_var, width=10)
+        add_row("Generation timeout (s):", timeout_entry)
+        rows.append(("generation_timeout_seconds", timeout_var))
+
+        renderer_var = tk.StringVar(value=settings.default_renderer)
+        renderer_combo = ttk.Combobox(
+            dialog, textvariable=renderer_var, state="readonly", width=12
         )
-        if renderer:
-            errors = self.settings_dialog.update_field(
-                "default_renderer", renderer.strip()
-            )
-            if errors:
-                messagebox.showerror("Invalid setting", "\n".join(errors), parent=self.root)
-        model = simpledialog.askstring(
-            "Settings",
-            "Default Ollama model (leave blank for none):",
-            initialvalue=current.default_ollama_model or "",
-            parent=self.root,
-        )
-        if model is not None:
-            self.settings_dialog.update_field("default_ollama_model", model.strip() or None)
-        success, msg = self.settings_dialog.save()
-        if success:
+        renderer_combo["values"] = ["plotly", "mermaid"]
+        add_row("Default renderer:", renderer_combo)
+        rows.append(("default_renderer", renderer_var))
+
+        export_var = tk.StringVar(value=settings.default_export_dir or "")
+        export_entry = ttk.Entry(dialog, textvariable=export_var, width=40)
+        add_row("Default export dir:", export_entry)
+        rows.append(("default_export_dir", export_var))
+
+        llm_var = tk.BooleanVar(value=settings.llm_mapping_enabled)
+        add_row("LLM semantic mapping:", ttk.Checkbutton(dialog, variable=llm_var))
+        rows.append(("llm_mapping_enabled", llm_var))
+
+        local_var = tk.BooleanVar(value=settings.prefer_local_renderer_assets)
+        add_row("Prefer local renderer assets:", ttk.Checkbutton(dialog, variable=local_var))
+        rows.append(("prefer_local_renderer_assets", local_var))
+
+        open_preview_var = tk.BooleanVar(value=settings.open_preview_after_generation)
+        add_row("Open preview after generation:", ttk.Checkbutton(dialog, variable=open_preview_var))
+        rows.append(("open_preview_after_generation", open_preview_var))
+
+        debug_var = tk.BooleanVar(value=settings.debug_mode)
+        add_row("Debug mode:", ttk.Checkbutton(dialog, variable=debug_var))
+        rows.append(("debug_mode", debug_var))
+
+        status = ttk.Label(dialog, text="", foreground="#8b2e00")
+        status.pack(fill="x", padx=10, pady=(6, 0))
+
+        def collect_values() -> dict[str, object]:
+            values: dict[str, object] = {}
+            for field_name, var in rows:
+                if isinstance(var, tk.BooleanVar):
+                    values[field_name] = bool(var.get())
+                else:
+                    values[field_name] = var.get()
+            # Blank model/export dir become None.
+            values["default_ollama_model"] = values["default_ollama_model"] or None
+            values["default_export_dir"] = values["default_export_dir"] or None
+            return values
+
+        def on_save() -> None:
+            self.settings_dialog.load()
+            errors_all: list[str] = []
+            for field_name, value in collect_values().items():
+                errors = self.settings_dialog.update_field(field_name, value)
+                if errors:
+                    errors_all.extend(errors)
+            if errors_all:
+                status.config(text="; ".join(errors_all))
+                return
+            success, msg = self.settings_dialog.save()
+            if not success:
+                status.config(text=msg)
+                return
             self.app_state.set_app_settings(self.settings_dialog.current_settings())
             self.app_state.llm_mapping_enabled = (
                 self.settings_dialog.current_settings().llm_mapping_enabled
             )
             self._use_llm_var.set(self.app_state.llm_mapping_enabled)
+            # Rebuild the Ollama client + renderer host with the new settings.
+            self.ollama_client = self._build_ollama_client()
+            self.llm_mapper.ollama_client = self.ollama_client
+            self.vlm_style_analyzer = VlmStyleAnalyzer(self.ollama_client)
+            self.renderer_host = RendererHost(
+                get_webview_template_dir(),
+                asset_manager=AssetManager(
+                    get_vendor_assets_dir(),
+                    prefer_local=self.app_state.app_settings.prefer_local_renderer_assets,
+                ),
+            )
             self.refresh_ollama()
-        self.app_state.add_status(f"Settings: {msg}")
-        self._refresh_all_views()
-        return msg
+            self.app_state.add_status(f"Settings: {msg}")
+            self._refresh_all_views()
+            dialog.destroy()
+
+        def on_cancel() -> None:
+            dialog.destroy()
+
+        buttons = ttk.Frame(dialog)
+        buttons.pack(fill="x", padx=10, pady=10)
+        ttk.Button(buttons, text="Save", command=on_save).pack(side="right", padx=(6, 0))
+        ttk.Button(buttons, text="Cancel", command=on_cancel).pack(side="right")
+        dialog.bind("<Escape>", lambda _e: on_cancel())
 
     def _load_gallery_items(self) -> None:
         try:
@@ -1172,14 +1286,17 @@ class SemanticVisualBuilderApp:
         return "\n".join(messages)
 
     def run_gallery_item_by_id_action(self) -> str:
-        item_id = simpledialog.askstring(
-            "Run Gallery Item", "Gallery item ID:", parent=self.root
-        )
-        if not item_id:
-            return "No item ID provided."
-        item = self.gallery_panel.select_item(item_id.strip())
+        if not self.gallery_panel.items:
+            message = "No gallery items loaded."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        selected = self._pick_gallery_item_dialog()
+        if selected is None:
+            return "No gallery item selected."
+        item = self.gallery_panel.select_item(selected)
         if item is None:
-            message = f"No gallery item with ID {item_id!r}."
+            message = f"No gallery item with ID {selected!r}."
             self.app_state.add_status(message)
             self._refresh_all_views()
             return message
@@ -1188,6 +1305,38 @@ class SemanticVisualBuilderApp:
             self.app_state.add_status(m)
         self._refresh_all_views()
         return "\n".join(messages)
+
+    def _pick_gallery_item_dialog(self) -> str | None:
+        """Show a combobox of loaded gallery items; return the chosen item_id."""
+        choice = {"value": None}
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Run Gallery Item")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.resizable(False, False)
+        ttk.Label(dialog, text="Choose a gallery item:").pack(padx=10, pady=(8, 4))
+        items = self.gallery_panel.items
+        display = [f"{item.item_id} - {item.title}" for item in items]
+        id_by_display = {f"{item.item_id} - {item.title}": item.item_id for item in items}
+        var = tk.StringVar(value=display[0] if display else "")
+        combo = ttk.Combobox(dialog, textvariable=var, state="readonly", width=44)
+        combo["values"] = display
+        combo.pack(padx=10, pady=4)
+
+        def on_run() -> None:
+            choice["value"] = id_by_display.get(var.get())
+            dialog.destroy()
+
+        def on_cancel() -> None:
+            dialog.destroy()
+
+        buttons = ttk.Frame(dialog)
+        buttons.pack(fill="x", padx=10, pady=10)
+        ttk.Button(buttons, text="Run", command=on_run).pack(side="right", padx=(6, 0))
+        ttk.Button(buttons, text="Cancel", command=on_cancel).pack(side="right")
+        dialog.bind("<Escape>", lambda _e: on_cancel())
+        self.root.wait_window(dialog)
+        return choice["value"]
 
     def load_excel_action(self) -> str:
         if self.app_state.runtime_paths is not None:
@@ -1928,6 +2077,11 @@ class SemanticVisualBuilderApp:
             self.app_state.add_status(
                 f"Extracted style draft: {result.style_profile.style_name}"
             )
+            try:
+                draft = editable_draft_from_style_profile(result.style_profile)
+                self.app_state.set_editable_style_draft(draft)
+            except Exception as exc:
+                self.app_state.add_status(f"Could not prepare review draft: {exc}")
         else:
             self.app_state.add_status("Style extraction failed.")
         self._refresh_all_views()
@@ -1993,6 +2147,130 @@ class SemanticVisualBuilderApp:
         self.app_state.add_status(f"Applied extracted style: {style.style_name}")
         self._refresh_all_views()
         return f"Applied extracted style: {style.style_name}"
+
+    def review_extracted_style_action(self) -> str:
+        draft = self.app_state.editable_style_draft
+        if draft is None:
+            message = "Extract a style from an image first."
+            self.app_state.add_status(message)
+            self._refresh_all_views()
+            return message
+        self._show_style_review_dialog(StyleReviewDialogController(draft))
+        return "Style review dialog opened."
+
+    def _show_style_review_dialog(self, controller: StyleReviewDialogController) -> None:
+        draft = controller.draft
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Review Extracted Style")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.resizable(False, False)
+
+        def add_entry_row(label: str, value: str | None) -> tk.StringVar:
+            var = tk.StringVar(value=value or "")
+            row = ttk.Frame(dialog)
+            row.pack(fill="x", padx=10, pady=3)
+            ttk.Label(row, text=label, width=18, anchor="e").pack(side="left")
+            ttk.Entry(row, textvariable=var, width=30).pack(side="left", fill="x", expand=True)
+            return var
+
+        def add_combo_row(label: str, value: str | None, options: tuple[str, ...]) -> tk.StringVar:
+            var = tk.StringVar(value=value or "")
+            row = ttk.Frame(dialog)
+            row.pack(fill="x", padx=10, pady=3)
+            ttk.Label(row, text=label, width=18, anchor="e").pack(side="left")
+            combo = ttk.Combobox(row, textvariable=var, state="readonly", width=12)
+            combo["values"] = list(options)
+            combo.pack(side="left")
+            return var
+
+        name_var = add_entry_row("Name:", draft.style_name)
+        desc_var = add_entry_row("Description:", draft.description)
+        primary_var = add_entry_row("Primary:", draft.primary)
+        secondary_var = add_entry_row("Secondary:", draft.secondary)
+        accent_var = add_entry_row("Accent:", draft.accent)
+        neutral_var = add_entry_row("Neutral:", draft.neutral)
+        background_var = add_entry_row("Background:", draft.background)
+        plot_bg_var = add_entry_row("Plot bg:", draft.plot_background)
+        text_var = add_entry_row("Text colour:", draft.text_colour)
+        grid_var = add_combo_row("Grid:", draft.grid, ("none", "light", "medium"))
+        density_var = add_combo_row("Label density:", draft.label_density, ("low", "medium", "high"))
+        tone_var = add_entry_row("Chart tone:", draft.chart_tone)
+        tags_var = add_entry_row("Tags (comma):", ", ".join(draft.tags))
+
+        fields = [
+            ("style_name", name_var),
+            ("description", desc_var),
+            ("primary", primary_var),
+            ("secondary", secondary_var),
+            ("accent", accent_var),
+            ("neutral", neutral_var),
+            ("background", background_var),
+            ("plot_background", plot_bg_var),
+            ("text_colour", text_var),
+            ("grid", grid_var),
+            ("label_density", density_var),
+            ("chart_tone", tone_var),
+        ]
+
+        status = ttk.Label(dialog, text="", foreground="#8b2e00")
+        status.pack(fill="x", padx=10, pady=(6, 0))
+
+        def sync_draft() -> list[str]:
+            for field_name, var in fields:
+                controller.update_field(field_name, var.get() or None)
+            tags_text = tags_var.get().strip()
+            draft.tags = [t.strip() for t in tags_text.split(",") if t.strip()]
+            return controller.validate()
+
+        def finish(result) -> None:
+            if result.action == "invalid":
+                status.config(text="; ".join(result.errors))
+                return
+            if result.style_profile is not None:
+                self.app_state.set_active_style_profile(result.style_profile)
+                if hasattr(self, "_style_var"):
+                    self._style_var.set(result.style_profile.style_name)
+                self.app_state.add_status(f"Reviewed style: {result.style_profile.style_name} ({result.action})")
+            if result.action == "save":
+                try:
+                    path = self.style_manager.save_extracted_style(result.style_profile)
+                    self.app_state.add_status(f"Extracted style saved: {path}")
+                    self._refresh_available_styles()
+                except Exception as exc:
+                    status.config(text=f"Save failed: {exc}")
+                    return
+            elif result.action == "apply" and self.app_state.current_visual_plan is not None:
+                application_result = self.style_applier.apply_style(
+                    self.app_state.current_visual_plan, result.style_profile
+                )
+                self.app_state.apply_style_to_current_plan(application_result)
+            self._refresh_all_views()
+            dialog.destroy()
+
+        def on_save() -> None:
+            errors = sync_draft()
+            if errors:
+                status.config(text="; ".join(errors))
+                return
+            finish(controller.save())
+
+        def on_apply() -> None:
+            errors = sync_draft()
+            if errors:
+                status.config(text="; ".join(errors))
+                return
+            finish(controller.apply_without_saving())
+
+        def on_cancel() -> None:
+            finish(controller.cancel())
+
+        buttons = ttk.Frame(dialog)
+        buttons.pack(fill="x", padx=10, pady=10)
+        ttk.Button(buttons, text="Save", command=on_save).pack(side="right", padx=(6, 0))
+        ttk.Button(buttons, text="Apply", command=on_apply).pack(side="right", padx=6)
+        ttk.Button(buttons, text="Cancel", command=on_cancel).pack(side="right")
+        dialog.bind("<Escape>", lambda _e: on_cancel())
 
     def _looks_like_process_request(self, content: str) -> bool:
         text = content.lower()

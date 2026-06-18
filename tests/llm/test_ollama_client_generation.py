@@ -5,7 +5,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from semantic_visual_builder.llm.ollama_client import OllamaClient, OllamaGenerationError
+from semantic_visual_builder.llm.ollama_client import (
+    OllamaClient,
+    OllamaGenerationError,
+)
 
 
 def test_generate_sends_model_prompt_and_default_temperature(monkeypatch: pytest.MonkeyPatch) -> None:

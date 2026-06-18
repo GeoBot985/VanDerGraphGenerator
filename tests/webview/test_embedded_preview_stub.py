@@ -1,7 +1,10 @@
 """Embedded preview surface tests."""
 
 
-from semantic_visual_builder.webview.embedded_preview import BrowserPreviewSurface, EmbeddedWebViewPreviewSurface
+from semantic_visual_builder.webview.embedded_preview import (
+    BrowserPreviewSurface,
+    EmbeddedWebViewPreviewSurface,
+)
 
 
 def test_browser_preview_surface_can_be_called_with_mocked_webbrowser(monkeypatch, tmp_path) -> None:

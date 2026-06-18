@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-
-
 from semantic_visual_builder.state.app_state import AppState
 from semantic_visual_builder.styles.style_comparison import StyleComparisonResult
 from semantic_visual_builder.ui.style_comparison_panel import StyleComparisonPanel

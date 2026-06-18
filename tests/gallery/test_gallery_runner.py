@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock
 
-
 from semantic_visual_builder.gallery.gallery_runner import GalleryRunner
 from semantic_visual_builder.gallery.gallery_schema import GalleryItem
 from semantic_visual_builder.gallery.gallery_store import GalleryStore

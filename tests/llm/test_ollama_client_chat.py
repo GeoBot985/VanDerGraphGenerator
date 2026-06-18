@@ -4,7 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from semantic_visual_builder.llm.ollama_client import OllamaClient, OllamaGenerationError
+from semantic_visual_builder.llm.ollama_client import (
+    OllamaClient,
+    OllamaGenerationError,
+)
 
 
 def test_chat_sends_messages_payload(monkeypatch: pytest.MonkeyPatch) -> None:

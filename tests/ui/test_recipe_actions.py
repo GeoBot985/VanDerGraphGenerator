@@ -2,7 +2,11 @@
 
 
 from semantic_visual_builder.data.data_profiler import ColumnProfile, DatasetProfile
-from semantic_visual_builder.planning.clarification import ClarificationOption, ClarificationRequest, PendingClarification
+from semantic_visual_builder.planning.clarification import (
+    ClarificationOption,
+    ClarificationRequest,
+    PendingClarification,
+)
 from semantic_visual_builder.planning.visual_plan import get_role
 from semantic_visual_builder.planning.visual_plan_schema import DataRole, VisualPlan
 from semantic_visual_builder.recipes.recipe_builder import RecipeBuilder
@@ -130,7 +134,11 @@ def test_pending_clarification_can_be_stored_and_displayed() -> None:
 
 
 def test_answering_clarification_updates_app_state(monkeypatch) -> None:
-    from semantic_visual_builder.planning.clarification import ClarificationOption, ClarificationRequest, PendingClarification
+    from semantic_visual_builder.planning.clarification import (
+        ClarificationOption,
+        ClarificationRequest,
+        PendingClarification,
+    )
 
     state = AppState()
     state.dataset_context.profile = _profile()

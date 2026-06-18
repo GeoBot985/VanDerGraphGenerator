@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-
-from semantic_visual_builder.image_style.image_style_analyzer import ImageStyleAnalyzer
 from semantic_visual_builder.image_style.image_loader import LoadedImage
+from semantic_visual_builder.image_style.image_style_analyzer import ImageStyleAnalyzer
 from semantic_visual_builder.image_style.palette_extractor import (
     ExtractedColour,
     PaletteExtractionResult,

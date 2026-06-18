@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from semantic_visual_builder.image_style.colour_utils import saturation_approx
 from semantic_visual_builder.styles.style_schema import (
     ChartStyle,
     ColourPalette,
@@ -13,7 +14,6 @@ from semantic_visual_builder.styles.style_schema import (
     StyleProfile,
     TypographyStyle,
 )
-from semantic_visual_builder.image_style.colour_utils import saturation_approx
 from semantic_visual_builder.utils.text_sanitize import normalize_name
 
 from .image_metadata import ImageMetadata

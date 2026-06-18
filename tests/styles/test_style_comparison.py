@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from semantic_visual_builder.styles.style_comparison import StyleComparator
 from semantic_visual_builder.styles.style_schema import (
     ChartStyle,

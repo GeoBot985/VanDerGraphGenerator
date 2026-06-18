@@ -71,7 +71,10 @@ class GalleryRunner:
         if suffix == ".csv":
             from semantic_visual_builder.data.csv_loader import CsvLoader
             from semantic_visual_builder.data.data_profiler import DataProfiler
-            from semantic_visual_builder.data.dataset_context import DatasetContext, DatasetSourceInfo
+            from semantic_visual_builder.data.dataset_context import (
+                DatasetContext,
+                DatasetSourceInfo,
+            )
             loaded = CsvLoader().load(path)
             profile = DataProfiler().profile(loaded.dataframe)
             ctx = DatasetContext(
@@ -81,10 +84,13 @@ class GalleryRunner:
             )
             app_state.dataset_context = ctx  # type: ignore[union-attr]
         elif suffix == ".xlsx":
-            from semantic_visual_builder.data.excel_loader import ExcelLoader
-            from semantic_visual_builder.data.data_profiler import DataProfiler
-            from semantic_visual_builder.data.dataset_context import DatasetContext, DatasetSourceInfo
             from semantic_visual_builder.data.csv_loader import LoadedDataset
+            from semantic_visual_builder.data.data_profiler import DataProfiler
+            from semantic_visual_builder.data.dataset_context import (
+                DatasetContext,
+                DatasetSourceInfo,
+            )
+            from semantic_visual_builder.data.excel_loader import ExcelLoader
             info = ExcelLoader().inspect_workbook(path)
             loaded_excel = ExcelLoader().load_sheet(path, info.sheet_names[0])
             loaded = LoadedDataset(path=path, dataframe=loaded_excel.dataframe)

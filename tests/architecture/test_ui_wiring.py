@@ -7,8 +7,8 @@ Tkinter app. They also guard the Chart.js silent-trap fix.
 
 from __future__ import annotations
 
-from pathlib import Path
 import pathlib
+from pathlib import Path
 
 import pytest
 
@@ -120,4 +120,47 @@ def test_png_and_svg_exporters_use_playwright() -> None:
     for module_name in ("png_exporter.py", "svg_exporter.py"):
         source = pathlib.Path("src/semantic_visual_builder/export") / module_name
         assert "PlaywrightExporter" in source.read_text(encoding="utf-8")
+
+
+def test_app_settings_schema_carries_ollama_base_url_and_timeout() -> None:
+    from semantic_visual_builder.settings.settings_schema import AppSettings
+
+    settings = AppSettings()
+    assert settings.ollama_base_url == "http://localhost:11434"
+    assert settings.generation_timeout_seconds > 0
+    assert "ollama_base_url" in settings.to_dict()
+    assert "generation_timeout_seconds" in settings.to_dict()
+    rebuilt = AppSettings.from_dict(settings.to_dict())
+    assert rebuilt.ollama_base_url == settings.ollama_base_url
+
+
+def test_settings_dialog_rejects_chartjs_renderer() -> None:
+    from semantic_visual_builder.settings.settings_store import SettingsStore
+    from semantic_visual_builder.ui.settings_dialog import SettingsDialogController
+
+    controller = SettingsDialogController(store=SettingsStore(pathlib.Path("/tmp/_unused.json")))
+    controller.load()
+    errors = controller.update_field("default_renderer", "chartjs")
+    assert errors, "chartjs must not be offered as a renderer option"
+
+
+def test_tkinter_app_uses_open_in_os_not_os_startfile() -> None:
+    source = Path("src/semantic_visual_builder/ui/tkinter_app.py").read_text(encoding="utf-8")
+    assert "os.startfile" not in source
+    assert "open_in_os" in source
+
+
+def test_tkinter_app_exposes_style_review_action() -> None:
+    source = Path("src/semantic_visual_builder/ui/tkinter_app.py").read_text(encoding="utf-8")
+    assert "def review_extracted_style_action" in source
+    assert "StyleReviewDialogController" in source
+    assert "editable_draft_from_style_profile" in source
+
+
+def test_app_supports_headless_flags() -> None:
+    from semantic_visual_builder.app import parse_args
+
+    args = parse_args(["--no-llm", "--dataset", "sample.csv"])
+    assert args.no_llm is True
+    assert args.dataset == "sample.csv"
 

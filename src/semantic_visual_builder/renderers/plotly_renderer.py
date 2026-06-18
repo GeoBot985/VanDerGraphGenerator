@@ -88,7 +88,9 @@ class PlotlyRenderer(BaseRenderer):
     def _build_chart_multi(
         self, plan: VisualPlan, dataframe: pd.DataFrame
     ) -> tuple[list[dict[str, object]], dict[str, object], list[str]]:
-        from semantic_visual_builder.renderers.plotly_chart_builders import PlotlyChartBuilders
+        from semantic_visual_builder.renderers.plotly_chart_builders import (
+            PlotlyChartBuilders,
+        )
         chart_type = plan.chart_type or "bar"
         builders = PlotlyChartBuilders()
         if chart_type == "histogram":

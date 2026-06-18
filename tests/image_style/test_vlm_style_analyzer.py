@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-from semantic_visual_builder.llm.ollama_client import OllamaGenerationError
 from semantic_visual_builder.image_style.image_style_analyzer import (
     DeterministicImageStyleAnalysis,
 )
@@ -10,6 +9,7 @@ from semantic_visual_builder.image_style.palette_extractor import (
     PaletteExtractionResult,
 )
 from semantic_visual_builder.image_style.vlm_style_analyzer import VlmStyleAnalyzer
+from semantic_visual_builder.llm.ollama_client import OllamaGenerationError
 
 
 class FakeVisionClient:

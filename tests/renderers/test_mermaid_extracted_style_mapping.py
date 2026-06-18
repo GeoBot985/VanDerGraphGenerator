@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-
 from semantic_visual_builder.renderers.mermaid_style_adapter import MermaidStyleAdapter
 
 

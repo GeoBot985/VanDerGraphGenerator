@@ -14,8 +14,8 @@ from semantic_visual_builder.planning.deterministic_fallback_mapper import (
     DeterministicFallbackMapper,
 )
 from semantic_visual_builder.planning.field_mapper import FieldMapper
-from semantic_visual_builder.planning.visual_plan import get_role
 from semantic_visual_builder.planning.visual_plan import (
+    get_role,
     summarize_visual_plan,
     visual_plan_from_llm_draft,
 )

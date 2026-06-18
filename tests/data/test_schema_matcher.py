@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from semantic_visual_builder.data.data_profiler import ColumnProfile, DatasetProfile
 from semantic_visual_builder.data.schema_matcher import SchemaMatcher
 

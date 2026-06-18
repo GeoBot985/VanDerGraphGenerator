@@ -43,6 +43,7 @@ Useful demo flags:
 python -m semantic_visual_builder --version
 python -m semantic_visual_builder --env-report
 python -m semantic_visual_builder --smoke-test
+python -m semantic_visual_builder --no-llm --dataset assets/samples/sales_monthly.csv
 ```
 
 ## Testing

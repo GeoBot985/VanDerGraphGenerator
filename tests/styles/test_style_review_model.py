@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 from semantic_visual_builder.styles.style_review_model import (
     EditableStyleDraft,
     editable_draft_from_style_profile,
