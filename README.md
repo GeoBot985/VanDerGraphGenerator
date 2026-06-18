@@ -55,7 +55,7 @@ pytest
 Packaging uses the PyInstaller spec under [`build/pyinstaller/VanDerGraphGenerator.spec`](./build/pyinstaller/VanDerGraphGenerator.spec).
 
 ## Project Status
-Sprint 7 demo build. The app now includes runtime path resolution, first-run checks, environment reporting, and packaging support scaffolding.
+0.12.0 release candidate. The app covers CSV/Excel input, LLM semantic mapping with Ollama, deterministic validation, Mermaid and Plotly (flat + 3D) rendering, recipe save/load, HTML/PNG/SVG export, an image-based style extractor, a built-in style catalog, a gallery, and PyInstaller packaging scaffolding.
 
 ## License
 MIT

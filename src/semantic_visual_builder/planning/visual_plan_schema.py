@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-
 #: Allowed values for the per-plan chart style. ``flat`` (default), ``soft_3d``
 #: (extruded bars/markers but no perspective scene), and ``true_3d`` (full
 #: Plotly 3D scene with camera tilt and lighting).

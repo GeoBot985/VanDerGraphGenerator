@@ -21,6 +21,10 @@ dev = [
     "black",
     "mypy",
     "pyinstaller",
+    "playwright",
+]
+export = [
+    "playwright",
 ]
 
 [tool.setuptools]

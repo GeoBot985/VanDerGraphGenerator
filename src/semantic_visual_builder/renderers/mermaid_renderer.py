@@ -11,9 +11,8 @@ from semantic_visual_builder.planning.visual_plan_schema import (
 from semantic_visual_builder.renderers.base_renderer import BaseRenderer
 from semantic_visual_builder.renderers.mermaid_style_adapter import (
     MermaidStyleAdapter,
-    is_mermaid_3d,
-    mermaid_chart_style,
     _3d_node_shape,
+    mermaid_chart_style,
 )
 from semantic_visual_builder.renderers.renderer_result import RendererOutput
 from semantic_visual_builder.utils.text_sanitize import sanitize_label

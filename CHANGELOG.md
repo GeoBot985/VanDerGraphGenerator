@@ -1,6 +1,6 @@
-﻿# Changelog
+# Changelog
 
-## Unreleased (3D + flat style mix)
+## 0.12.0 - 2026-06-18 (3D + flat style mix)
 
 ### 3D effects can now coexist with flat styles
 
@@ -51,7 +51,7 @@ changing any data or role wiring.
 - 602 tests, all passing (37 new tests cover the renderer, style schema,
   capability, planner, and built-in catalog paths).
 
-## Unreleased (composite built-in styles)
+### Composite built-in styles
 
 ### Built-in styles are now full design systems, not just colour schemes
 The previous built-in colour-scheme styles (corporate_blue, minimal_grey,

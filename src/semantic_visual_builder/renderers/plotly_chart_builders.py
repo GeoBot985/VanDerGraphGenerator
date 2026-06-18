@@ -1,4 +1,4 @@
-"""Plotly trace and layout builders for individual chart types."""
+﻿"""Plotly trace and layout builders for individual chart types."""
 
 from __future__ import annotations
 
@@ -361,7 +361,6 @@ class PlotlyChartBuilders:
         series = pd.to_numeric(dataframe[value_role.field], errors="coerce").dropna()
         if chart_style(plan) == "true_3d":
             counts, edges = pd.cut(series, bins=20, retbins=True)
-            bin_labels = [f"{round(edges[i], 2)}-{round(edges[i+1], 2)}" for i in range(len(edges) - 1)]
             counts = counts.value_counts().sort_index()
             values = counts.tolist()
             labels = [str(idx) for idx in counts.index.tolist()]

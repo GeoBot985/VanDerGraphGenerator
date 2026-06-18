@@ -26,7 +26,7 @@ from .plotly_renderer import PlotlyRenderer
 from .plotly_style_adapter import PlotlyStyleAdapter
 from .python_renderer_future import PythonRendererFuture
 from .renderer_registry import RendererRegistry
-from .renderer_result import RendererOutput, RenderedPreview
+from .renderer_result import RenderedPreview, RendererOutput
 
 __all__ = [
     "BaseRenderer",
